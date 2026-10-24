@@ -1,6 +1,6 @@
-# css — rôle du dossier
+# js — rôle du dossier
 
-Styles, mise en page responsive et états visuels. Pas de logique métier.
+Modules JavaScript de l’interface. Les composants, services, pages et utilitaires sont rangés par responsabilité ; les règles métier restent côté serveur.
 
 ## Règles de contribution
 

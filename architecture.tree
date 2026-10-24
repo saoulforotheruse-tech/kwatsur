@@ -1,9 +1,9 @@
 Kwatsur/
-├── app/
+├── app/                         # Backend Python
 │   ├── api/
 │   │   └── routes/
 │   ├── core/
-│   ├── db/
+│   ├── db/                      # Connexion et sessions runtime
 │   ├── integrations/
 │   │   ├── agent_runtime/
 │   │   ├── data/
@@ -13,13 +13,25 @@ Kwatsur/
 │   ├── repositories/
 │   ├── schemas/
 │   └── services/
-├── docs/
-├── frontend/
-│   ├── css/
-│   └── js/
-├── migrations/
-│   └── versions/
-├── scripts/
+├── db/                          # Migrations et données initiales
+│   ├── migrations/
+│   │   └── versions/
+│   └── seed/
+├── docs/                        # Documentation du projet
+├── frontend/                    # Interface web
+│   └── public/
+│       ├── assets/
+│       │   ├── avatars/
+│       │   └── images/
+│       ├── css/
+│       └── js/
+│           ├── components/
+│           ├── core/
+│           ├── pages/
+│           ├── services/
+│           │   └── api/
+│           └── utils/
+├── scripts/                     # Outils de développement
 └── tests/
     ├── e2e/
     ├── integration/

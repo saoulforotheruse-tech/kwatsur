@@ -1,6 +1,6 @@
 # migrations — rôle du dossier
 
-Historique des changements de schéma géré par Alembic. Versionne les évolutions de base.
+Historique des changements de schéma de la base géré par Alembic. Les versions sont conservées dans `versions/`.
 
 ## Règles de contribution
 

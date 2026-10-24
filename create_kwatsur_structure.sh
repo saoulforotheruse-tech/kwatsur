@@ -41,7 +41,11 @@ write_if_missing() {
 for dir in \
   app/core app/api/routes app/schemas app/models app/repositories app/services app/jobs \
   app/integrations/llm app/integrations/data app/integrations/agent_runtime \
-  app/db frontend/css frontend/js migrations/versions \
+  app/db \
+  db/migrations/versions db/seed \
+  frontend/public/assets/avatars frontend/public/assets/images frontend/public/css \
+  frontend/public/js/components frontend/public/js/core frontend/public/js/pages \
+  frontend/public/js/services/api frontend/public/js/utils \
   tests/unit tests/integration tests/e2e scripts docs
 do
   create_dir "$dir"
@@ -74,12 +78,12 @@ write_if_missing "app/integrations/data/zetaris.py" '"""Adaptateur Zetaris à im
 write_if_missing "app/integrations/agent_runtime/meterless.py" '"""Adaptateur Meterless à implémenter selon les outils disponibles."""'$'\n'
 write_if_missing "app/db/session.py" '"""Configuration des sessions SQLAlchemy."""'$'\n'
 write_if_missing "app/db/base.py" '"""Base déclarative SQLAlchemy."""'$'\n'
-write_if_missing "frontend/index.html" '<!doctype html>
+write_if_missing "frontend/public/index.html" '<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kwatsur</title>
+  <title>Kwatsur — recherche de logements</title>
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -91,10 +95,10 @@ write_if_missing "frontend/index.html" '<!doctype html>
 </body>
 </html>
 '
-write_if_missing "frontend/css/styles.css" '/* Styles de l’interface Kwatsur — à développer. */'$'\n'
-write_if_missing "frontend/js/app.js" '// Point d’entrée JavaScript du frontend.'$'\n'
-write_if_missing "frontend/js/chat.js" '// Gestion de l’interface de conversation.'$'\n'
-write_if_missing "frontend/js/property_cards.js" '// Affichage des cartes de logements.'$'\n'
+write_if_missing "frontend/public/css/styles.css" '/* Styles de l’interface Kwatsur. */'$'\n'
+write_if_missing "frontend/public/js/app.js" '// Point d’entrée JavaScript du frontend.'$'\n'
+write_if_missing "frontend/public/js/components/chat.js" '// Composant d’interface de conversation.'$'\n'
+write_if_missing "frontend/public/js/components/property_cards.js" '// Composant d’affichage des cartes de logements.'$'\n'
 write_if_missing "requirements.txt" '# Dépendances Python à définir après validation des versions.'$'\n'
 write_if_missing ".env.example" '# Exemple sans secrets réels.
 DATABASE_URL=postgresql+psycopg://postgres:change_me@db:5432/kwatsur
@@ -116,52 +120,55 @@ write_if_missing "Dockerfile" '# Dockerfile à compléter après définition des
 write_if_missing "docker-compose.yml" '# Compose à compléter après validation de la configuration.'$'\n'
 write_if_missing "alembic.ini" '# Configuration Alembic à compléter.'$'\n'
 
-write_if_missing "README.md" '# Kwatsur — architecture
+write_if_missing "README.md" '# Kwatsur
 
 Kwatsur est un agent conversationnel de recherche et de comparaison de logements à louer, conçu d’abord pour le marché camerounais.
 
-L’architecture s’inspire de l’organisation de `tree.txt`, en l’adaptant au domaine immobilier de Kwatsur. `architecture.tree` présente la structure cible. Cette arborescence ne signifie pas que tous les modules sont déjà implémentés.
+L’organisation du projet reprend celle de l’ancien projet décrit dans `tree.txt`, en l’adaptant au domaine immobilier.
 
-## Architecture
+## Dossiers principaux
 
-Le flux principal est :
+- `app/` : backend Python — API, logique métier, données, intégrations et traitements.
+- `frontend/` : interface web — pages et ressources servies au navigateur.
+- `docs/` : documentation technique et fonctionnelle.
+- `db/` : migrations SQL/Alembic et scripts de données initiales (seed).
 
-`frontend/` → `app/api/routes/` → `app/services/` → `app/repositories/` et `app/integrations/`
+Les dossiers de support `tests/` et `scripts/` restent à la racine pour faciliter les tests et les commandes du projet.
 
-- `app/api/` expose l’API HTTP FastAPI. Les routes valident et traduisent les requêtes, puis délèguent aux services.
-- `app/services/` porte les cas d’utilisation et les règles métier. Cette couche ne dépend ni de FastAPI ni des détails de stockage.
-- `app/repositories/` encapsule l’accès aux données persistées. Les modèles SQLAlchemy restent dans `app/models/`.
-- `app/integrations/` isole les fournisseurs externes derrière des adaptateurs.
-- `app/jobs/` accueille les tâches planifiées ou exécutées en arrière-plan. Un job délègue le travail métier aux services.
-- `app/schemas/` définit les contrats d’entrée et de sortie Pydantic ; `app/core/` et `app/db/` regroupent les fondations partagées.
-- `migrations/` conserve l’historique Alembic. `frontend/` contient l’interface, et `tests/` les tests unitaires, d’intégration et E2E.
+## Organisation du backend
 
-Les dépendances vont vers les contrats et la logique métier, pas depuis les services vers les détails HTTP ou les SDK fournisseurs. Les dépendances concrètes sont assemblées dans l’API ou au démarrage de l’application.
+Le flux principal est `frontend/` → `app/api/` → `app/services/` → `app/repositories/` ou `app/integrations/`.
 
-## Documentation des dossiers
+- `app/api/` reçoit les requêtes HTTP et délègue aux services.
+- `app/core/` contient configuration, journalisation et erreurs partagées.
+- `app/services/` porte les cas d’utilisation et les règles métier.
+- `app/models/` décrit les entités persistées ; `app/schemas/` décrit les contrats d’API.
+- `app/repositories/` isole les accès aux données ; `app/db/` gère la connexion et les sessions de la base.
+- `app/integrations/` isole les fournisseurs externes ; `app/jobs/` accueillera les tâches en arrière-plan lorsqu’elles seront nécessaires.
 
-Chaque répertoire de code contient un fichier `<nom_du_dossier>_readme.md` décrivant son rôle et ses règles de contribution. Ces notes sont indépendantes afin que la responsabilité d’un répertoire soit compréhensible sans devoir lire toute la documentation du projet. Le script `create_kwatsur_structure.sh` crée les notes manquantes sans remplacer celles déjà présentes.
+Les routes ne portent pas les règles métier, et les services ne dépendent pas des détails HTTP ou des SDK des fournisseurs.
+
+## Documentation et structure
+
+Chaque répertoire contient un README local qui explique son rôle de façon indépendante. Le script `create_kwatsur_structure.sh` crée les dossiers et documentations manquants sans remplacer les fichiers existants.
+
+Consulte `architecture.tree` pour la vue d’ensemble.
 
 ## Règles
 
-- Garder chaque module dans sa couche et déléguer plutôt que dupliquer la logique métier.
+- Garder chaque module centré sur une responsabilité et choisir des noms explicites.
 - Ne pas inventer de données, d’endpoints ou d’intégrations.
 - Marquer les données de démonstration comme fictives.
 - Garder les secrets dans `.env`, jamais dans Git ni dans le frontend.
 - Ajouter ou adapter les tests lors d’un changement de comportement.
-- Ne déclarer un test réussi qu’après l’avoir exécuté.
-
-## Structure
-
-Consulte `architecture.tree` pour la vue arborescente et `create_kwatsur_structure.sh` pour générer le squelette dans un dossier cible. Le script conserve les fichiers existants.
 '
 
 write_if_missing "architecture.tree" 'Kwatsur/
-├── app/
+├── app/                         # Backend Python
 │   ├── api/
 │   │   └── routes/
 │   ├── core/
-│   ├── db/
+│   ├── db/                      # Connexion et sessions runtime
 │   ├── integrations/
 │   │   ├── agent_runtime/
 │   │   ├── data/
@@ -171,13 +178,25 @@ write_if_missing "architecture.tree" 'Kwatsur/
 │   ├── repositories/
 │   ├── schemas/
 │   └── services/
-├── docs/
-├── frontend/
-│   ├── css/
-│   └── js/
-├── migrations/
-│   └── versions/
-├── scripts/
+├── db/                          # Migrations et données initiales
+│   ├── migrations/
+│   │   └── versions/
+│   └── seed/
+├── docs/                        # Documentation du projet
+├── frontend/                    # Interface web
+│   └── public/
+│       ├── assets/
+│       │   ├── avatars/
+│       │   └── images/
+│       ├── css/
+│       └── js/
+│           ├── components/
+│           ├── core/
+│           ├── pages/
+│           ├── services/
+│           │   └── api/
+│           └── utils/
+├── scripts/                     # Outils de développement
 └── tests/
     ├── e2e/
     ├── integration/
@@ -200,18 +219,29 @@ DIR_DOCS["app/integrations/llm"]="Contrats et adaptateurs des fournisseurs de la
 DIR_DOCS["app/integrations/data"]="Adaptateurs des sources de données, dont Zetaris. Normalise les résultats et conserve la provenance."
 DIR_DOCS["app/integrations/agent_runtime"]="Encapsule Meterless si son utilisation est pertinente et réellement disponible ; évite les doublons d’orchestration."
 DIR_DOCS["app/db"]="Configuration SQLAlchemy, sessions et base déclarative. Les requêtes propres aux logements restent dans les repositories."
-DIR_DOCS["frontend"]="Interface web. Appelle l’API backend et ne contient aucun secret ni accès direct à PostgreSQL."
-DIR_DOCS["frontend/css"]="Styles, mise en page responsive et états visuels. Pas de logique métier."
-DIR_DOCS["frontend/js"]="Modules JavaScript de l’interface et appels HTTP. Les règles métier restent côté serveur."
-DIR_DOCS["migrations"]="Historique des changements de schéma géré par Alembic. Versionne les évolutions de base."
-DIR_DOCS["migrations/versions"]="Fichiers de migration versionnés. Vérifie les fonctions upgrade et downgrade."
+DIR_DOCS["frontend"]="Interface web. Les pages et ressources servies au navigateur se trouvent dans public/."
+DIR_DOCS["db"]="Ressources de base de données : migrations de schéma et données initiales. La connexion runtime reste dans app/db."
+DIR_DOCS["db/migrations"]="Historique des changements de schéma géré par Alembic. Versionne les évolutions de base."
+DIR_DOCS["db/migrations/versions"]="Fichiers de migration versionnés. Vérifie les fonctions upgrade et downgrade."
+DIR_DOCS["db/seed"]="Données et scripts d’initialisation pour les environnements de développement, test ou démonstration."
+DIR_DOCS["frontend/public"]="Pages et ressources statiques exposées au navigateur. N’y place aucun secret ou code serveur."
+DIR_DOCS["frontend/public/assets"]="Images, icônes, avatars et autres ressources visuelles."
+DIR_DOCS["frontend/public/assets/avatars"]="Avatars fictifs ou génériques. Ne stocke pas de photos personnelles sans autorisation."
+DIR_DOCS["frontend/public/assets/images"]="Images et illustrations statiques utilisées par les pages."
+DIR_DOCS["frontend/public/css"]="Styles, mise en page responsive et états visuels. Pas de logique métier."
+DIR_DOCS["frontend/public/js"]="Modules JavaScript de l’interface. Les règles métier restent côté serveur."
+DIR_DOCS["frontend/public/js/components"]="Composants d’interface réutilisables, chacun centré sur une responsabilité visuelle."
+DIR_DOCS["frontend/public/js/core"]="Fonctions techniques frontend partagées, sans secrets côté client."
+DIR_DOCS["frontend/public/js/pages"]="Initialisation et comportement propres à chaque page HTML."
+DIR_DOCS["frontend/public/js/services"]="Services client qui coordonnent les échanges avec l’API et l’état local."
+DIR_DOCS["frontend/public/js/services/api"]="Modules d’appels HTTP vers l’API backend."
+DIR_DOCS["frontend/public/js/utils"]="Fonctions utilitaires frontend réutilisables et indépendantes des pages."
 DIR_DOCS["tests"]="Tous les tests automatisés. Les tests doivent être reproductibles et documenter leurs prérequis."
 DIR_DOCS["tests/unit"]="Tests isolés des règles métier avec dépendances simulées."
 DIR_DOCS["tests/integration"]="Tests des interactions entre composants et base de test. Les appels externes doivent être explicitement configurés."
 DIR_DOCS["tests/e2e"]="Scénarios complets du parcours utilisateur, documentés et reproductibles."
 DIR_DOCS["scripts"]="Scripts répétables d’initialisation, maintenance ou démonstration. Évite les actions destructrices non confirmées."
 DIR_DOCS["docs"]="Décisions d’architecture, diagrammes et procédures techniques. Maintiens la documentation alignée sur le code."
-DIR_DOCS["migrations/versions"]="Fichiers de migration versionnés. Vérifie les fonctions upgrade et downgrade."
 
 for dir in "${!DIR_DOCS[@]}"; do
   folder_name="$(basename "$dir")"

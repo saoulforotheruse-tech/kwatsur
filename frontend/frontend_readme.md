@@ -1,6 +1,6 @@
 # frontend — rôle du dossier
 
-Interface web. Appelle l’API backend et ne contient aucun secret ni accès direct à PostgreSQL.
+Interface web. Le dossier `public/` contient les pages et ressources exposées au navigateur. L’interface appelle l’API backend et ne contient aucun secret ni accès direct à PostgreSQL.
 
 ## Règles de contribution
 

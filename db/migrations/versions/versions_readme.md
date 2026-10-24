@@ -1,6 +1,6 @@
 # versions — rôle du dossier
 
-Fichiers de migration versionnés. Vérifie les fonctions upgrade et downgrade.
+Fichiers de migration versionnés. Chaque migration décrit les opérations `upgrade` et `downgrade` du schéma.
 
 ## Règles de contribution
 
