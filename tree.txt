@@ -1,0 +1,362 @@
+.
+├── app
+│   ├── api
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   └── __init__.cpython-314.pyc
+│   │   └── routes
+│   │       ├── admin_catalog.py
+│   │       ├── admin_intervention_add.py
+│   │       ├── admin.py
+│   │       ├── catalog.py
+│   │       ├── chat.py
+│   │       ├── error_code.py
+│   │       ├── __init__.py
+│   │       ├── intervention_add.py
+│   │       ├── interventions.py
+│   │       ├── __pycache__
+│   │       │   ├── admin_catalog.cpython-314.pyc
+│   │       │   ├── admin.cpython-314.pyc
+│   │       │   ├── catalog.cpython-314.pyc
+│   │       │   ├── chat.cpython-314.pyc
+│   │       │   ├── error_code.cpython-314.pyc
+│   │       │   ├── __init__.cpython-314.pyc
+│   │       │   ├── interventions.cpython-314.pyc
+│   │       │   └── usual_problem.cpython-314.pyc
+│   │       └── usual_problem.py
+│   ├── core
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── errors.py
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── config.cpython-314.pyc
+│   │   │   ├── database.cpython-314.pyc
+│   │   │   ├── errors.cpython-314.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   └── tracing.cpython-314.pyc
+│   │   └── tracing.py
+│   ├── __init__.py
+│   ├── jobs
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   └── recompute_stats.cpython-314.pyc
+│   │   └── recompute_stats.py
+│   ├── main.py
+│   ├── models
+│   │   ├── catalog.py
+│   │   ├── conversation.py
+│   │   ├── device.py
+│   │   ├── fault.py
+│   │   ├── __init__.py
+│   │   ├── intervention_add.py
+│   │   ├── intervention.py
+│   │   ├── __pycache__
+│   │   │   ├── atm.cpython-314.pyc
+│   │   │   ├── catalog.cpython-314.pyc
+│   │   │   ├── conversation.cpython-314.pyc
+│   │   │   ├── device.cpython-314.pyc
+│   │   │   ├── fault.cpython-314.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── intervention.cpython-314.pyc
+│   │   │   ├── solution_proposal.cpython-314.pyc
+│   │   │   ├── technician.cpython-314.pyc
+│   │   │   └── usual_problem.cpython-314.pyc
+│   │   ├── solution_proposal.py
+│   │   ├── technician.py
+│   │   └── usual_problem.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-314.pyc
+│   │   └── main.cpython-314.pyc
+│   ├── schemas
+│   │   ├── catalog_schema.py
+│   │   ├── chat_schema.py
+│   │   ├── conversation_schema.py
+│   │   ├── device_type.py
+│   │   ├── error_code_schema.py
+│   │   ├── __init__.py
+│   │   ├── intervention_add_schema.py
+│   │   ├── intervention_schema.py
+│   │   ├── message_understanding_schema.py
+│   │   ├── photo_schema.py
+│   │   ├── __pycache__
+│   │   │   ├── catalog_schema.cpython-314.pyc
+│   │   │   ├── chat_schema.cpython-314.pyc
+│   │   │   ├── conversation_schema.cpython-314.pyc
+│   │   │   ├── device_type.cpython-314.pyc
+│   │   │   ├── error_code_schema.cpython-314.pyc
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── intervention_schema.cpython-314.pyc
+│   │   │   ├── message_understanding_schema.cpython-314.pyc
+│   │   │   ├── solution_proposal_schema.cpython-314.pyc
+│   │   │   └── usual_problem_schema.cpython-314.pyc
+│   │   ├── solution_proposal_schema.py
+│   │   └── usual_problem_schema.py
+│   └── services
+│       ├── case_retrieval_service.py
+│       ├── catalog_service.py
+│       ├── chat_orchestrator_service.py
+│       ├── context_service.py
+│       ├── conversation_service.py
+│       ├── embeddings_service.py
+│       ├── error_code_service.py
+│       ├── __init__.py
+│       ├── intervention_add_service.py
+│       ├── intervention_service.py
+│       ├── llm_service.py
+│       ├── message_understanding_service.py
+│       ├── photo_ocr_service.py
+│       ├── __pycache__
+│       │   ├── case_retrieval_service.cpython-314.pyc
+│       │   ├── catalog_service.cpython-314.pyc
+│       │   ├── chat_orchestrator_service.cpython-314.pyc
+│       │   ├── context_service.cpython-314.pyc
+│       │   ├── conversation_service.cpython-314.pyc
+│       │   ├── embeddings_service.cpython-314.pyc
+│       │   ├── error_code_service.cpython-314.pyc
+│       │   ├── __init__.cpython-314.pyc
+│       │   ├── intervention_service.cpython-314.pyc
+│       │   ├── llm_service.cpython-314.pyc
+│       │   ├── message_understanding_service.cpython-314.pyc
+│       │   ├── retrieval_service.cpython-314.pyc
+│       │   ├── solution_proposal_service.cpython-314.pyc
+│       │   ├── stats_service.cpython-314.pyc
+│       │   ├── technical_reference_resolver_service.cpython-314.pyc
+│       │   ├── text_validation_service.cpython-314.pyc
+│       │   └── usual_problem_service.cpython-314.pyc
+│       ├── retrieval_service.py
+│       ├── solution_proposal_service.py
+│       ├── stats_service.py
+│       ├── technical_reference_resolver_service.py
+│       ├── text_validation_service.py
+│       └── usual_problem_service.py
+├── architecture.tree
+├── COMPREHENSION.md
+├── db
+│   ├── migrations
+│   │   ├── 0001_core_schema.sql
+│   │   ├── 0002_symptom_action.sql
+│   │   ├── 0003_pgvector.sql
+│   │   ├── 0004_stats_table.sql
+│   │   ├── 0005_action_targets_symptom.sql
+│   │   ├── 0006_conversation_context.sql
+│   │   ├── 0007_error_codes.sql
+│   │   ├── 0008_embedding_dimension_change.sql
+│   │   ├── 0009_solution_proposal.sql
+│   │   ├── 0010_intervention_action_source_proposal.sql
+│   │   ├── 0011_quick_replies.sql
+│   │   └── 0012_intervention_add.sql
+│   └── seed
+│       ├── __pycache__
+│       │   └── seed_demo_data.cpython-314.pyc
+│       └── seed_demo_data.py
+├── docker-cache
+│   └── huggingface
+├── docker-compose.yml
+├── Dockerfile
+├── Dockerfile.base
+├── Dockerfile.init
+├── docs
+│   ├── ATM-BOT_Dossier_technique.docx
+│   ├── ATM-BOT_Dossier_technique.pdf
+│   ├── ATM-BOT_presentation (4).pptx
+│   ├── ATM-BOT_presentation.pptx
+│   ├── diagrammes
+│   │   ├── 01-avant-apres.svg
+│   │   ├── 02-cas-utilisation.svg
+│   │   ├── 03-architecture.svg
+│   │   ├── 04-parcours-message.svg
+│   │   ├── 05-similarite.svg
+│   │   ├── 06-fiabilite.svg
+│   │   ├── 07-classes-interventions.svg
+│   │   ├── 08-classes-referentiels.svg
+│   │   ├── 09-sequence-diagnostic.svg
+│   │   ├── 10-boucle-apprentissage.svg
+│   │   ├── 11-codes-erreur.svg
+│   │   ├── 12-flux-donnees-vue-ensemble.svg
+│   │   ├── 13-sequence-message-detaillee.svg
+│   │   ├── 14-contenu-appels-claude.svg
+│   │   ├── 15-memoire-et-vecteurs.svg
+│   │   ├── 16-tables-uml-diagnostic.svg
+│   │   ├── 17-tables-par-etape-diagnostic.svg
+│   │   ├── 18-db-conversation.svg
+│   │   ├── 19-db-recherche-solution.svg
+│   │   ├── 20-db-tables-non-utilisees.svg
+│   │   ├── 21-db-exemple-contenu-initial.svg
+│   │   ├── 22-db-exemple-comprehension.svg
+│   │   ├── 23-db-exemple-recherche.svg
+│   │   ├── 24-db-exemple-reponse.svg
+│   │   └── png
+│   │       ├── 01-avant-apres.png
+│   │       ├── 02-cas-utilisation.png
+│   │       ├── 03-architecture.png
+│   │       ├── 04-parcours-message.png
+│   │       ├── 05-similarite.png
+│   │       ├── 06-fiabilite.png
+│   │       ├── 07-classes-interventions.png
+│   │       ├── 08-classes-referentiels.png
+│   │       ├── 09-sequence-diagnostic.png
+│   │       ├── 10-boucle-apprentissage.png
+│   │       ├── 11-codes-erreur.png
+│   │       ├── 12-flux-donnees-vue-ensemble.png
+│   │       ├── 13-sequence-message-detaillee.png
+│   │       ├── 14-contenu-appels-claude.png
+│   │       ├── 15-memoire-et-vecteurs.png
+│   │       ├── 16-tables-uml-diagnostic.png
+│   │       ├── 17-tables-par-etape-diagnostic.png
+│   │       ├── 18-db-conversation.png
+│   │       ├── 19-db-recherche-solution.png
+│   │       ├── 20-db-tables-non-utilisees.png
+│   │       ├── 21-db-exemple-contenu-initial.png
+│   │       ├── 22-db-exemple-comprehension.png
+│   │       ├── 23-db-exemple-recherche.png
+│   │       └── 24-db-exemple-reponse.png
+│   ├── dossier-etude-atm-chatbot.html
+│   ├── flux-donnees-db-exemple.md
+│   ├── to-png.sh
+│   └── visuel_frontend.png
+├── feuille_de_route_flux_utilisation_chatbot.png
+├── frontend
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── public
+│   │   ├── admin.html
+│   │   ├── assets
+│   │   │   ├── avatars
+│   │   │   ├── images
+│   │   │   │   ├── app-background-2.svg
+│   │   │   │   ├── app-background.png
+│   │   │   │   ├── app-background.svg
+│   │   │   │   ├── conseillere-maintenance-telephone.png
+│   │   │   │   ├── guichet-automatique-bleu.png
+│   │   │   │   ├── home-background.svg
+│   │   │   │   ├── logo.svg
+│   │   │   │   └── terminal-paiement-orange.png
+│   │   │   └── README.md
+│   │   ├── copilot.html
+│   │   ├── css
+│   │   │   ├── admin.css
+│   │   │   ├── assets.css
+│   │   │   ├── components.css
+│   │   │   ├── copilot.css
+│   │   │   ├── flow-presentation.css
+│   │   │   ├── home.css
+│   │   │   ├── intervention-add.css
+│   │   │   ├── responsive.css
+│   │   │   ├── style.css
+│   │   │   └── theme.css
+│   │   ├── diagnostic.html
+│   │   ├── flow-presentation.html
+│   │   ├── index.html
+│   │   └── js
+│   │       ├── components
+│   │       │   ├── adminRecordEditor.js
+│   │       │   ├── avatar.js
+│   │       │   ├── chatView.js
+│   │       │   ├── composerDictation.js
+│   │       │   ├── composerPhoto.js
+│   │       │   ├── contextPanel.js
+│   │       │   ├── devicePicker.js
+│   │       │   ├── diagnosticView.js
+│   │       │   ├── icons.js
+│   │       │   ├── interventionAddDialog.js
+│   │       │   ├── settingsPanel.js
+│   │       │   ├── sidebar.js
+│   │       │   ├── solutionProposalDialog.js
+│   │       │   ├── suggestions.js
+│   │       │   ├── themeToggle.js
+│   │       │   └── voiceMode.js
+│   │       ├── config.js
+│   │       ├── core
+│   │       │   └── httpClient.js
+│   │       ├── pages
+│   │       │   ├── admin.js
+│   │       │   ├── copilot.js
+│   │       │   ├── diagnostic.js
+│   │       │   ├── flow-presentation.js
+│   │       │   └── home.js
+│   │       ├── services
+│   │       │   ├── api
+│   │       │   │   ├── adminCatalogApi.js
+│   │       │   │   ├── adminProposalApi.js
+│   │       │   │   ├── authApi.js
+│   │       │   │   ├── chatApi.js
+│   │       │   │   ├── conversationApi.js
+│   │       │   │   ├── errorCodeApi.js
+│   │       │   │   ├── interventionAddApi.js
+│   │       │   │   ├── mocks.js
+│   │       │   │   ├── photoApi.js
+│   │       │   │   ├── solutionProposalApi.js
+│   │       │   │   ├── symptomApi.js
+│   │       │   │   ├── usualProblemApi.js
+│   │       │   │   └── voiceApi.js
+│   │       │   ├── conversationService.js
+│   │       │   ├── preferencesService.js
+│   │       │   ├── sessionService.js
+│   │       │   └── speech
+│   │       │       ├── audioLevelMonitor.js
+│   │       │       ├── speechRecognitionService.js
+│   │       │       └── speechSynthesisService.js
+│   │       └── utils
+│   │           ├── dom.js
+│   │           └── messageMarkdown.js
+│   ├── __pycache__
+│   │   └── server.cpython-314.pyc
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── server.py
+│   └── servers
+│       └── __pycache__
+│           ├── api_proxy.cpython-314.pyc
+│           ├── http_helpers.cpython-314.pyc
+│           ├── __init__.cpython-314.pyc
+│           └── voice_server.cpython-314.pyc
+├── get-docker.sh
+├── main.py
+├── README.md
+├── requirements-init.txt
+├── requirements.txt
+├── share
+│   ├── envoyer.ps1
+│   ├── preparer-paquet.sh
+│   ├── README.md
+│   ├── recevoir.ps1
+│   └── recevoir.sh
+├── tests
+│   ├── __pycache__
+│   │   ├── test_admin_catalog.cpython-314.pyc
+│   │   ├── test_conversation_llm.cpython-314.pyc
+│   │   ├── test_embeddings.cpython-314.pyc
+│   │   ├── test_error_code_search.cpython-314.pyc
+│   │   ├── test_external_services.cpython-314.pyc
+│   │   ├── test_llm_providers.cpython-314.pyc
+│   │   ├── test_llm_providers.cpython-314-pytest-9.1.1.pyc
+│   │   ├── test_quick_replies.cpython-314.pyc
+│   │   ├── test_retrieval.cpython-314.pyc
+│   │   ├── test_solution_proposal_service.cpython-314.pyc
+│   │   ├── test_solution_proposal_service.cpython-314-pytest-9.1.1.pyc
+│   │   ├── test_text_validation_service.cpython-314.pyc
+│   │   ├── test_text_validation_service.cpython-314-pytest-9.1.1.pyc
+│   │   ├── test_tracing.cpython-314.pyc
+│   │   └── test_tracing.cpython-314-pytest-9.1.1.pyc
+│   ├── test_admin_catalog.py
+│   ├── test_case_summary_prompt.py
+│   ├── test_conversation_llm.py
+│   ├── test_embeddings.py
+│   ├── test_error_code_search.py
+│   ├── test_external_services_frontend.mjs
+│   ├── test_external_services.py
+│   ├── test_frontend_static_files.py
+│   ├── test_intervention_add_service.py
+│   ├── test_llm_providers.py
+│   ├── test_multi_symptom_search.py
+│   ├── test_photo_ocr.py
+│   ├── test_quick_replies.py
+│   ├── test_retrieval.py
+│   ├── test_solution_proposal_service.py
+│   ├── test_text_validation_service.py
+│   └── test_tracing.py
+└── tree.txt
+
+46 directories, 314 files

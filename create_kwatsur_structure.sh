@@ -39,7 +39,7 @@ write_if_missing() {
 
 # Dossiers
 for dir in \
-  app/core app/api/routes app/schemas app/models app/repositories app/services \
+  app/core app/api/routes app/schemas app/models app/repositories app/services app/jobs \
   app/integrations/llm app/integrations/data app/integrations/agent_runtime \
   app/db frontend/css frontend/js migrations/versions \
   tests/unit tests/integration tests/e2e scripts docs
@@ -67,6 +67,7 @@ write_if_missing "app/services/agent_service.py" '"""Orchestration de l’agent.
 write_if_missing "app/services/search_service.py" '"""Recherche et filtrage des logements."""'$'\n'
 write_if_missing "app/services/ranking_service.py" '"""Classement explicable des résultats."""'$'\n'
 write_if_missing "app/services/conversation_service.py" '"""Gestion des conversations."""'$'\n'
+write_if_missing "app/jobs/__init__.py" '"""Tâches planifiées ou exécutées en arrière-plan."""'$'\n'
 write_if_missing "app/integrations/llm/base.py" '"""Contrat commun des fournisseurs IA."""'$'\n'
 write_if_missing "app/integrations/llm/nemotron.py" '"""Adaptateur Nemotron à implémenter selon la documentation."""'$'\n'
 write_if_missing "app/integrations/data/zetaris.py" '"""Adaptateur Zetaris à implémenter selon les accès réels."""'$'\n'
@@ -115,47 +116,72 @@ write_if_missing "Dockerfile" '# Dockerfile à compléter après définition des
 write_if_missing "docker-compose.yml" '# Compose à compléter après validation de la configuration.'$'\n'
 write_if_missing "alembic.ini" '# Configuration Alembic à compléter.'$'\n'
 
-write_if_missing "README.md" '# Kwatsur — structure initiale
+write_if_missing "README.md" '# Kwatsur — architecture
 
 Kwatsur est un agent conversationnel de recherche et de comparaison de logements à louer, conçu d’abord pour le marché camerounais.
 
-Cette arborescence est un squelette de projet, pas une application terminée.
+L’architecture s’inspire de l’organisation de `tree.txt`, en l’adaptant au domaine immobilier de Kwatsur. `architecture.tree` présente la structure cible. Cette arborescence ne signifie pas que tous les modules sont déjà implémentés.
 
 ## Architecture
 
-Architecture en couches inspirée de MVC :
-1. `frontend/` : présentation HTML/CSS/JavaScript.
-2. `app/api/routes/` : contrôleurs HTTP FastAPI.
-3. `app/services/` : logique métier et cas d’utilisation.
-4. `app/repositories/` : accès aux données persistées.
-5. `app/models/` et `app/schemas/` : persistance SQLAlchemy et contrats Pydantic.
-6. `app/integrations/` : adaptateurs des fournisseurs externes.
-7. `app/db/`, `migrations/` et Docker : infrastructure.
+Le flux principal est :
 
-Les routes ne contiennent pas la logique métier complexe. Les services ne dépendent pas des détails HTTP. Les adaptateurs isolent les fournisseurs externes.
+`frontend/` → `app/api/routes/` → `app/services/` → `app/repositories/` et `app/integrations/`
 
-## Dossiers
+- `app/api/` expose l’API HTTP FastAPI. Les routes valident et traduisent les requêtes, puis délèguent aux services.
+- `app/services/` porte les cas d’utilisation et les règles métier. Cette couche ne dépend ni de FastAPI ni des détails de stockage.
+- `app/repositories/` encapsule l’accès aux données persistées. Les modèles SQLAlchemy restent dans `app/models/`.
+- `app/integrations/` isole les fournisseurs externes derrière des adaptateurs.
+- `app/jobs/` accueille les tâches planifiées ou exécutées en arrière-plan. Un job délègue le travail métier aux services.
+- `app/schemas/` définit les contrats d’entrée et de sortie Pydantic ; `app/core/` et `app/db/` regroupent les fondations partagées.
+- `migrations/` conserve l’historique Alembic. `frontend/` contient l’interface, et `tests/` les tests unitaires, d’intégration et E2E.
 
-Chaque dossier contient un fichier `<nom_du_dossier>_readme.md` qui explique sa responsabilité et les règles de contribution.
+Les dépendances vont vers les contrats et la logique métier, pas depuis les services vers les détails HTTP ou les SDK fournisseurs. Les dépendances concrètes sont assemblées dans l’API ou au démarrage de l’application.
 
-- `app/` : backend Python.
-- `frontend/` : interface web.
-- `tests/` : tests unitaires, d’intégration et E2E.
-- `migrations/` : migrations de schéma.
-- `scripts/` : scripts répétables.
-- `docs/` : documentation technique.
+## Documentation des dossiers
+
+Chaque répertoire de code contient un fichier `<nom_du_dossier>_readme.md` décrivant son rôle et ses règles de contribution. Ces notes sont indépendantes afin que la responsabilité d’un répertoire soit compréhensible sans devoir lire toute la documentation du projet. Le script `create_kwatsur_structure.sh` crée les notes manquantes sans remplacer celles déjà présentes.
 
 ## Règles
 
-- Utiliser Service Layer, Repository, Dependency Injection et Adapter quand ils apportent une vraie valeur.
+- Garder chaque module dans sa couche et déléguer plutôt que dupliquer la logique métier.
 - Ne pas inventer de données, d’endpoints ou d’intégrations.
 - Marquer les données de démonstration comme fictives.
 - Garder les secrets dans `.env`, jamais dans Git ni dans le frontend.
+- Ajouter ou adapter les tests lors d’un changement de comportement.
 - Ne déclarer un test réussi qu’après l’avoir exécuté.
 
-## État actuel
+## Structure
 
-Le script crée la structure et des fichiers de départ ; il ne constitue pas une application complète. Les dépendances, routes, modèles, migrations, intégrations et fichiers Docker restent à implémenter.
+Consulte `architecture.tree` pour la vue arborescente et `create_kwatsur_structure.sh` pour générer le squelette dans un dossier cible. Le script conserve les fichiers existants.
+'
+
+write_if_missing "architecture.tree" 'Kwatsur/
+├── app/
+│   ├── api/
+│   │   └── routes/
+│   ├── core/
+│   ├── db/
+│   ├── integrations/
+│   │   ├── agent_runtime/
+│   │   ├── data/
+│   │   └── llm/
+│   ├── jobs/
+│   ├── models/
+│   ├── repositories/
+│   ├── schemas/
+│   └── services/
+├── docs/
+├── frontend/
+│   ├── css/
+│   └── js/
+├── migrations/
+│   └── versions/
+├── scripts/
+└── tests/
+    ├── e2e/
+    ├── integration/
+    └── unit/
 '
 
 # README in every directory; do not overwrite existing docs.
@@ -168,6 +194,7 @@ DIR_DOCS["app/schemas"]="Contrats Pydantic pour valider les entrées et sorties.
 DIR_DOCS["app/models"]="Entités SQLAlchemy et relations de persistance. Pas d’appels réseau ni d’orchestration dans les modèles."
 DIR_DOCS["app/repositories"]="Centralise les lectures et écritures en base. Évite les requêtes SQL dispersées dans les routes et services."
 DIR_DOCS["app/services"]="Cas d’utilisation et logique métier : recherche, classement, conversations et orchestration de l’agent."
+DIR_DOCS["app/jobs"]="Tâches planifiées ou exécutées en arrière-plan. Les jobs coordonnent les services et ne dupliquent pas les règles métier."
 DIR_DOCS["app/integrations"]="Adaptateurs des services externes. Respecte les documentations officielles et n’invente aucune API."
 DIR_DOCS["app/integrations/llm"]="Contrats et adaptateurs des fournisseurs de langage, notamment Nemotron. Le métier dépend d’un contrat, pas d’un SDK spécifique."
 DIR_DOCS["app/integrations/data"]="Adaptateurs des sources de données, dont Zetaris. Normalise les résultats et conserve la provenance."
@@ -203,7 +230,7 @@ ${DIR_DOCS[$dir]}
 done
 
 # Add Python package markers where useful, without overwriting.
-for pkg in app app/core app/api app/api/routes app/schemas app/models app/repositories app/services app/integrations app/integrations/llm app/integrations/data app/integrations/agent_runtime app/db; do
+for pkg in app app/core app/api app/api/routes app/schemas app/models app/repositories app/services app/jobs app/integrations app/integrations/llm app/integrations/data app/integrations/agent_runtime app/db; do
   write_if_missing "$pkg/__init__.py" ""
 done
 

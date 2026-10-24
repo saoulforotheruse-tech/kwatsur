@@ -1,41 +1,38 @@
-# Kwatsur — structure initiale
+# Kwatsur — architecture
 
 Kwatsur est un agent conversationnel de recherche et de comparaison de logements à louer, conçu d’abord pour le marché camerounais.
 
-Cette arborescence est un squelette de projet, pas une application terminée.
+L’architecture s’inspire de l’organisation de `tree.txt`, en l’adaptant au domaine immobilier de Kwatsur. `architecture.tree` présente la structure cible. Cette arborescence ne signifie pas que tous les modules sont déjà implémentés.
 
 ## Architecture
 
-Architecture en couches inspirée de MVC :
-1. `frontend/` : présentation HTML/CSS/JavaScript.
-2. `app/api/routes/` : contrôleurs HTTP FastAPI.
-3. `app/services/` : logique métier et cas d’utilisation.
-4. `app/repositories/` : accès aux données persistées.
-5. `app/models/` et `app/schemas/` : persistance SQLAlchemy et contrats Pydantic.
-6. `app/integrations/` : adaptateurs des fournisseurs externes.
-7. `app/db/`, `migrations/` et Docker : infrastructure.
+Le flux principal est :
 
-Les routes ne contiennent pas la logique métier complexe. Les services ne dépendent pas des détails HTTP. Les adaptateurs isolent les fournisseurs externes.
+`frontend/` → `app/api/routes/` → `app/services/` → `app/repositories/` et `app/integrations/`
 
-## Dossiers
+- `app/api/` expose l’API HTTP FastAPI. Les routes valident et traduisent les requêtes, puis délèguent aux services.
+- `app/services/` porte les cas d’utilisation et les règles métier. Cette couche ne dépend ni de FastAPI ni des détails de stockage.
+- `app/repositories/` encapsule l’accès aux données persistées. Les modèles SQLAlchemy restent dans `app/models/`.
+- `app/integrations/` isole les fournisseurs externes derrière des adaptateurs.
+- `app/jobs/` accueille les tâches planifiées ou exécutées en arrière-plan. Un job délègue le travail métier aux services.
+- `app/schemas/` définit les contrats d’entrée et de sortie Pydantic ; `app/core/` et `app/db/` regroupent les fondations partagées.
+- `migrations/` conserve l’historique Alembic. `frontend/` contient l’interface, et `tests/` les tests unitaires, d’intégration et E2E.
 
-Chaque dossier contient un fichier `<nom_du_dossier>_readme.md` qui explique sa responsabilité et les règles de contribution.
+Les dépendances vont vers les contrats et la logique métier, pas depuis les services vers les détails HTTP ou les SDK fournisseurs. Les dépendances concrètes sont assemblées dans l’API ou au démarrage de l’application.
 
-- `app/` : backend Python.
-- `frontend/` : interface web.
-- `tests/` : tests unitaires, d’intégration et E2E.
-- `migrations/` : migrations de schéma.
-- `scripts/` : scripts répétables.
-- `docs/` : documentation technique.
+## Documentation des dossiers
+
+Chaque répertoire de code contient un fichier `<nom_du_dossier>_readme.md` décrivant son rôle et ses règles de contribution. Ces notes sont indépendantes afin que la responsabilité d’un répertoire soit compréhensible sans devoir lire toute la documentation du projet. Le script `create_kwatsur_structure.sh` crée les notes manquantes sans remplacer celles déjà présentes.
 
 ## Règles
 
-- Utiliser Service Layer, Repository, Dependency Injection et Adapter quand ils apportent une vraie valeur.
+- Garder chaque module dans sa couche et déléguer plutôt que dupliquer la logique métier.
 - Ne pas inventer de données, d’endpoints ou d’intégrations.
 - Marquer les données de démonstration comme fictives.
 - Garder les secrets dans `.env`, jamais dans Git ni dans le frontend.
+- Ajouter ou adapter les tests lors d’un changement de comportement.
 - Ne déclarer un test réussi qu’après l’avoir exécuté.
 
-## État actuel
+## Structure
 
-Le script crée la structure et des fichiers de départ ; il ne constitue pas une application complète. Les dépendances, routes, modèles, migrations, intégrations et fichiers Docker restent à implémenter.
+Consulte [`architecture.tree`](./architecture.tree) pour la vue arborescente et `create_kwatsur_structure.sh` pour générer le squelette dans un dossier cible. Le script conserve les fichiers existants.

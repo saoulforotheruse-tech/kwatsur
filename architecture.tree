@@ -1,0 +1,26 @@
+Kwatsur/
+├── app/
+│   ├── api/
+│   │   └── routes/
+│   ├── core/
+│   ├── db/
+│   ├── integrations/
+│   │   ├── agent_runtime/
+│   │   ├── data/
+│   │   └── llm/
+│   ├── jobs/
+│   ├── models/
+│   ├── repositories/
+│   ├── schemas/
+│   └── services/
+├── docs/
+├── frontend/
+│   ├── css/
+│   └── js/
+├── migrations/
+│   └── versions/
+├── scripts/
+└── tests/
+    ├── e2e/
+    ├── integration/
+    └── unit/
