@@ -3,83 +3,105 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Recherchez et comparez des logements au Cameroun.">
+    <meta name="description" content="Kwatsur : un agent conversationnel pour rechercher et comparer des logements au Cameroun.">
     <title>Kwatsur — trouver un logement</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23167653'/%3E%3Cpath d='M8 17 16 9l8 8v7h-5v-5h-6v5H8z' fill='white'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="Kwatsur, accueil">kwatsur<span>.</span></a>
-      <p>Votre recherche de logement, plus simple.</p>
+      <a class="brand" href="/" aria-label="Kwatsur, accueil">
+        <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z"/></svg>
+        kwatsur<span>.</span>
+      </a>
+      <p>Votre agent de recherche de logement au Cameroun.</p>
     </header>
 
     <main class="page-shell">
       <section class="intro" aria-labelledby="page-title">
-        <p class="eyebrow">LOCATION · CAMEROUN</p>
-        <h1 id="page-title">Un logement qui vous ressemble.</h1>
-        <p>Définissez vos critères, explorez les annonces disponibles et comparez les informations connues.</p>
-        <p class="limit-note">Cette version utilise une recherche par filtres. La recherche en langage naturel viendra après la configuration des services IA.</p>
+        <p class="eyebrow">LOCATION · DOUALA · YAOUNDÉ</p>
+        <h1 id="page-title">Décrivez votre logement idéal, Kwatsur cherche pour vous.</h1>
+        <p>L'agent comprend votre demande, filtre les annonces disponibles, les classe et explique chaque recommandation. Il n'invente jamais d'annonce : les informations inconnues restent signalées comme telles.</p>
       </section>
 
-      <section class="search-panel" aria-labelledby="search-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">VOTRE RECHERCHE</p>
-            <h2 id="search-title">Quels sont vos critères&nbsp;?</h2>
+      <div class="workspace">
+        <section class="chat-panel" aria-labelledby="chat-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">CONVERSATION</p>
+              <h2 id="chat-title">Parlez à l'agent</h2>
+            </div>
+            <button id="new-conversation" class="text-button" type="button">Nouvelle conversation</button>
           </div>
-          <span class="demo-note">Les annonces de démonstration sont signalées.</span>
-        </div>
-        <form id="search-form">
-          <label>
-            Ville
-            <input name="city" autocomplete="address-level2" placeholder="Ex. Douala">
-          </label>
-          <label>
-            Quartier souhaité
-            <input name="neighborhood" placeholder="Ex. Bonamoussadi">
-          </label>
-          <label>
-            Loyer minimum (FCFA/mois)
-            <input name="min_rent" type="number" min="0" step="5000" placeholder="50000">
-          </label>
-          <label>
-            Loyer maximum (FCFA/mois)
-            <input name="max_rent" type="number" min="0" step="5000" placeholder="150000">
-          </label>
-          <label>
-            Chambres
-            <select name="bedrooms">
-              <option value="">Indifférent</option>
-              <option value="0">Studio</option>
-              <option value="1">1 chambre</option>
-              <option value="2">2 chambres</option>
-              <option value="3">3 chambres</option>
-              <option value="4">4 chambres</option>
-            </select>
-          </label>
-          <fieldset class="amenity-filters">
-            <legend>Équipements indispensables</legend>
-            <label class="check-label"><input name="water_available" type="checkbox"> Eau disponible</label>
-            <label class="check-label"><input name="electricity_available" type="checkbox"> Électricité disponible</label>
-            <label class="check-label"><input name="furnished" type="checkbox"> Meublé</label>
-          </fieldset>
-          <button class="primary-button" type="submit">Rechercher des logements</button>
-        </form>
-      </section>
 
-      <section class="results-section" aria-labelledby="results-title">
-        <div class="section-heading results-heading">
-          <div>
-            <p class="eyebrow">ANNONCES</p>
-            <h2 id="results-title">Logements correspondants</h2>
+          <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Messages de la conversation"></div>
+
+          <div class="examples" aria-label="Exemples de demandes">
+            <button type="button" class="example-chip" data-example="Je cherche un appartement de deux chambres à Douala, vers Bonamoussadi, avec un budget maximal de 150 000 FCFA par mois. Je veux de l'eau et de l'électricité, et je préfère être proche des transports.">Appartement à Bonamoussadi</button>
+            <button type="button" class="example-chip" data-example="Un studio à Yaoundé à moins de 100 000 FCFA, de préférence meublé.">Studio à Yaoundé</button>
+            <button type="button" class="example-chip" data-example="Finalement, peu importe le quartier, mais pas plus de 110 000 FCFA.">Assouplir les critères</button>
           </div>
-          <p id="result-count" class="result-count" aria-live="polite"></p>
-        </div>
-        <p id="status-message" class="status-message" role="status" aria-live="polite">
-          Lancez une recherche pour consulter les annonces.
-        </p>
-        <div id="property-results" class="property-grid"></div>
-      </section>
+
+          <form id="chat-form" class="chat-form">
+            <label class="visually-hidden" for="chat-input">Votre message</label>
+            <textarea id="chat-input" name="message" rows="2" maxlength="2000" required placeholder="Ex. : un deux-chambres à Douala, 150 000 FCFA maximum, avec eau et électricité"></textarea>
+            <button class="primary-button" type="submit">Envoyer</button>
+          </form>
+
+          <div class="criteria-block">
+            <h3>Critères retenus par l'agent</h3>
+            <div id="criteria" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <section class="results-section" aria-labelledby="results-title">
+          <div class="section-heading results-heading">
+            <div>
+              <p class="eyebrow">ANNONCES</p>
+              <h2 id="results-title">Logements correspondants</h2>
+            </div>
+            <p id="result-count" class="result-count" aria-live="polite"></p>
+          </div>
+          <p id="status-message" class="status-message" role="status" aria-live="polite">
+            Les logements trouvés par l'agent s'afficheront ici.
+          </p>
+          <div id="property-results" class="property-grid"></div>
+
+          <details class="filter-panel">
+            <summary>Recherche manuelle par filtres (sans IA)</summary>
+            <form id="search-form">
+              <label>Ville<input name="city" autocomplete="address-level2" placeholder="Ex. Douala"></label>
+              <label>Quartier souhaité<input name="neighborhood" placeholder="Ex. Bonamoussadi"></label>
+              <label>Type
+                <select name="property_type">
+                  <option value="">Indifférent</option>
+                  <option value="studio">Studio</option>
+                  <option value="chambre">Chambre</option>
+                  <option value="appartement">Appartement</option>
+                  <option value="maison">Maison</option>
+                </select>
+              </label>
+              <label>Chambres (minimum)
+                <select name="bedrooms">
+                  <option value="">Indifférent</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </label>
+              <label>Loyer minimum (FCFA/mois)<input name="min_rent" type="number" min="0" step="5000" placeholder="50000"></label>
+              <label>Loyer maximum (FCFA/mois)<input name="max_rent" type="number" min="0" step="5000" placeholder="150000"></label>
+              <fieldset class="amenity-filters">
+                <legend>Équipements indispensables</legend>
+                <label class="check-label"><input name="water_available" type="checkbox"> Eau</label>
+                <label class="check-label"><input name="electricity_available" type="checkbox"> Électricité</label>
+              </fieldset>
+              <button class="primary-button" type="submit">Rechercher</button>
+            </form>
+          </details>
+        </section>
+      </div>
 
       <section id="comparison" class="comparison-section" aria-labelledby="comparison-title" hidden>
         <div class="section-heading">
@@ -89,12 +111,26 @@
           </div>
           <button id="clear-comparison" class="text-button" type="button">Effacer la sélection</button>
         </div>
-        <div id="comparison-table"></div>
+        <div id="comparison-table" class="comparison-scroll"></div>
       </section>
     </main>
 
+    <dialog id="contact-dialog" class="contact-dialog" aria-labelledby="contact-title">
+      <form method="dialog">
+        <h2 id="contact-title">Message de prise de contact</h2>
+        <p id="contact-notice" class="warning-text"></p>
+        <p id="contact-details" class="muted-text"></p>
+        <label class="visually-hidden" for="contact-message">Message</label>
+        <textarea id="contact-message" rows="10"></textarea>
+        <div class="dialog-actions">
+          <button id="copy-contact" class="primary-button" type="button">Copier le message</button>
+          <button class="text-button" value="close">Fermer</button>
+        </div>
+      </form>
+    </dialog>
+
     <footer class="site-footer">
-      <p>Les annonces de démonstration sont fictives. Une disponibilité ou une information non confirmée reste à vérifier auprès de la source.</p>
+      <p>Les annonces marquées « Démo fictive » sont inventées pour la démonstration. Une disponibilité ou une information non confirmée reste à vérifier auprès de la source. Ne versez jamais d'argent avant une visite.</p>
     </footer>
     <script type="module" src="/js/app.js"></script>
   </body>

@@ -1,155 +1,121 @@
-const currencyFormatter = new Intl.NumberFormat("fr-FR");
-const MAX_COMPARISON_ITEMS = 3;
+import { t } from "../i18n/index.js";
+import {
+  createElement,
+  formatBedrooms,
+  formatBoolean,
+  formatDate,
+  formatListingStatus,
+  formatRent,
+} from "../utils/format.js";
 
-function addTextElement(parent, tagName, text, className) {
-  const element = document.createElement(tagName);
-  element.textContent = text;
-  if (className) {
-    element.className = className;
+export const MAX_COMPARISON_ITEMS = 3;
+
+function appendList(parent, title, items, className) {
+  if (!items?.length) {
+    return;
   }
-  parent.append(element);
-  return element;
-}
-
-function formatBoolean(value, trueLabel, falseLabel) {
-  if (value === null || value === undefined) {
-    return "Non renseigné";
+  parent.append(createElement("h4", title));
+  const list = createElement("ul", null, className);
+  for (const item of items) {
+    list.append(createElement("li", item));
   }
-  return value ? trueLabel : falseLabel;
+  parent.append(list);
 }
 
-function formatRent(property) {
-  const currency = property.currency === "XAF" ? "FCFA" : property.currency;
-  return `${currencyFormatter.format(property.monthly_rent)} ${currency} / mois`;
-}
-
-function formatListingStatus(status) {
-  const labels = {
-    active: "Annoncée active par la source",
-    unconfirmed: "Disponibilité à confirmer",
-    withdrawn: "Annonce retirée",
-  };
-  return labels[status] || "Statut à vérifier";
-}
-
-function createPropertyCard(result, selectedProperties, onComparisonChange) {
-  const property = result.property;
-  const card = document.createElement("article");
-  card.className = "property-card";
-  card.dataset.property = JSON.stringify(property);
-
-  const header = document.createElement("div");
-  header.className = "property-card-header";
-  addTextElement(header, "h3", property.title);
-  if (property.source_is_demo) {
-    addTextElement(header, "span", "Démo fictive", "demo-badge");
-  }
-  card.append(header);
-
-  const area = [property.neighborhood, property.city].filter(Boolean).join(", ");
-  addTextElement(card, "p", area || "Localisation non renseignée", "property-location");
-  addTextElement(
-    card,
-    "p",
-    formatRent(property),
-    "property-rent",
-  );
-
-  const facts = document.createElement("ul");
-  facts.className = "property-facts";
+function createFacts(property) {
+  const facts = createElement("ul", null, "property-facts");
   for (const fact of [
     property.property_type,
-    property.bedrooms === null
-      ? "Chambres non renseignées"
-      : property.bedrooms === 0
-        ? "Studio"
-        : `${property.bedrooms} chambre(s)`,
+    formatBedrooms(property.bedrooms),
     `Eau : ${formatBoolean(property.water_available, "oui", "non")}`,
     `Électricité : ${formatBoolean(property.electricity_available, "oui", "non")}`,
     `Meublé : ${formatBoolean(property.furnished, "oui", "non")}`,
     formatListingStatus(property.listing_status),
   ]) {
-    addTextElement(facts, "li", fact);
+    facts.append(createElement("li", fact));
   }
-  card.append(facts);
-  addTextElement(
-    card,
-    "p",
-    property.last_seen_at
-      ? `Dernière observation : ${new Intl.DateTimeFormat("fr-FR").format(new Date(property.last_seen_at))}`
-      : "Date de dernière observation non renseignée.",
-    "property-source",
+  return facts;
+}
+
+function createExplanation(result) {
+  const details = createElement("details", null, "property-detail");
+  details.append(createElement("summary", t("card.details")));
+  details.append(createElement("p", t("card.points", { points: result.match_points }), "muted-text"));
+  appendList(details, t("card.reasons"), result.reasons, "reason-list");
+  appendList(details, t("card.tradeoffs"), result.tradeoffs, "tradeoff-list");
+  appendList(details, t("card.toVerify"), result.to_verify, "verify-list");
+  appendList(details, t("card.missing"), result.missing_information, "missing-list");
+  return details;
+}
+
+function createSourceLabel(property) {
+  const label = property.source_url ? createElement("a") : createElement("span");
+  label.className = "property-source";
+  label.textContent = t("card.source", { name: property.source_name });
+  if (property.source_url) {
+    label.href = property.source_url;
+    label.target = "_blank";
+    label.rel = "noopener noreferrer";
+  }
+  return label;
+}
+
+function createPropertyCard(result, handlers) {
+  const { property } = result;
+  const card = createElement("article", null, "property-card");
+
+  const header = createElement("div", null, "property-card-header");
+  header.append(createElement("span", `#${result.rank}`, "rank-badge"));
+  header.append(createElement("h3", property.title));
+  if (property.source_is_demo) {
+    header.append(createElement("span", t("card.demo"), "demo-badge"));
+  }
+  card.append(header);
+
+  const area = [property.neighborhood, property.city].filter(Boolean).join(", ");
+  card.append(createElement("p", area || "Localisation non renseignée", "property-location"));
+  card.append(createElement("p", formatRent(property), "property-rent"));
+  card.append(createFacts(property));
+
+  if (result.reasons.length) {
+    card.append(createElement("p", result.reasons.slice(0, 2).join(" "), "property-summary"));
+  }
+  if (result.risk_signals.length) {
+    const risks = createElement("div", null, "risk-box");
+    appendList(risks, t("card.risks"), result.risk_signals, "risk-list");
+    card.append(risks);
+  }
+  card.append(
+    createElement(
+      "p",
+      property.last_seen_at
+        ? t("card.lastSeen", { date: formatDate(property.last_seen_at) })
+        : t("card.lastSeenUnknown"),
+      "property-source",
+    ),
   );
-  if (property.verification_status !== "verified") {
-    addTextElement(card, "p", "Les informations de cette annonce ne sont pas vérifiées.", "property-source");
-  }
-  if (property.contact_information) {
-    addTextElement(card, "p", `Contact fourni par la source : ${property.contact_information}`);
-  }
+  card.append(createExplanation(result));
 
-  if (property.description) {
-    addTextElement(card, "p", property.description, "property-description");
-  }
-
-  const details = document.createElement("details");
-  details.className = "property-detail";
-  addTextElement(details, "summary", "Voir les raisons et les informations manquantes");
-  const reasonsHeading = addTextElement(details, "h4", "Pourquoi ce résultat");
-  const reasons = document.createElement("ul");
-  for (const reason of result.reasons) {
-    addTextElement(reasons, "li", reason);
-  }
-  details.append(reasonsHeading, reasons);
-
-  if (result.missing_information.length) {
-    const missingHeading = addTextElement(details, "h4", "Informations à vérifier");
-    const missing = document.createElement("ul");
-    for (const item of result.missing_information) {
-      addTextElement(missing, "li", item);
-    }
-    details.append(missingHeading, missing);
-  }
-  card.append(details);
-
-  const actions = document.createElement("div");
-  actions.className = "card-actions";
-  const compareLabel = document.createElement("label");
-  compareLabel.className = "compare-label";
+  const actions = createElement("div", null, "card-actions");
+  const compareLabel = createElement("label", null, "compare-label");
   const compareInput = document.createElement("input");
   compareInput.type = "checkbox";
-  compareInput.checked = selectedProperties.has(property.id);
-  compareInput.disabled = !compareInput.checked && selectedProperties.size >= MAX_COMPARISON_ITEMS;
-  compareInput.addEventListener("change", () => {
-    if (compareInput.checked) {
-      selectedProperties.set(property.id, property);
-    } else {
-      selectedProperties.delete(property.id);
-    }
-    onComparisonChange();
-  });
-  compareLabel.append(compareInput, document.createTextNode("Comparer"));
-  actions.append(compareLabel);
+  compareInput.checked = handlers.isSelected(property.id);
+  compareInput.disabled = !compareInput.checked && !handlers.canSelectMore();
+  compareInput.addEventListener("change", () => handlers.onToggleCompare(property, compareInput.checked));
+  compareLabel.append(compareInput, document.createTextNode(t("card.compare")));
 
-  const sourceLabel = property.source_url
-    ? document.createElement("a")
-    : document.createElement("span");
-  sourceLabel.className = "property-source";
-  sourceLabel.textContent = `Source : ${property.source_name}`;
-  if (property.source_url) {
-    sourceLabel.href = property.source_url;
-    sourceLabel.target = "_blank";
-    sourceLabel.rel = "noopener noreferrer";
-  }
-  actions.append(sourceLabel);
+  const contactButton = createElement("button", t("card.contact"), "text-button");
+  contactButton.type = "button";
+  contactButton.addEventListener("click", () => handlers.onContact(property));
+
+  actions.append(compareLabel, contactButton, createSourceLabel(property));
   card.append(actions);
   return card;
 }
 
-export function renderProperties(container, results, selectedProperties, onComparisonChange) {
-  container.replaceChildren();
-  for (const result of results) {
-    container.append(createPropertyCard(result, selectedProperties, onComparisonChange));
-  }
+export function renderProperties(container, results, handlers) {
+  container.replaceChildren(...results.map((result) => createPropertyCard(result, handlers)));
 }
 
 export function renderComparison(container, properties) {
@@ -157,32 +123,31 @@ export function renderComparison(container, properties) {
   if (!properties.length) {
     return;
   }
-
-  const table = document.createElement("table");
-  table.className = "comparison-table";
   const rows = [
-    ["Logement", (property) => property.title],
-    ["Lieu", (property) => [property.neighborhood, property.city].filter(Boolean).join(", ")],
+    ["Lieu", (p) => [p.neighborhood, p.city].filter(Boolean).join(", ")],
     ["Loyer mensuel", formatRent],
-    ["Chambres", (property) => property.bedrooms ?? "Non renseigné"],
-    ["Eau", (property) => formatBoolean(property.water_available, "Oui", "Non")],
-    ["Électricité", (property) => formatBoolean(property.electricity_available, "Oui", "Non")],
-    ["Disponibilité", (property) => formatListingStatus(property.listing_status)],
-    ["Source", (property) => `${property.source_name}${property.source_is_demo ? " (fictive)" : ""}`],
+    ["Type", (p) => p.property_type],
+    ["Chambres", (p) => formatBedrooms(p.bedrooms)],
+    ["Salles de bain", (p) => p.bathrooms ?? t("card.unknown")],
+    ["Meublé", (p) => formatBoolean(p.furnished)],
+    ["Eau", (p) => formatBoolean(p.water_available)],
+    ["Électricité", (p) => formatBoolean(p.electricity_available)],
+    ["Disponibilité", (p) => formatListingStatus(p.listing_status)],
+    ["Source", (p) => `${p.source_name}${p.source_is_demo ? " (fictive)" : ""}`],
   ];
 
+  const table = createElement("table", null, "comparison-table");
   const head = table.createTHead().insertRow();
-  addTextElement(head, "th", "Critère");
+  head.append(createElement("th", "Critère"));
   for (const property of properties) {
-    addTextElement(head, "th", property.title);
+    head.append(createElement("th", property.title));
   }
-
   const body = table.createTBody();
-  for (const [label, valueForProperty] of rows) {
+  for (const [label, valueFor] of rows) {
     const row = body.insertRow();
-    addTextElement(row, "th", label);
+    row.append(createElement("th", label));
     for (const property of properties) {
-      addTextElement(row, "td", String(valueForProperty(property) || "Non renseigné"));
+      row.append(createElement("td", String(valueFor(property) || t("card.unknown"))));
     }
   }
   container.append(table);
