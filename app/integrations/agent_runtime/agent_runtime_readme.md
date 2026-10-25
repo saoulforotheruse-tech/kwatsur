@@ -1,10 +1,9 @@
 # agent_runtime — rôle du dossier
 
-Encapsule Meterless si son utilisation est pertinente et réellement disponible ; évite les doublons d’orchestration.
+Emplacement futur de l’adaptateur Meterless. Aucun outil ou accès Meterless n’est fourni dans le dépôt ; le runtime n’est donc pas intégré.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Attends les instructions officielles avant de choisir un outil ou un mode d’orchestration.
+- Ne fais pas doublon avec les services métier.
+- Documente les données envoyées au runtime et ses limites.

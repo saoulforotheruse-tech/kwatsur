@@ -1,0 +1,13 @@
+.env
+token.txt
+old-kwatsur/
+.git/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+Plan_travail_Kwatsur_Open_Agent_Hackathon_2026.docx
+tree.txt

@@ -1,10 +1,9 @@
 # seed — rôle du dossier
 
-Scripts et fichiers de données destinés à initialiser une base de développement, de test ou de démonstration. Aucun seed ne doit être exécuté en production sans décision explicite.
+`seed_demo.py` ajoute trois logements camerounais fictifs pour tester les filtres et la comparaison. Il est répétable : les mêmes annonces ne sont pas ajoutées une seconde fois.
 
 ## Règles de contribution
 
-- Indique clairement si les données sont fictives ou issues d’une source externe.
-- Rends les scripts répétables et explicites sur la base cible.
-- Ne stocke aucun secret ni donnée personnelle réelle.
-- Documente les prérequis et la commande d’exécution dans le script ou sa documentation.
+- Exécute-le après `alembic upgrade head` avec `python -m db.seed.seed_demo`.
+- Ne présente jamais ces annonces comme des offres réelles ou confirmées.
+- N’ajoute aucune coordonnée personnelle ou donnée réelle sans autorisation.

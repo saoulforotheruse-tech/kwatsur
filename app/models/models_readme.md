@@ -1,10 +1,9 @@
 # models — rôle du dossier
 
-Entités SQLAlchemy et relations de persistance. Pas d’appels réseau ni d’orchestration dans les modèles.
+Entités SQLAlchemy et relations : `Property` et `PropertySource` pour les annonces, `Conversation` et `Message` pour le contexte. Les valeurs inconnues restent nulles.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Les modèles décrivent la persistance et ses contraintes, pas les réponses HTTP.
+- N’ajoute ni appels réseau ni logique de recherche ici.
+- Chaque changement de schéma doit avoir une migration Alembic correspondante.

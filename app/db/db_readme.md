@@ -1,10 +1,9 @@
 # db — rôle du dossier
 
-Configuration SQLAlchemy, sessions et base déclarative. Les requêtes propres aux logements restent dans les repositories.
+Accès runtime à la base : `base.py` définit la base SQLAlchemy et `session.py` crée le moteur et fournit une session par requête. Les migrations et seeds sont dans le dossier racine `db/`.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Ferme chaque session après usage ; l’API utilise la dépendance `get_session`.
+- Laisse les requêtes métier aux repositories.
+- N’ajoute pas de création automatique des tables au démarrage : Alembic gère leur évolution.

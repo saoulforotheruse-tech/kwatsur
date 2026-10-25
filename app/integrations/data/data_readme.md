@@ -1,10 +1,9 @@
 # data — rôle du dossier
 
-Adaptateurs des sources de données, dont Zetaris. Normalise les résultats et conserve la provenance.
+Emplacement des adaptateurs de sources de données. Zetaris n’est pas connecté, car les instructions et accès de l’événement ne sont pas fournis.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- N’utilise que des sources autorisées et documente leur provenance.
+- Ne crée pas de faux client qui prétendrait interroger Zetaris.
+- Normalise les données sans transformer une valeur inconnue en valeur confirmée.

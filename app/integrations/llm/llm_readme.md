@@ -1,10 +1,9 @@
 # llm — rôle du dossier
 
-Contrats et adaptateurs des fournisseurs de langage, notamment Nemotron. Le métier dépend d’un contrat, pas d’un SDK spécifique.
+Emplacement des contrats et adaptateurs de modèles de langage. Nemotron n’est pas encore raccordé : le dépôt ne contient ni accès officiel ni documentation d’API exploitable.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- N’invente ni nom de modèle, ni endpoint, ni format de réponse.
+- Laisse les filtres et le classement sous le contrôle du backend.
+- Teste les erreurs et les réponses structurées sans appel réseau.

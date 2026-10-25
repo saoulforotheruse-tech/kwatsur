@@ -1,10 +1,9 @@
 # public — rôle du dossier
 
-Pages HTML et ressources statiques servies au navigateur. Les fichiers ici sont accessibles côté client : aucun secret ou code exclusivement serveur ne doit y être placé.
+Pages HTML et ressources statiques servies par FastAPI. L’écran permet de filtrer, consulter et comparer les logements retournés par l’API.
 
 ## Règles de contribution
 
-- Garde les pages, styles, scripts et ressources dans leurs sous-dossiers dédiés.
-- Vérifie que les chemins des ressources restent valides après tout déplacement.
-- Délègue les appels métier au backend et ne duplique pas ses règles.
-- Maintiens le README du sous-dossier concerné lorsque son rôle évolue.
+- Tous les fichiers sont publics : aucun secret ni code serveur.
+- L’interface affiche la provenance, les annonces fictives et les informations manquantes.
+- Les filtres et le classement faisant autorité restent côté backend.

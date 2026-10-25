@@ -1,10 +1,9 @@
 # services — rôle du dossier
 
-Cas d’utilisation et logique métier : recherche, classement, conversations et orchestration de l’agent.
+Cas d’usage métier. `SearchService` assemble les résultats, explique leur pertinence et rend visibles les informations qui manquent ; le repository applique les filtres de recherche.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Le classement est déterministe : quartier préféré, nombre de détails renseignés, loyer, puis identifiant.
+- N’invente ni disponibilité ni score de confiance.
+- Les fournisseurs IA seront appelés via des adaptateurs une fois leurs accès vérifiés.

@@ -34,4 +34,4 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     response: str
-    results: list[PropertySearchResult] = []
+    results: list[PropertySearchResult] = Field(default_factory=list)

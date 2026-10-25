@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 
 class PropertySearch(BaseModel):
@@ -15,6 +15,16 @@ class PropertySearch(BaseModel):
     electricity_available: bool | None = None
     furnished: bool | None = None
     limit: int = Field(default=20, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_rent_range(self) -> "PropertySearch":
+        if (
+            self.min_rent is not None
+            and self.max_rent is not None
+            and self.min_rent > self.max_rent
+        ):
+            raise ValueError("Le loyer minimum ne peut pas dépasser le loyer maximum.")
+        return self
 
 
 class PropertyRead(BaseModel):

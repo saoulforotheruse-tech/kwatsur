@@ -1,3 +1,3 @@
 # api — rôle du dossier
 
-Modules JavaScript responsables des appels HTTP vers les endpoints backend. Ils traduisent les données réseau en contrats simples pour le reste du frontend.
+Emplacement réservé aux clients HTTP par ressource. Pour le MVP, `app.js` appelle directement `GET /api/properties` avec `fetch` ; extraire un module ici lorsque d’autres pages ou appels le justifieront.

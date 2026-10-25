@@ -1,10 +1,9 @@
 # routes — rôle du dossier
 
-Contrôleurs HTTP par domaine. Retourne des réponses HTTP cohérentes et délègue les opérations aux services.
+Contrôleurs HTTP groupés par domaine. `properties.py` expose la recherche et le détail des logements ; `health.py` vérifie l’API et la base.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Valide les paramètres avant d’appeler un service.
+- Délègue les recherches et transformations aux services.
+- Utilise des codes HTTP adaptés et des messages compréhensibles.

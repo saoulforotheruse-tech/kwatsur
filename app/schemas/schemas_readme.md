@@ -1,10 +1,9 @@
 # schemas — rôle du dossier
 
-Contrats Pydantic pour valider les entrées et sorties. À distinguer des modèles SQLAlchemy.
+Contrats Pydantic pour valider les critères de recherche et structurer les logements renvoyés par l’API. Ils sont distincts des modèles SQLAlchemy.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Valide les bornes et les longueurs à l’entrée.
+- N’y ajoute pas de requêtes SQL ou de règles de classement.
+- Préserve les valeurs absentes comme `None`.

@@ -1,3 +1,3 @@
 # components — rôle du dossier
 
-Composants d’interface JavaScript réutilisables, par exemple l’affichage du chat et des cartes de logements. Chaque composant reste centré sur une responsabilité visuelle.
+Composants visuels réutilisables. `property_cards.js` affiche les résultats, les raisons et informations manquantes, puis construit la comparaison côte à côte.

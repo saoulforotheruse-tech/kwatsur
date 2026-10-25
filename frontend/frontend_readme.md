@@ -1,10 +1,9 @@
 # frontend — rôle du dossier
 
-Interface web. Le dossier `public/` contient les pages et ressources exposées au navigateur. L’interface appelle l’API backend et ne contient aucun secret ni accès direct à PostgreSQL.
+Interface du navigateur. `public/` contient la page de recherche, les styles et les modules JavaScript. Le backend sert les fichiers et répond aux appels API.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- N’y mets ni secrets ni accès direct à PostgreSQL.
+- Les annonces inconnues doivent rester présentées comme non renseignées.
+- Vérifie les appels API et l’usage mobile après tout changement d’interface.

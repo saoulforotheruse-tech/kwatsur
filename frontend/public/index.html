@@ -1,16 +1,101 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kwatsur — recherche de logements</title>
-  <link rel="stylesheet" href="/css/styles.css">
-</head>
-<body>
-  <main id="app">
-    <h1>Kwatsur</h1>
-    <p>Structure initiale — interface à développer.</p>
-  </main>
-  <script type="module" src="/js/app.js"></script>
-</body>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Recherchez et comparez des logements au Cameroun.">
+    <title>Kwatsur — trouver un logement</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Kwatsur, accueil">kwatsur<span>.</span></a>
+      <p>Votre recherche de logement, plus simple.</p>
+    </header>
+
+    <main class="page-shell">
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">LOCATION · CAMEROUN</p>
+        <h1 id="page-title">Un logement qui vous ressemble.</h1>
+        <p>Définissez vos critères, explorez les annonces disponibles et comparez les informations connues.</p>
+        <p class="limit-note">Cette version utilise une recherche par filtres. La recherche en langage naturel viendra après la configuration des services IA.</p>
+      </section>
+
+      <section class="search-panel" aria-labelledby="search-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">VOTRE RECHERCHE</p>
+            <h2 id="search-title">Quels sont vos critères&nbsp;?</h2>
+          </div>
+          <span class="demo-note">Les annonces de démonstration sont signalées.</span>
+        </div>
+        <form id="search-form">
+          <label>
+            Ville
+            <input name="city" autocomplete="address-level2" placeholder="Ex. Douala">
+          </label>
+          <label>
+            Quartier souhaité
+            <input name="neighborhood" placeholder="Ex. Bonamoussadi">
+          </label>
+          <label>
+            Loyer minimum (FCFA/mois)
+            <input name="min_rent" type="number" min="0" step="5000" placeholder="50000">
+          </label>
+          <label>
+            Loyer maximum (FCFA/mois)
+            <input name="max_rent" type="number" min="0" step="5000" placeholder="150000">
+          </label>
+          <label>
+            Chambres
+            <select name="bedrooms">
+              <option value="">Indifférent</option>
+              <option value="0">Studio</option>
+              <option value="1">1 chambre</option>
+              <option value="2">2 chambres</option>
+              <option value="3">3 chambres</option>
+              <option value="4">4 chambres</option>
+            </select>
+          </label>
+          <fieldset class="amenity-filters">
+            <legend>Équipements indispensables</legend>
+            <label class="check-label"><input name="water_available" type="checkbox"> Eau disponible</label>
+            <label class="check-label"><input name="electricity_available" type="checkbox"> Électricité disponible</label>
+            <label class="check-label"><input name="furnished" type="checkbox"> Meublé</label>
+          </fieldset>
+          <button class="primary-button" type="submit">Rechercher des logements</button>
+        </form>
+      </section>
+
+      <section class="results-section" aria-labelledby="results-title">
+        <div class="section-heading results-heading">
+          <div>
+            <p class="eyebrow">ANNONCES</p>
+            <h2 id="results-title">Logements correspondants</h2>
+          </div>
+          <p id="result-count" class="result-count" aria-live="polite"></p>
+        </div>
+        <p id="status-message" class="status-message" role="status" aria-live="polite">
+          Lancez une recherche pour consulter les annonces.
+        </p>
+        <div id="property-results" class="property-grid"></div>
+      </section>
+
+      <section id="comparison" class="comparison-section" aria-labelledby="comparison-title" hidden>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">VUE CÔTE À CÔTE</p>
+            <h2 id="comparison-title">Comparer les logements</h2>
+          </div>
+          <button id="clear-comparison" class="text-button" type="button">Effacer la sélection</button>
+        </div>
+        <div id="comparison-table"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Les annonces de démonstration sont fictives. Une disponibilité ou une information non confirmée reste à vérifier auprès de la source.</p>
+    </footer>
+    <script type="module" src="/js/app.js"></script>
+  </body>
 </html>

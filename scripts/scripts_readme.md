@@ -1,10 +1,8 @@
 # scripts — rôle du dossier
 
-Scripts répétables d’initialisation, maintenance ou démonstration. Évite les actions destructrices non confirmées.
+Scripts de développement et de maintenance. Le seed des annonces se trouve dans `db/seed/`; le générateur d’arborescence reste à la racine du projet.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Documente les commandes et leur environnement requis.
+- Rends les scripts répétables et signale clairement les opérations qui modifient des données.

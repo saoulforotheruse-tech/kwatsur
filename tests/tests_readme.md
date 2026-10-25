@@ -1,10 +1,9 @@
 # tests — rôle du dossier
 
-Tous les tests automatisés. Les tests doivent être reproductibles et documenter leurs prérequis.
+Tests automatisés de l’API et des règles métier. `test_property_search.py` vérifie les filtres, le traitement des valeurs inconnues, les réponses HTTP et le cas logement introuvable.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Lance tous les tests avec `pytest` depuis la racine.
+- Les tests de recherche utilisent SQLite en mémoire ; aucune API externe n’est appelée.
+- Ajoute un test quand une règle de filtrage ou une réponse d’API change.

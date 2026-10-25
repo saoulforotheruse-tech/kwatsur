@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, JSON, String, func
+from sqlalchemy import DateTime, JSON, String, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -18,7 +18,7 @@ class Conversation(Base):
         String(36), unique=True, default=lambda: str(uuid.uuid4()), nullable=False
     )
     search_criteria: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict, nullable=False
+        JSON, default=dict, server_default=text("'{}'"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

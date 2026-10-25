@@ -9,6 +9,12 @@ class Settings(BaseSettings):
     app_name: str = "Kwatsur"
     database_url: str = "postgresql+psycopg://kwatsur:kwatsur_dev@localhost:5432/kwatsur"
     cors_origins: str = "http://localhost:8080"
+    nemotron_base_url: str = ""
+    nemotron_api_key: str = ""
+    zetaris_base_url: str = ""
+    zetaris_api_key: str = ""
+    meterless_base_url: str = ""
+    meterless_api_key: str = ""
 
     @property
     def allowed_origins(self) -> list[str]:

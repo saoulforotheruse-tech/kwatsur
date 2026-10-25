@@ -1,6 +1,6 @@
 # jobs — rôle du dossier
 
-Tâches planifiées ou exécutées en arrière-plan, par exemple des traitements d’entretien ou de recalcul. Ce dossier reste vide tant qu’aucun besoin concret de tâche asynchrone n’existe.
+Tâches planifiées ou exécutées en arrière-plan. Aucun job n’est nécessaire pour le parcours de recherche actuel ; ce dossier reste volontairement vide.
 
 ## Règles de contribution
 

@@ -1,10 +1,9 @@
 # integrations — rôle du dossier
 
-Adaptateurs des services externes. Respecte les documentations officielles et n’invente aucune API.
+Adaptateurs des fournisseurs externes. Aucun adaptateur n’est actuellement connecté à un service du hackathon ; le code présent est un squelette.
 
 ## Règles de contribution
 
-- Garde ce dossier centré sur sa responsabilité.
-- Utilise des noms explicites et des interfaces simples.
-- Ajoute ou adapte les tests lorsque le comportement change.
-- Mets à jour cette documentation si le rôle du dossier évolue.
+- Vérifie les consignes officielles, l’URL, l’authentification et les formats avant toute connexion.
+- Ne présente pas un mock ou un adaptateur non configuré comme une intégration fonctionnelle.
+- Garde les clés côté serveur et ajoute des tests sans réseau.
