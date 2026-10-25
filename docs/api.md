@@ -1,31 +1,61 @@
-# API disponible
+# API Kwatsur
 
-L’API est exposée par FastAPI. La documentation interactive est accessible sur `/docs` lorsque l’application tourne.
+Documentation interactive générée par FastAPI : `/docs` (Swagger) et `/redoc`. Les erreurs ont toujours la forme `{"detail": "message lisible"}`, sans trace interne.
 
-## Vérification
+| Méthode | Route | Rôle |
+| --- | --- | --- |
+| GET | `/health` | État de l'API et de PostgreSQL (`503` si la base ne répond pas) |
+| GET | `/api/integrations/status?live=false` | Configuration de Zetaris et du modèle ; `live=true` effectue un vrai appel |
+| POST | `/api/chat` | Message à l'agent |
+| GET | `/api/conversations/{conversation_id}` | Relire une conversation et ses critères |
+| GET | `/api/properties` | Recherche par filtres (sans IA) |
+| GET | `/api/properties/{id}` | Détail d'une annonce |
+| POST | `/api/properties/{id}/contact-draft` | Brouillon de message (aucun envoi) |
 
-`GET /health` vérifie l’application et la connexion PostgreSQL. Il renvoie `503` si la base ne répond pas.
+## POST /api/chat
 
-## Logements
+Requête :
 
-`GET /api/properties` recherche les annonces visibles. Tous les paramètres sont facultatifs :
+```json
+{ "message": "Un deux-chambres à Douala, 150 000 FCFA max", "conversation_id": null }
+```
 
-| Paramètre | Rôle |
-| --- | --- |
-| `city` | Ville, comparée sans tenir compte de la casse |
-| `neighborhood` | Quartier préféré pour l’ordre des résultats |
-| `min_rent`, `max_rent` | Bornes inclusives du loyer mensuel |
-| `bedrooms` | Nombre exact de chambres |
-| `water_available`, `electricity_available` | Équipement requis (`true` ou `false`) |
-| `furnished` | Mobilier requis (`true` ou `false`) |
-| `limit` | Nombre maximal de résultats, entre 1 et 100 (20 par défaut) |
+Réponse (extrait) :
 
-La ville, le budget, le nombre de chambres et les équipements demandés éliminent les annonces qui ne correspondent pas. Le quartier sert à privilégier les résultats proches sans écarter automatiquement les autres quartiers de la ville. Une annonce retirée n’est jamais renvoyée.
+```json
+{
+  "conversation_id": "1f0c…",
+  "reply": "J'ai trouvé 5 logements…",
+  "reply_generated_by": "nemotron",
+  "criteria": { "city": "Douala", "max_rent": 150000, "bedrooms": 2, "preferences": [] },
+  "needs_clarification": false,
+  "searched": true,
+  "total": 5,
+  "data_source": "postgres",
+  "notices": [],
+  "results": [
+    {
+      "rank": 1,
+      "match_points": 36,
+      "property": { "id": 6, "title": "…", "monthly_rent": 95000, "source_is_demo": true },
+      "reasons": ["Situé à Douala.", "2 chambre(s), comme demandé."],
+      "tradeoffs": [],
+      "to_verify": ["Accès à l'eau non précisé par l'annonce."],
+      "missing_information": ["Logement meublé ou non"],
+      "risk_signals": []
+    }
+  ]
+}
+```
 
-La réponse contient le total trouvé et les résultats ordonnés. Chaque résultat expose la provenance, le statut de confirmation, les raisons du classement et les données absentes. Le champ `source_is_demo` permet de distinguer les exemples fictifs.
+Codes : `404` conversation inconnue, `422` message vide ou trop long, `429` trop de messages, `502` réponse IA inexploitable, `503` modèle non configuré ou indisponible, base indisponible.
 
-`GET /api/properties/{property_id}` renvoie le détail d’une annonce visible. Une annonce absente ou retirée renvoie `404`.
+## GET /api/properties
 
-## Pas encore disponible
+Paramètres facultatifs : `city`, `neighborhood` (préférence de classement), `property_type`, `min_rent`, `max_rent`, `bedrooms` (minimum), `water_available`, `electricity_available`, `furnished`, `limit` (1 à 100). Réponse : `total`, `data_source`, `notices`, `results` (même format que ci-dessus).
 
-Il n’existe pas encore de route de conversation IA. La recherche actuelle utilise des filtres structurés ; l’analyse du langage naturel dépend de l’intégration Nemotron et des accès officiels.
+## Sémantique des critères
+
+- **Obligatoires** (excluent) : ville, type, fourchette de loyer, chambres minimum, équipements exigés, mobilier demandé. Une valeur **inconnue** n'exclut pas l'annonce : elle apparaît dans `to_verify`.
+- **Préférences** (classent) : quartier, mobilier, souhaits libres (`preferences`).
+- `match_points` sert à ordonner les résultats d'une même recherche. Ce n'est ni une note ni une probabilité.

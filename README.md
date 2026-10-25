@@ -1,78 +1,130 @@
 # Kwatsur
 
-Kwatsur aide à rechercher et comparer des logements à louer au Cameroun. Ce dépôt contient un premier parcours fonctionnel avec des filtres déterministes et des annonces de démonstration clairement fictives.
+Kwatsur est un agent conversationnel qui aide à trouver un logement à louer au Cameroun (Douala, Yaoundé). L'utilisateur décrit son besoin en français ; l'agent extrait les critères, les mémorise, recherche dans les annonces disponibles, applique les critères obligatoires, classe les résultats de façon reproductible et explique chaque recommandation, sans jamais inventer d'information.
 
-## Architecture
+Projet réalisé pour l'**Open Agent Hackathon 2026** (technologies sponsors : Zetaris, NVIDIA Nemotron, Meterless, Cursor).
 
-Le projet suit quatre dossiers principaux, comme dans l’ancien projet décrit par `tree.txt` :
+> Les annonces livrées avec le dépôt sont **fictives** et marquées « Démo fictive » partout.
 
-- [`app/`](./app/) : API FastAPI, règles métier, accès aux données et modèles.
-- [`frontend/`](./frontend/) : interface web servie par l’API.
-- [`docs/`](./docs/) : explications techniques et parcours de démonstration.
-- [`db/`](./db/) : migrations Alembic et données de démonstration.
+## Ce que fait l'agent
 
-`tests/` et `scripts/` restent à la racine comme dossiers de support. La vue arborescente est dans [`architecture.tree`](./architecture.tree).
-
-Une recherche suit ce parcours : le navigateur appelle une route FastAPI, la route valide les filtres, le service de recherche appelle le repository, et celui-ci interroge PostgreSQL. Le service explique ensuite les résultats et signale les informations manquantes. Le filtrage des critères obligatoires est fait par le backend, pas par une IA.
-
-## Démarrage avec Docker
-
-Prérequis : Docker avec Compose.
-
-```sh
-cp .env.example .env
-docker compose up --build -d
-docker compose exec api alembic upgrade head
-docker compose exec api python -m db.seed.seed_demo
+```
+« Un deux-chambres à Douala vers Bonamoussadi, 150 000 FCFA max, avec eau et électricité,
+  proche des transports »
+        │
+        ▼
+Nemotron extrait les critères (JSON validé par Pydantic) ──► mémorisés dans la conversation
+        │
+        ▼
+Source d'annonces : Zetaris (SQL via API REST) ou PostgreSQL
+        │
+        ▼
+Filtres obligatoires (code) → classement explicable (code) → signaux à vérifier (code)
+        │
+        ▼
+Nemotron rédige l'explication à partir des seuls faits calculés → interface web
 ```
 
-Ouvre ensuite <http://localhost:8000>. L’état de l’API et de la base est visible sur <http://localhost:8000/health>, et la documentation interactive de l’API sur <http://localhost:8000/docs>.
+- Questions de clarification si la ville manque, recherche partielle sinon.
+- Mémoire de conversation : « finalement 110 000 max » conserve la ville, les chambres, etc.
+- Informations inconnues jamais converties en oui/non ; signalées « à vérifier ».
+- Signaux potentiels (annonce ancienne, loyer anormalement bas, annonce peu détaillée…), jamais présentés comme une preuve d'arnaque.
+- Comparaison côte à côte (3 logements) et brouillon de message de contact (aucun envoi).
+- Recherche manuelle par filtres, utilisable même sans IA.
 
-Pour arrêter les services sans effacer la base :
+## Démarrage rapide (Docker)
+
+Prérequis : Docker avec Compose v2.24 ou plus récent.
 
 ```sh
-docker compose down
+cp .env.example .env          # puis renseigner les clés disponibles (voir plus bas)
+docker compose up --build -d  # migrations + données fictives appliquées au démarrage
 ```
 
-Les valeurs de `.env.example` ne conviennent qu’au développement local. Change les mots de passe avant tout déploiement.
+- Interface : <http://localhost:8000>
+- Documentation de l'API (OpenAPI) : <http://localhost:8000/docs>
+- Santé : <http://localhost:8000/health>
+- État des intégrations : <http://localhost:8000/api/integrations/status> (ajouter `?live=true` pour un vrai appel)
 
-## Démarrage local
+Arrêter sans effacer la base : `docker compose down`. Repartir de zéro : `docker compose down -v`.
 
-Prérequis : Python 3.12 et PostgreSQL 16. Crée un environnement virtuel, installe les dépendances, configure `.env` à partir de `.env.example`, puis lance PostgreSQL.
+Diagnostic : `docker compose logs -f api` ; les erreurs des services externes y sont journalisées sans secret.
+
+## Démarrage local (sans Docker pour l'API)
+
+Prérequis : Python 3.12, PostgreSQL 16 (par exemple `docker compose up -d db`).
 
 ```sh
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 alembic upgrade head
 python -m db.seed.seed_demo
 uvicorn app.main:app --reload
 ```
 
-Sur Windows, active l’environnement avec `.venv\Scripts\activate`. L’application sert l’interface et l’API sur <http://localhost:8000>.
+## Configuration
 
-## Recherche disponible
+Toutes les valeurs viennent de l'environnement (`.env`, jamais commité). Les secrets restent côté serveur.
 
-`GET /api/properties` accepte `city`, `neighborhood`, `min_rent`, `max_rent`, `bedrooms`, `water_available`, `electricity_available`, `furnished` et `limit`. Les équipements demandés et le nombre de chambres sont des filtres stricts. Le quartier sert de préférence de classement ; les annonces d’un autre quartier peuvent rester visibles et sont signalées. `GET /api/properties/{id}` renvoie le détail d’un logement.
+| Variable | Rôle |
+| --- | --- |
+| `DATABASE_URL` | Connexion PostgreSQL (surchargée automatiquement dans Docker) |
+| `LISTING_SOURCE` | `postgres` (défaut) ou `zetaris` |
+| `ZETARIS_FALLBACK_TO_POSTGRES` | Bascule visible vers PostgreSQL si Zetaris échoue |
+| `ZETARIS_BASE_URL`, `ZETARIS_API_KEY`, `ZETARIS_ORG_ID`, `ZETARIS_LISTINGS_TABLE` | Accès Zetaris (API REST officielle) |
+| `LLM_PROVIDER` | `nemotron` (API NVIDIA), `meterless` (runtime local) ou `none` |
+| `NEMOTRON_BASE_URL`, `NEMOTRON_API_KEY`, `NEMOTRON_MODEL` | Nemotron sur le catalogue NVIDIA |
+| `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `METERLESS_MODEL`, `METERLESS_APP_ID` | Nemotron via Meterless Runtime |
+| `CHAT_RATE_LIMIT_PER_MINUTE` | Limite de messages par client |
+| `SEED_DEMO_DATA` | Charge les annonces fictives au démarrage du conteneur |
 
-Les résultats indiquent leur source, l’état de confirmation, les raisons du classement et les informations inconnues. « Non renseigné » n’est jamais converti en « non ».
+La configuration détaillée et la vérification de chaque service sponsor sont dans [`docs/sponsor-tech.md`](./docs/sponsor-tech.md).
 
 ## Tests
 
 ```sh
-pytest
+pytest                         # unitaires, intégration, API et scénario de bout en bout
 ```
 
-Les tests de recherche utilisent SQLite en mémoire ; ils ne nécessitent ni PostgreSQL ni connexion réseau.
+Les tests n'appellent aucun service payant ni Internet : Nemotron, Meterless et Zetaris sont remplacés par des réponses HTTP simulées (`httpx.MockTransport`) ou par `tests/fakes.py`, clairement nommés comme mocks. Le test du repository sur un vrai PostgreSQL s'active avec une base dédiée :
 
-## État des intégrations
+```sh
+docker compose exec db psql -U kwatsur -c "CREATE DATABASE kwatsur_test;"
+KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:5432/kwatsur_test pytest tests/integration/test_postgres_repository.py
+```
 
-- **PostgreSQL, SQLAlchemy et Alembic** : fondations et migration initiale en place.
-- **Recherche et comparaison** : filtres backend et interface utilisables avec le seed fictif.
-- **Nemotron** : non connecté ; aucune URL, clé, version de modèle ou documentation d’accès officielle n’est fournie dans le dépôt.
-- **Zetaris** : non connecté ; la méthode d’accès aux données du hackathon reste à préciser.
-- **Meterless** : non connecté ; les outils et instructions d’exécution requis ne sont pas présents.
-- **Chat en langage naturel** : à développer après validation des accès Nemotron et du contrat de conversation.
-- **Annonces réelles** : aucune source autorisée et accessible n’est configurée. Le seed ne constitue pas de vraies offres.
+| Dossier | Contenu |
+| --- | --- |
+| `tests/unit/` | critères, classement, risques, filtres, clients Nemotron/Meterless, adaptateur Zetaris |
+| `tests/integration/` | agent complet (continuité, clarification, erreurs IA), endpoints, PostgreSQL réel |
+| `tests/e2e/` | scénario de démonstration : demande → recherche → classement → affinage |
 
-Les variables d’intégration sont préparées dans `.env`, mais laissées vides : aucun endpoint ni accès officiel n’est fourni dans le dépôt. Renseigne-les uniquement à partir des informations du hackathon, et ne partage jamais les clés dans le code ou le chat. Les limites et décisions d’architecture sont détaillées dans [`docs/architecture.md`](./docs/architecture.md).
+## Documentation
+
+- [`docs/architecture.md`](./docs/architecture.md) : couches, patterns, parcours complet d'une requête.
+- [`docs/api.md`](./docs/api.md) : endpoints et contrats.
+- [`docs/sponsor-tech.md`](./docs/sponsor-tech.md) : rôle réel de Zetaris, Nemotron, Meterless et Cursor.
+- [`docs/data-sources.md`](./docs/data-sources.md) : provenance des données et limites.
+- [`docs/demo-script.md`](./docs/demo-script.md) : scénario de démonstration (3 à 4 minutes).
+- [`AGENTS.md`](./AGENTS.md) : règles de code du projet (utilisées aussi par Cursor).
+
+## État d'avancement
+
+**Terminé et testé**
+- API FastAPI, PostgreSQL, migrations Alembic, Docker Compose avec contrôles de santé.
+- Recherche : filtres obligatoires, classement explicable et configurable, signaux à vérifier, données manquantes.
+- Agent : extraction des critères, fusion validée, clarification, mémoire de conversation, explication, réponse de secours étiquetée si le modèle échoue.
+- Interface responsive : chat, critères retenus, cartes, comparaison, brouillon de contact, recherche manuelle.
+- Client Nemotron (API NVIDIA compatible OpenAI), adaptateur Meterless, adaptateur Zetaris (API SQL REST), tous testés avec des réponses simulées.
+
+**Implémenté mais pas encore vérifié avec un vrai service** (en attente des accès du hackathon)
+- Appel réel à Nemotron : il faut `NEMOTRON_API_KEY`. Vérifier ensuite que le modèle choisi suit le format JSON demandé.
+- Appel réel à Zetaris : il faut une instance, un jeton API, l'identifiant d'organisation, et la table d'annonces importée (voir `docs/sponsor-tech.md`).
+- Meterless : le runtime local doit être installé et son jeton renseigné. La route qui mène à Nemotron (`METERLESS_MODEL`) doit être confirmée avec `GET /v1/models`.
+
+**Limites connues**
+- Aucune source d'annonces réelle autorisée n'est connectée : la démo repose sur des données fictives.
+- La limitation de débit est stockée en mémoire, donc valable pour un seul processus.
+- Il n'y a pas de comptes utilisateurs : on accède à une conversation par son identifiant aléatoire (UUID).
+- La détection de préférences dans les descriptions est une simple recherche de mots-clés.

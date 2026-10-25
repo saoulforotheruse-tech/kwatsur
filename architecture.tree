@@ -1,38 +1,145 @@
-Kwatsur/
-├── app/                         # Backend Python
+kwatsur/
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── AGENTS.md
+├── Dockerfile
+├── README.md
+├── alembic.ini
+├── app/
+│   ├── __init__.py
 │   ├── api/
+│   │   ├── __init__.py
+│   │   ├── dependencies.py
 │   │   └── routes/
+│   │       ├── __init__.py
+│   │       ├── chat.py
+│   │       ├── health.py
+│   │       └── properties.py
 │   ├── core/
-│   ├── db/                      # Connexion et sessions runtime
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── exceptions.py
+│   │   ├── logging.py
+│   │   └── rate_limit.py
+│   ├── db/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   └── session.py
 │   ├── integrations/
+│   │   ├── __init__.py
 │   │   ├── agent_runtime/
+│   │   │   ├── __init__.py
+│   │   │   └── meterless.py
 │   │   ├── data/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py
+│   │   │   ├── postgres.py
+│   │   │   └── zetaris.py
 │   │   └── llm/
+│   │       ├── __init__.py
+│   │       ├── base.py
+│   │       ├── factory.py
+│   │       ├── nemotron.py
+│   │       └── openai_compatible.py
 │   ├── jobs/
+│   │   └── __init__.py
+│   ├── main.py
 │   ├── models/
+│   │   ├── __init__.py
+│   │   ├── conversation.py
+│   │   ├── message.py
+│   │   └── property.py
+│   ├── prompts/
+│   │   ├── criteria_extraction.md
+│   │   └── housing_agent.md
 │   ├── repositories/
+│   │   ├── __init__.py
+│   │   ├── conversation_repository.py
+│   │   └── property_repository.py
 │   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── chat.py
+│   │   ├── criteria.py
+│   │   └── property.py
 │   └── services/
-├── db/                          # Migrations et données initiales
+│       ├── __init__.py
+│       ├── agent_service.py
+│       ├── contact_service.py
+│       ├── conversation_service.py
+│       ├── criteria_service.py
+│       ├── integration_status_service.py
+│       ├── ranking_service.py
+│       ├── risk_service.py
+│       └── search_service.py
+├── db/
+│   ├── __init__.py
 │   ├── migrations/
+│   │   ├── env.py
+│   │   ├── script.py.mako
 │   │   └── versions/
+│   │       └── 0001_initial_schema.py
 │   └── seed/
-├── docs/                        # Documentation du projet
-├── frontend/                    # Interface web
+│       ├── __init__.py
+│       └── seed_demo.py
+├── docker-compose.yml
+├── docs/
+│   ├── api.md
+│   ├── architecture.md
+│   ├── data-sources.md
+│   ├── demo-script.md
+│   └── sponsor-tech.md
+├── frontend/
+│   ├── css/
+│   ├── js/
 │   └── public/
 │       ├── assets/
 │       │   ├── avatars/
 │       │   └── images/
 │       ├── css/
+│       │   └── styles.css
+│       ├── index.html
 │       └── js/
+│           ├── app.js
 │           ├── components/
+│           │   ├── chat.js
+│           │   ├── criteria_chips.js
+│           │   └── property_cards.js
 │           ├── core/
+│           ├── i18n/
+│           │   ├── fr.js
+│           │   └── index.js
 │           ├── pages/
 │           ├── services/
-│           │   └── api/
+│           │   ├── api/
+│           │   └── api.js
 │           └── utils/
-├── scripts/                     # Outils de développement
+│               └── format.js
+├── migrations/
+│   └── versions/
+├── requirements.txt
+├── scripts/
+│   ├── __init__.py
+│   ├── docker-entrypoint.sh
+│   └── export_listings_csv.py
 └── tests/
+    ├── __init__.py
+    ├── conftest.py
     ├── e2e/
+    │   ├── __init__.py
+    │   └── test_demo_scenario.py
+    ├── factories.py
+    ├── fakes.py
     ├── integration/
+    │   ├── __init__.py
+    │   ├── test_agent_service.py
+    │   ├── test_api.py
+    │   └── test_postgres_repository.py
     └── unit/
+        ├── __init__.py
+        ├── test_criteria.py
+        ├── test_llm_clients.py
+        ├── test_ranking_service.py
+        ├── test_risk_service.py
+        ├── test_search_service.py
+        └── test_zetaris.py
