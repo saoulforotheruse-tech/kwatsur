@@ -21,15 +21,18 @@ services:
 
   api:
     build: .
+    # Les clés des intégrations (Nemotron, Zetaris, Meterless) sont lues depuis .env.
+    env_file:
+      - path: .env
+        required: false
     environment:
+      # Surcharge .env : dans Docker, la base est joignable sous le nom « db ».
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-kwatsur}:${POSTGRES_PASSWORD:-kwatsur_dev}@db:5432/${POSTGRES_DB:-kwatsur}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
-      NEMOTRON_BASE_URL: ${NEMOTRON_BASE_URL:-}
-      NEMOTRON_API_KEY: ${NEMOTRON_API_KEY:-}
-      ZETARIS_BASE_URL: ${ZETARIS_BASE_URL:-}
-      ZETARIS_API_KEY: ${ZETARIS_API_KEY:-}
-      METERLESS_BASE_URL: ${METERLESS_BASE_URL:-}
-      METERLESS_API_KEY: ${METERLESS_API_KEY:-}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      # Le Meterless Runtime tourne sur la machine hôte, pas dans le conteneur.
+      METERLESS_BASE_URL: ${METERLESS_DOCKER_BASE_URL:-http://host.docker.internal:8088/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
