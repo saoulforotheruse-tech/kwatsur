@@ -1,99 +1,120 @@
-"""Recherche déterministe et classement explicable des logements."""
+"""Recherche déterministe : source d'annonces → filtres obligatoires → classement → risques."""
 
-from app.models.property import Property
-from app.repositories.property_repository import PropertyRepository
-from app.schemas.chat import SearchCriteria
-from app.schemas.property import PropertyRead, PropertySearchResult
+import logging
+from dataclasses import dataclass, field
+
+from app.core.exceptions import KwatsurError
+from app.integrations.data.base import ListingSource
+from app.schemas.criteria import SearchCriteria, normalize_text
+from app.schemas.property import DataSourceName, PropertyRead, PropertySearchResult
+from app.services.ranking_service import RankingService
+from app.services.risk_service import RiskService, missing_information
+
+logger = logging.getLogger(__name__)
+
+
+def satisfies_mandatory_criteria(listing: PropertyRead, criteria: SearchCriteria) -> bool:
+    """Filtre appliqué en Python à toutes les sources, quel que soit leur pré-filtrage.
+
+    Une donnée inconnue ne fait pas échouer un critère : seule une valeur contraire exclut.
+    """
+    if listing.listing_status == "withdrawn":
+        return False
+    if criteria.city and normalize_text(listing.city) != normalize_text(criteria.city):
+        return False
+    if criteria.property_type and normalize_text(listing.property_type) != criteria.property_type:
+        return False
+    if criteria.min_rent is not None and listing.monthly_rent < criteria.min_rent:
+        return False
+    if criteria.max_rent is not None and listing.monthly_rent > criteria.max_rent:
+        return False
+    if (
+        criteria.bedrooms is not None
+        and listing.bedrooms is not None
+        and listing.bedrooms < criteria.bedrooms
+    ):
+        return False
+    if criteria.water_available and listing.water_available is False:
+        return False
+    if criteria.electricity_available and listing.electricity_available is False:
+        return False
+    if criteria.furnished is not None and listing.furnished not in (None, criteria.furnished):
+        return False
+    return True
+
+
+@dataclass
+class SearchOutcome:
+    results: list[PropertySearchResult]
+    total: int
+    data_source: DataSourceName
+    notices: list[str] = field(default_factory=list)
 
 
 class SearchService:
-    def __init__(self, repository: PropertyRepository) -> None:
-        self.repository = repository
+    def __init__(
+        self,
+        primary_source: ListingSource,
+        ranking_service: RankingService,
+        risk_service: RiskService,
+        fallback_source: ListingSource | None = None,
+    ) -> None:
+        self.primary_source = primary_source
+        self.fallback_source = fallback_source
+        self.ranking_service = ranking_service
+        self.risk_service = risk_service
 
-    def search(
-        self, criteria: SearchCriteria, limit: int = 20
-    ) -> tuple[list[PropertySearchResult], int]:
-        properties, total = self.repository.search(criteria, limit)
-        return [self._to_result(item, criteria) for item in properties], total
+    def search(self, criteria: SearchCriteria, limit: int = 20) -> SearchOutcome:
+        candidates, source_name, notices = self._load_candidates(criteria)
+        matching = [item for item in candidates if satisfies_mandatory_criteria(item, criteria)]
+        ranked = self.ranking_service.rank(matching, criteria)
+        risk_signals = self.risk_service.assess(matching)
+
+        results = [
+            PropertySearchResult(
+                property=item.property,
+                rank=position,
+                match_points=item.match_points,
+                reasons=item.reasons,
+                tradeoffs=item.tradeoffs,
+                to_verify=item.to_verify,
+                missing_information=missing_information(item.property),
+                risk_signals=risk_signals[item.property.id],
+            )
+            for position, item in enumerate(ranked[:limit], start=1)
+        ]
+        logger.info(
+            "Recherche via %s : %s candidat(s), %s retenu(s).",
+            source_name, len(candidates), len(matching),
+        )
+        return SearchOutcome(
+            results=results, total=len(matching), data_source=source_name, notices=notices
+        )
 
     def get_property(self, property_id: int) -> PropertyRead | None:
-        property_record = self.repository.get_visible(property_id)
-        return self._to_read(property_record) if property_record else None
+        try:
+            return self.primary_source.get_property(property_id)
+        except KwatsurError:
+            if self.fallback_source is None:
+                raise
+            return self.fallback_source.get_property(property_id)
 
-    def _to_result(
-        self, property_record: Property, criteria: SearchCriteria
-    ) -> PropertySearchResult:
-        reasons: list[str] = []
-        if criteria.city:
-            reasons.append(f"Situé à {property_record.city}.")
-        if criteria.min_rent is not None or criteria.max_rent is not None:
-            reasons.append("Le loyer respecte la fourchette demandée.")
-        if criteria.bedrooms is not None:
-            reasons.append(f"Le logement propose {property_record.bedrooms} chambre(s).")
-        if criteria.water_available is not None:
-            value = "disponible" if criteria.water_available else "indisponible"
-            reasons.append(f"L’eau est indiquée comme {value}, comme demandé.")
-        if criteria.electricity_available is not None:
-            value = "disponible" if criteria.electricity_available else "indisponible"
-            reasons.append(f"L’électricité est indiquée comme {value}, comme demandé.")
-        if criteria.furnished is not None:
-            value = "meublé" if criteria.furnished else "non meublé"
-            reasons.append(f"Le logement est indiqué comme {value}, comme demandé.")
-        if criteria.neighborhood and property_record.neighborhood:
-            if criteria.neighborhood.casefold() in property_record.neighborhood.casefold():
-                reasons.append(f"Le quartier correspond à « {criteria.neighborhood} ».")
-            else:
-                reasons.append(
-                    f"Le logement est à {property_record.neighborhood}, "
-                    f"pas au quartier demandé « {criteria.neighborhood} »."
-                )
-        if property_record.source.is_demo:
-            reasons.append("Annonce fictive de démonstration.")
-
-        missing_information = [
-            label
-            for value, label in (
-                (property_record.bedrooms, "Nombre de chambres"),
-                (property_record.bathrooms, "Nombre de salles de bain"),
-                (property_record.furnished, "Logement meublé"),
-                (property_record.water_available, "Disponibilité de l’eau"),
-                (property_record.electricity_available, "Disponibilité de l’électricité"),
-                (property_record.last_seen_at, "Date de dernière observation"),
-                (property_record.neighborhood, "Quartier"),
+    def _load_candidates(
+        self, criteria: SearchCriteria
+    ) -> tuple[list[PropertyRead], DataSourceName, list[str]]:
+        try:
+            return self.primary_source.find_candidates(criteria), self.primary_source.name, []
+        except KwatsurError as error:
+            if self.fallback_source is None:
+                raise
+            # Bascule transparente : la réponse indique clairement la source réellement utilisée.
+            logger.warning("Source %s indisponible : %s", self.primary_source.name, error)
+            notice = (
+                f"Source « {self.primary_source.name} » indisponible ({error.public_message}) : "
+                f"résultats lus dans « {self.fallback_source.name} »."
             )
-            if value is None
-        ]
-
-        return PropertySearchResult(
-            property=self._to_read(property_record),
-            reasons=reasons,
-            missing_information=missing_information,
-        )
-
-    @staticmethod
-    def _to_read(property_record: Property) -> PropertyRead:
-        return PropertyRead(
-            id=property_record.id,
-            title=property_record.title,
-            description=property_record.description,
-            city=property_record.city,
-            neighborhood=property_record.neighborhood,
-            property_type=property_record.property_type,
-            monthly_rent=property_record.monthly_rent,
-            currency=property_record.currency,
-            bedrooms=property_record.bedrooms,
-            bathrooms=property_record.bathrooms,
-            furnished=property_record.furnished,
-            water_available=property_record.water_available,
-            electricity_available=property_record.electricity_available,
-            location_description=property_record.location_description,
-            latitude=property_record.latitude,
-            longitude=property_record.longitude,
-            source_name=property_record.source.name,
-            source_url=property_record.source_url,
-            contact_information=property_record.contact_information,
-            listing_status=property_record.listing_status,
-            verification_status=property_record.verification_status,
-            source_is_demo=property_record.source.is_demo,
-            last_seen_at=property_record.last_seen_at,
-        )
+            return (
+                self.fallback_source.find_candidates(criteria),
+                self.fallback_source.name,
+                [notice],
+            )

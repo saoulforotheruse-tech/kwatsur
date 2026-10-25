@@ -1,76 +1,56 @@
 """Requêtes de persistance des logements."""
 
-from sqlalchemy import case, func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.property import Property
-from app.schemas.chat import SearchCriteria
+from app.schemas.criteria import SearchCriteria
+
+# Plafond de candidats lus avant le classement en Python.
+MAX_CANDIDATES = 300
 
 
 class PropertyRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
 
-    def search(
-        self, criteria: SearchCriteria, limit: int
-    ) -> tuple[list[Property], int]:
+    def find_candidates(self, criteria: SearchCriteria) -> list[Property]:
+        """Pré-filtre en SQL les critères obligatoires ; le classement se fait ailleurs."""
         statement = (
             select(Property)
             .options(joinedload(Property.source))
-            .join(Property.source)
             .where(Property.listing_status != "withdrawn")
         )
-        count_statement = (
-            select(func.count(Property.id))
-            .join(Property.source)
-            .where(Property.listing_status != "withdrawn")
-        )
-
-        filters = []
         if criteria.city:
-            filters.append(func.lower(Property.city) == criteria.city.strip().lower())
+            statement = statement.where(func.lower(Property.city) == criteria.city.lower())
+        if criteria.property_type:
+            statement = statement.where(
+                func.lower(Property.property_type) == criteria.property_type
+            )
         if criteria.min_rent is not None:
-            filters.append(Property.monthly_rent >= criteria.min_rent)
+            statement = statement.where(Property.monthly_rent >= criteria.min_rent)
         if criteria.max_rent is not None:
-            filters.append(Property.monthly_rent <= criteria.max_rent)
+            statement = statement.where(Property.monthly_rent <= criteria.max_rent)
         if criteria.bedrooms is not None:
-            filters.append(Property.bedrooms == criteria.bedrooms)
-        if criteria.water_available is not None:
-            filters.append(Property.water_available.is_(criteria.water_available))
-        if criteria.electricity_available is not None:
-            filters.append(
-                Property.electricity_available.is_(criteria.electricity_available)
+            statement = statement.where(
+                or_(Property.bedrooms.is_(None), Property.bedrooms >= criteria.bedrooms)
             )
+
+        # Un équipement exigé n'exclut que les annonces qui le déclarent absent :
+        # une valeur inconnue reste candidate et sera signalée « à vérifier ».
+        for required, column in (
+            (criteria.water_available, Property.water_available),
+            (criteria.electricity_available, Property.electricity_available),
+        ):
+            if required:
+                statement = statement.where(or_(column.is_(None), column.is_(True)))
         if criteria.furnished is not None:
-            filters.append(Property.furnished.is_(criteria.furnished))
-
-        for condition in filters:
-            statement = statement.where(condition)
-            count_statement = count_statement.where(condition)
-
-        if criteria.neighborhood:
-            neighborhood_match = func.lower(Property.neighborhood).contains(
-                criteria.neighborhood.strip().lower(), autoescape=True
+            statement = statement.where(
+                or_(Property.furnished.is_(None), Property.furnished.is_(criteria.furnished))
             )
-            statement = statement.order_by(case((neighborhood_match, 0), else_=1))
-        known_details = sum(
-            (
-                case((column.is_not(None), 1), else_=0)
-                for column in (
-                    Property.bedrooms,
-                    Property.bathrooms,
-                    Property.furnished,
-                    Property.water_available,
-                    Property.electricity_available,
-                )
-            )
-        )
-        statement = statement.order_by(
-            known_details.desc(), Property.monthly_rent, Property.id
-        )
-        properties = list(self.session.scalars(statement.limit(limit)))
-        total = self.session.scalar(count_statement) or 0
-        return properties, total
+
+        statement = statement.order_by(Property.id).limit(MAX_CANDIDATES)
+        return list(self.session.scalars(statement).unique())
 
     def get_visible(self, property_id: int) -> Property | None:
         statement = (

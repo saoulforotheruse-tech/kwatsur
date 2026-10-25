@@ -1,13 +1,19 @@
 """Contrats d'entrée et de sortie pour la recherche de logements."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+DataSourceName = Literal["postgres", "zetaris"]
+
 
 class PropertySearch(BaseModel):
+    """Filtres de la recherche manuelle (paramètres de requête GET)."""
+
     city: str | None = Field(default=None, min_length=1, max_length=80)
     neighborhood: str | None = Field(default=None, min_length=1, max_length=120)
+    property_type: str | None = Field(default=None, min_length=1, max_length=40)
     min_rent: int | None = Field(default=None, ge=0)
     max_rent: int | None = Field(default=None, ge=0)
     bedrooms: int | None = Field(default=None, ge=0, le=20)
@@ -28,6 +34,8 @@ class PropertySearch(BaseModel):
 
 
 class PropertyRead(BaseModel):
+    """Annonce normalisée, quelle que soit la source (PostgreSQL ou Zetaris)."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -56,11 +64,32 @@ class PropertyRead(BaseModel):
 
 
 class PropertySearchResult(BaseModel):
+    """Annonce classée avec l'explication déterministe de son rang."""
+
     property: PropertyRead
+    rank: int
+    match_points: int = Field(
+        description="Points d'adéquation relatifs à cette recherche, pas une probabilité."
+    )
     reasons: list[str]
+    tradeoffs: list[str]
+    to_verify: list[str]
     missing_information: list[str]
+    risk_signals: list[str]
 
 
 class PropertySearchResponse(BaseModel):
     total: int
+    data_source: DataSourceName
+    notices: list[str] = Field(default_factory=list)
     results: list[PropertySearchResult]
+
+
+class ContactDraftResponse(BaseModel):
+    """Brouillon de message : Kwatsur n'envoie rien lui-même."""
+
+    property_id: int
+    message: str
+    contact_information: str | None
+    source_url: HttpUrl | None
+    notice: str
