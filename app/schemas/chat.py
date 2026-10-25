@@ -1,29 +1,14 @@
-"""Contrats Pydantic des critères de conversation."""
+"""Contrats Pydantic des échanges avec l'agent."""
 
-from pydantic import BaseModel, Field, model_validator
+from datetime import datetime
+from typing import Literal
 
-from app.schemas.property import PropertySearchResult
+from pydantic import BaseModel, Field
 
+from app.schemas.criteria import SearchCriteria
+from app.schemas.property import DataSourceName, PropertySearchResult
 
-class SearchCriteria(BaseModel):
-    city: str | None = Field(default=None, min_length=1, max_length=80)
-    neighborhood: str | None = Field(default=None, min_length=1, max_length=120)
-    min_rent: int | None = Field(default=None, ge=0)
-    max_rent: int | None = Field(default=None, ge=0)
-    bedrooms: int | None = Field(default=None, ge=0, le=20)
-    water_available: bool | None = None
-    electricity_available: bool | None = None
-    furnished: bool | None = None
-
-    @model_validator(mode="after")
-    def validate_rent_range(self) -> "SearchCriteria":
-        if (
-            self.min_rent is not None
-            and self.max_rent is not None
-            and self.min_rent > self.max_rent
-        ):
-            raise ValueError("Le loyer minimum ne peut pas dépasser le loyer maximum.")
-        return self
+ReplyAuthor = Literal["nemotron", "meterless", "template"]
 
 
 class ChatRequest(BaseModel):
@@ -33,5 +18,25 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     conversation_id: str
-    response: str
+    reply: str
+    # Indique qui a rédigé la réponse : le modèle ou un gabarit déterministe de secours.
+    reply_generated_by: ReplyAuthor
+    criteria: SearchCriteria
+    needs_clarification: bool
+    searched: bool
+    total: int = 0
+    data_source: DataSourceName | None = None
+    notices: list[str] = Field(default_factory=list)
     results: list[PropertySearchResult] = Field(default_factory=list)
+
+
+class MessageRead(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    created_at: datetime
+
+
+class ConversationRead(BaseModel):
+    conversation_id: str
+    criteria: SearchCriteria
+    messages: list[MessageRead]

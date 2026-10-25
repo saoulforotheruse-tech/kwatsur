@@ -9,14 +9,21 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.routes import health, properties
+from app.api.routes import chat, health, properties
 from app.core.config import settings
+from app.core.exceptions import KwatsurError
 from app.core.logging import configure_logging
+from app.core.rate_limit import SlidingWindowRateLimiter
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(
+    title=settings.app_name,
+    version="0.2.0",
+    description="Agent conversationnel de recherche de logements au Cameroun.",
+)
+app.state.chat_rate_limiter = SlidingWindowRateLimiter(settings.chat_rate_limit_per_minute)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -24,7 +31,15 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 app.include_router(health.router)
+app.include_router(chat.router)
 app.include_router(properties.router)
+
+
+@app.exception_handler(KwatsurError)
+async def handle_application_error(_request: Request, error: KwatsurError) -> JSONResponse:
+    # Seul le message public est renvoyé : jamais de trace ni de détail de configuration.
+    logger.warning("%s : %s", error.__class__.__name__, error.public_message)
+    return JSONResponse(status_code=error.status_code, content={"detail": error.public_message})
 
 
 @app.exception_handler(SQLAlchemyError)
