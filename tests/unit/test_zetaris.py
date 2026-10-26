@@ -37,7 +37,12 @@ def make_client(handler) -> ZetarisClient:
     )
 
 
-def test_runs_query_pages_results_and_closes_cursor() -> None:
+def sql_result(headers: list[str], data: list[list]) -> httpx.Response:
+    """Forme observée sur la plateforme locale du hackathon (valeurs renvoyées en texte)."""
+    return httpx.Response(200, json={"headers": headers, "data": data, "total": len(data), "timeUsed": 5})
+
+
+def test_runs_query_in_one_call_and_names_columns() -> None:
     calls: list[tuple[str, str]] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -45,35 +50,22 @@ def test_runs_query_pages_results_and_closes_cursor() -> None:
         assert request.headers["Authorization"] == "Bearer test-token"
         assert request.headers["X-Org-ID"] == "42"
         assert request.headers["X-Request-ID"]
-        if request.url.path == "/api/v1.0/query/sql/start":
-            assert json.loads(request.content) == {"select": "SELECT 1", "pageLimit": 100}
-            return httpx.Response(200, json={
-                "records": [{"id": 1}], "pageNumber": 1, "pageLimit": 100,
-                "totalCount": 2, "totalPages": 2, "queryToken": "tok",
-            })
-        if request.url.path == "/api/v1.0/query/sql/page":
-            assert request.url.params["queryToken"] == "tok"
-            assert request.url.params["pageNumber"] == "2"
-            return httpx.Response(200, json={
-                "records": [json.dumps({"id": 2})], "pageNumber": 2,
-                "totalCount": 2, "totalPages": 2, "queryToken": "tok",
-            })
-        return httpx.Response(200, json={"msg": "closed"})
+        body = json.loads(request.content)
+        assert body["sql"] == "SELECT 1 AS one"
+        assert body["source"] == "SqlEditor"
+        assert body["limit"] == 300
+        assert body["queryId"]
+        return sql_result(["ONE"], [["1"]])
 
-    rows = make_client(handler).run_query("SELECT 1")
+    rows = make_client(handler).run_query("SELECT 1 AS one;")
 
-    assert rows == [{"id": 1}, {"id": 2}]
-    assert calls[-1] == ("DELETE", "/api/v1.0/query/sql/close/tok")
+    assert rows == [{"one": "1"}]
+    assert calls == [("POST", "/api/v1.0/sql-editor/sqls/run")]
 
 
 def test_rows_are_normalized_without_inventing_values() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        if request.method == "POST":
-            return httpx.Response(200, json={
-                "records": [ROW], "pageNumber": 0, "pageLimit": 100,
-                "totalCount": 1, "totalPages": 1, "queryToken": "tok",
-            })
-        return httpx.Response(200, json={})
+    headers = list(ROW)
+    handler = lambda _request: sql_result(headers, [[ROW[name] for name in headers]])  # noqa: E731
 
     source = ZetarisListingSource(make_client(handler), "kwatsur.listings")
     listing = source.find_candidates(SearchCriteria(city="Douala"))[0]
@@ -84,6 +76,13 @@ def test_rows_are_normalized_without_inventing_values() -> None:
     assert listing.electricity_available is None
     assert listing.bathrooms is None
     assert listing.source_is_demo is True
+
+
+def test_malformed_result_is_rejected() -> None:
+    client = make_client(lambda _r: httpx.Response(200, json={"headers": ["a", "b"], "data": [["1"]]}))
+
+    with pytest.raises(InvalidIntegrationResponseError):
+        client.run_query("SELECT a, b FROM t")
 
 
 def test_query_only_pushes_down_escaped_city() -> None:
@@ -119,9 +118,20 @@ def test_missing_configuration_is_explicit() -> None:
 
 def test_rows_without_expected_columns_are_rejected() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={
-            "records": [{"foo": "bar"}], "pageNumber": 0, "totalPages": 1, "queryToken": "tok",
-        })
+        return sql_result(["foo"], [["bar"]])
 
     with pytest.raises(InvalidIntegrationResponseError):
         ZetarisListingSource(make_client(handler), "listings").find_candidates(SearchCriteria())
+
+
+def test_naive_timestamp_from_zetaris_is_read_as_utc() -> None:
+    row = dict(ROW, LAST_SEEN_AT="2026-10-23 10:16:53.298368")
+    headers = list(row)
+    handler = lambda _request: sql_result(headers, [[row[name] for name in headers]])  # noqa: E731
+
+    listing = ZetarisListingSource(make_client(handler), "kwatsur_pg.zetaris_listings").find_candidates(
+        SearchCriteria(city="Douala")
+    )[0]
+
+    assert listing.last_seen_at is not None
+    assert listing.last_seen_at.utcoffset() is not None

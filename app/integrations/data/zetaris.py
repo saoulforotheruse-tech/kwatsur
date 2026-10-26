@@ -1,17 +1,16 @@
-"""Adaptateur Zetaris : exécute du SQL via l'API REST officielle et normalise les annonces.
+"""Adaptateur Zetaris : exécute du SQL via l'API REST d'une installation locale.
 
-Référence : https://api.saas.enterprise.zetaris.com/redoc/index.html (section « DB Query »).
-  POST   /api/v1.0/query/sql/start          corps {"select", "pageLimit"}
-  GET    /api/v1.0/query/sql/page           ?queryToken&pageLimit&pageNumber
-  DELETE /api/v1.0/query/sql/close/{token}
-Chaque appel exige « Authorization: Bearer <jeton API> », X-Request-ID (UUID) et X-Org-ID.
+Contrat vérifié sur la plateforme du hackathon (2.4.3) et dans zetaris/getting-started :
+  POST /api/v1.0/sql-editor/sqls/run   corps {"queryId", "sql", "source": "SqlEditor", "limit"}
+  réponse {"headers": [colonnes], "data": [[valeurs en texte]], "total", "timeUsed"}
+Chaque appel exige « Authorization: Bearer <clé API> », X-Request-ID (UUID) et X-Org-ID.
+Une requête = un appel : pas de curseur ni de pagination.
 """
 
-import json
 import logging
 import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -27,7 +26,7 @@ from app.schemas.property import DataSourceName, PropertyRead
 
 logger = logging.getLogger(__name__)
 
-PAGE_LIMIT = 100  # Maximum autorisé par l'API.
+RUN_SQL_PATH = "/api/v1.0/sql-editor/sqls/run"
 MAX_ROWS = 300
 
 # Colonnes attendues dans la table enregistrée dans Zetaris (voir scripts/export_listings_csv.py).
@@ -51,7 +50,7 @@ class ZetarisClient:
         base_url: str,
         api_key: str,
         org_id: str,
-        timeout_seconds: float = 20.0,
+        timeout_seconds: float = 60.0,
         transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -65,39 +64,22 @@ class ZetarisClient:
         return bool(self.base_url and self.api_key and self.org_id.isdigit())
 
     def run_query(self, sql: str, max_rows: int = MAX_ROWS) -> list[dict[str, Any]]:
-        """Exécute une requête, lit les pages nécessaires puis libère le curseur."""
+        """Exécute une seule instruction SQL (sans point-virgule) et renvoie des lignes nommées."""
         if not self.is_configured:
             raise IntegrationNotConfiguredError(
                 "Zetaris n'est pas configuré (ZETARIS_BASE_URL, ZETARIS_API_KEY, ZETARIS_ORG_ID)."
             )
+        body = {
+            "queryId": str(uuid.uuid4()),
+            "sql": sql.strip().rstrip(";"),
+            "source": "SqlEditor",
+            "limit": max_rows,
+        }
         with httpx.Client(
             base_url=self.base_url, timeout=self.timeout_seconds, transport=self.transport
         ) as http:
-            first_page = self._request(
-                http, "POST", "/api/v1.0/query/sql/start",
-                json={"select": sql, "pageLimit": PAGE_LIMIT},
-            )
-            query_token = first_page.get("queryToken")
-            try:
-                rows = self._records(first_page)
-                # La numérotation (0 ou 1) n'est pas précisée : on part de celle renvoyée.
-                page_number = int(first_page.get("pageNumber", 0))
-                last_page = page_number + int(first_page.get("totalPages", 1)) - 1
-                while len(rows) < max_rows and page_number < last_page and query_token:
-                    page_number += 1
-                    page = self._request(
-                        http, "GET", "/api/v1.0/query/sql/page",
-                        params={
-                            "queryToken": query_token,
-                            "pageLimit": PAGE_LIMIT,
-                            "pageNumber": page_number,
-                        },
-                    )
-                    rows.extend(self._records(page))
-            finally:
-                if query_token:
-                    self._close_quietly(http, query_token)
-        return rows[:max_rows]
+            payload = self._request(http, RUN_SQL_PATH, body)
+        return self._rows(payload)[:max_rows]
 
     def _headers(self) -> dict[str, str]:
         return {
@@ -106,9 +88,9 @@ class ZetarisClient:
             "X-Org-ID": self.org_id,
         }
 
-    def _request(self, http: httpx.Client, method: str, path: str, **kwargs: Any) -> dict:
+    def _request(self, http: httpx.Client, path: str, body: dict[str, Any]) -> dict:
         try:
-            response = http.request(method, path, headers=self._headers(), **kwargs)
+            response = http.post(path, headers=self._headers(), json=body)
         except httpx.TimeoutException as error:
             raise IntegrationUnavailableError("Zetaris n'a pas répondu à temps.") from error
         except httpx.HTTPError as error:
@@ -117,7 +99,7 @@ class ZetarisClient:
         if response.status_code in (401, 403):
             raise IntegrationUnavailableError("Zetaris a refusé l'authentification.")
         if response.status_code >= 400:
-            logger.warning("Zetaris %s %s a répondu %s", method, path, response.status_code)
+            logger.warning("Zetaris POST %s a répondu %s", path, response.status_code)
             raise IntegrationUnavailableError("Zetaris a refusé la requête.")
         try:
             payload = response.json()
@@ -128,26 +110,18 @@ class ZetarisClient:
         return payload
 
     @staticmethod
-    def _records(page: dict) -> list[dict[str, Any]]:
-        records = page.get("records") or []
+    def _rows(payload: dict) -> list[dict[str, Any]]:
+        headers = payload.get("headers")
+        data = payload.get("data") or []
+        if not isinstance(headers, list) or not isinstance(data, list):
+            raise InvalidIntegrationResponseError("Réponse Zetaris sans colonnes ni lignes.")
+        columns = [str(name).lower() for name in headers]
         rows: list[dict[str, Any]] = []
-        for record in records:
-            # La spécification décrit des « records in JSON format » : objet ou chaîne JSON.
-            if isinstance(record, str):
-                try:
-                    record = json.loads(record)
-                except ValueError as error:
-                    raise InvalidIntegrationResponseError("Ligne Zetaris illisible.") from error
-            if not isinstance(record, dict):
-                raise InvalidIntegrationResponseError("Ligne Zetaris sans noms de colonnes.")
-            rows.append({str(key).lower(): value for key, value in record.items()})
+        for values in data:
+            if not isinstance(values, list) or len(values) != len(columns):
+                raise InvalidIntegrationResponseError("Ligne Zetaris illisible.")
+            rows.append(dict(zip(columns, values)))
         return rows
-
-    def _close_quietly(self, http: httpx.Client, query_token: str) -> None:
-        try:
-            http.delete(f"/api/v1.0/query/sql/close/{query_token}", headers=self._headers())
-        except httpx.HTTPError:
-            logger.info("Fermeture du curseur Zetaris impossible ; il expirera côté serveur.")
 
 
 def sql_text_literal(value: str) -> str:
@@ -200,7 +174,11 @@ def _to_text(value: Any) -> str | None:
 
 def _to_datetime(value: Any) -> datetime | None:
     text = _to_text(value)
-    return datetime.fromisoformat(text) if text else None
+    if not text:
+        return None
+    parsed = datetime.fromisoformat(text)
+    # Zetaris (Spark, session en UTC) renvoie les timestamptz sans fuseau.
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def row_to_property(row: dict[str, Any]) -> PropertyRead:

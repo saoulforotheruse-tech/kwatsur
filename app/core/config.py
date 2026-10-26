@@ -18,12 +18,12 @@ class Settings(BaseSettings):
     # Si Zetaris échoue, bascule vers PostgreSQL en le signalant dans la réponse.
     zetaris_fallback_to_postgres: bool = True
 
-    # Zetaris : API REST officielle (https://api.saas.enterprise.zetaris.com/redoc).
+    # Zetaris : API REST de l'installation locale (ex. http://127.0.0.1:8888, org 1).
     zetaris_base_url: str = ""
     zetaris_api_key: str = ""
     zetaris_org_id: str = ""
     zetaris_listings_table: str = ""
-    zetaris_timeout_seconds: float = 20.0
+    zetaris_timeout_seconds: float = 60.0
 
     # Fournisseur du modèle : Nemotron en direct (catalogue NVIDIA) ou via Meterless.
     llm_provider: Literal["nemotron", "meterless", "none"] = "nemotron"
