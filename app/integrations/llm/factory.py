@@ -5,6 +5,7 @@ from app.integrations.agent_runtime.meterless import build_meterless_chat_client
 from app.integrations.llm.base import LLMProvider
 from app.integrations.llm.nemotron import DisabledLLMProvider, NemotronProvider
 from app.integrations.llm.openai_compatible import ChatCompletionClient
+from app.integrations.llm.rules import RuleBasedProvider
 
 
 def build_llm_provider(settings: Settings) -> LLMProvider:
@@ -26,4 +27,6 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
             provider_label="Nemotron",
         )
         return NemotronProvider(client, name="nemotron")
+    if settings.llm_provider == "rules":
+        return RuleBasedProvider()
     return DisabledLLMProvider()

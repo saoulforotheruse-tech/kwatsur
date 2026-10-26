@@ -25,8 +25,9 @@ class Settings(BaseSettings):
     zetaris_listings_table: str = ""
     zetaris_timeout_seconds: float = 60.0
 
-    # Fournisseur du modèle : Nemotron en direct (catalogue NVIDIA) ou via Meterless.
-    llm_provider: Literal["nemotron", "meterless", "none"] = "nemotron"
+    # Fournisseur du modèle : Nemotron via Meterless, Nemotron en direct (catalogue NVIDIA),
+    # « rules » (mode démo sans IA ni clé) ou « none » (chat désactivé).
+    llm_provider: Literal["nemotron", "meterless", "rules", "none"] = "rules"
     llm_timeout_seconds: float = 60.0
 
     nemotron_base_url: str = "https://integrate.api.nvidia.com/v1"

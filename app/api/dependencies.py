@@ -72,6 +72,8 @@ def build_model_profile(app_settings: Settings) -> ModelProfile:
         return ModelProfile("meterless", app_settings.meterless_model, bool(app_settings.meterless_api_key))
     if app_settings.llm_provider == "nemotron":
         return ModelProfile("nvidia", app_settings.nemotron_model, bool(app_settings.nemotron_api_key))
+    if app_settings.llm_provider == "rules":
+        return ModelProfile("rules", "règles déterministes (mode démo)", False)
     return ModelProfile("none", "template", False)
 
 

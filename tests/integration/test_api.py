@@ -122,3 +122,22 @@ def test_database_failure_returns_generic_service_error(session: Session) -> Non
 
     assert response.status_code == 503
     assert "connection details" not in response.text
+
+
+def test_demo_mode_answers_without_any_model_or_key(client: TestClient) -> None:
+    from app.api.dependencies import get_scout_engine
+    from app.engines.scout import ModelProfile, ScoutEngine
+    from app.integrations.llm.rules import RuleBasedProvider
+
+    app.dependency_overrides[get_llm_provider] = RuleBasedProvider
+    app.dependency_overrides[get_scout_engine] = lambda: ScoutEngine(
+        ModelProfile("rules", "règles déterministes (mode démo)", False), "secret-de-test"
+    )
+
+    body = client.post("/api/chat", json={"message": "Un appartement à Douala, 150 000 FCFA max"}).json()
+
+    assert body["searched"] is True and body["total"] > 0
+    assert body["reply_generated_by"] == "template"
+    assert body["scout"]["tool_plan"] == ["search_service.search", "template.explain"]
+    assert any("Mode démo" in notice for notice in body["notices"])
+    assert all(item["property"]["monthly_rent"] <= 150000 for item in body["results"])

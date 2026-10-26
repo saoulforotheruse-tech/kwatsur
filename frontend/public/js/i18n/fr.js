@@ -6,6 +6,7 @@ export const fr = {
   "chat.author.nemotron": "Rédigé par NVIDIA Nemotron",
   "chat.author.meterless": "Rédigé par Nemotron via Meterless",
   "chat.author.template": "Réponse générée sans IA",
+  "chat.author.rules": "Compris par des règles (mode démo)",
   "chat.source.postgres": "Annonces lues dans PostgreSQL",
   "chat.source.zetaris": "Annonces lues via Zetaris",
   "chat.newConversation": "Nouvelle conversation démarrée.",

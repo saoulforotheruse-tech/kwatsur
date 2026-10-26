@@ -26,7 +26,7 @@ from app.services.contact_service import build_contact_draft
 from app.services.conversation_service import ConversationService
 from app.services.criteria_service import merge_criteria, relaxation_suggestions
 from app.services.ranking_service import format_fcfa
-from app.services.search_service import SearchService
+from app.services.search_service import SearchOutcome, SearchService
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ PAYMENT_REFUSAL = (
     "Je ne fais aucun paiement ni transfert d'argent. Ne versez jamais d'avance ni de caution "
     "avant d'avoir visité le logement et vérifié l'identité du bailleur."
 )
+DEMO_MODE_NOTICE = "Mode démo sans IA : critères compris par des règles, explication générée par le code."
 BLOCKED_REPLY = "Je ne peux pas traiter cette demande. Décrivez simplement le logement que vous cherchez."
 
 
@@ -285,6 +286,13 @@ class AgentService:
 
         author: ReplyAuthor = self.llm.name
         self.scout.verifier.require(decision.contract, "reply.explain")
+        explain_tool = next(step["tool"] for step in decision.tool_plan if step["capability"] == "reply.explain")
+        if explain_tool == "template.explain":
+            # Scout a choisi l'outil local : aucun modèle n'est configuré (mode démo).
+            reply = build_template_reply(context)
+            author = "template"
+            notices.append(DEMO_MODE_NOTICE)
+            return self._explained_response(session_id, reply, author, criteria, follow_up_question, outcome, notices)
         try:
             reply = self.llm.write_reply(context)
         except KwatsurError as error:
@@ -293,7 +301,18 @@ class AgentService:
             reply = build_template_reply(context)
             author = "template"
             notices.append("Explication rédigée sans IA : le modèle était indisponible.")
+        return self._explained_response(session_id, reply, author, criteria, follow_up_question, outcome, notices)
 
+    @staticmethod
+    def _explained_response(
+        session_id: str,
+        reply: str,
+        author: ReplyAuthor,
+        criteria: SearchCriteria,
+        follow_up_question: str | None,
+        outcome: SearchOutcome,
+        notices: list[str],
+    ) -> ChatResponse:
         return ChatResponse(
             conversation_id=session_id,
             reply=reply,

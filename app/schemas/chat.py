@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from app.schemas.criteria import SearchCriteria
 from app.schemas.property import DataSourceName, PropertySearchResult
 
-ReplyAuthor = Literal["nemotron", "meterless", "template"]
+ReplyAuthor = Literal["nemotron", "meterless", "rules", "template"]
 
 
 class ChatRequest(BaseModel):

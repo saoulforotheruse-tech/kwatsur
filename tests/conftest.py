@@ -9,11 +9,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.api.dependencies import get_llm_provider, get_settings
+from app.api.dependencies import get_llm_provider, get_scout_engine, get_settings
 from app.core.config import Settings
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.db.base import Base
 from app.db.session import get_session
+from app.engines.scout import ModelProfile, ScoutEngine
 from app.main import app
 from app.models.property import PropertySource
 from db.seed.seed_demo import DEMO_SOURCE_NAME, demo_properties
@@ -57,6 +58,10 @@ def client(session: Session, mock_llm: MockLLMProvider) -> Generator[TestClient,
     app.dependency_overrides[get_session] = override_session
     app.dependency_overrides[get_settings] = lambda: make_test_settings()
     app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+    # Le modèle simulé est « disponible » : Scout oriente l'explication vers lui, pas vers le gabarit.
+    app.dependency_overrides[get_scout_engine] = lambda: ScoutEngine(
+        ModelProfile("mock", "mock-llm", True), "secret-de-test"
+    )
     app.state.chat_rate_limiter = SlidingWindowRateLimiter(max_calls=100)
     try:
         with TestClient(app) as test_client:

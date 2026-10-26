@@ -9,7 +9,7 @@ from app.core.exceptions import KwatsurError
 from app.integrations.data.zetaris import TABLE_NAME_PATTERN, ZetarisClient
 from app.integrations.llm.openai_compatible import ChatCompletionClient
 
-CheckStatus = Literal["not_configured", "configured", "ok", "error", "disabled"]
+CheckStatus = Literal["not_configured", "configured", "ok", "error", "disabled", "demo"]
 
 
 class IntegrationStatus(BaseModel):
@@ -58,6 +58,10 @@ class IntegrationStatusService:
 
     def _llm_status(self, live: bool) -> IntegrationStatus:
         name = self.settings.llm_provider
+        if name == "rules":
+            return IntegrationStatus(
+                name="rules", status="demo", detail="Mode démo sans IA : critères extraits par des règles."
+            )
         if self.chat_client is None:
             return IntegrationStatus(name="llm", status="disabled", detail="LLM_PROVIDER=none.")
         if not self.chat_client.is_configured:
