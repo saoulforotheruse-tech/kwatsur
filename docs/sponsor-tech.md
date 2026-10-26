@@ -1,12 +1,12 @@
 # Technologies sponsors : rôle réel dans Kwatsur
 
-Ce document distingue ce qui est **implémenté et testé avec des réponses simulées** de ce qui a été **vérifié contre un vrai service**. À la date de rédaction, aucun accès sponsor n'était renseigné dans `.env` : aucune intégration n'a encore été vérifiée en conditions réelles. Mettez à jour la colonne « Vérifié » dès qu'un appel réel réussit (`GET /api/integrations/status?live=true`).
+Ce document distingue ce qui est **implémenté et testé avec des réponses simulées** de ce qui a été **vérifié contre un vrai service**. Mettez à jour la colonne « Vérifié » dès qu'un appel réel réussit (`GET /api/integrations/status?live=true`). Les accès ne sont pas fournis par le hackathon : chaque équipe installe Zetaris et Meterless Nightshift en local et crée ses clés (« Participant Setup Guide » du hackathon).
 
 | Technologie | Rôle | Code | Vérifié en réel |
 | --- | --- | --- | --- |
-| NVIDIA Nemotron | Comprendre la demande, expliquer les résultats | `app/integrations/llm/` | Non (clé manquante) |
-| Meterless | Exécuter Nemotron via le Meterless Runtime | `app/integrations/agent_runtime/meterless.py` | Non (runtime non installé) |
-| Zetaris | Couche d'accès aux annonces (SQL via API REST) | `app/integrations/data/zetaris.py` | Non (instance non fournie) |
+| NVIDIA Nemotron | Comprendre la demande, expliquer les résultats | `app/integrations/llm/` | Oui, via Meterless (26/10/2026, `nvidia/nemotron-3-ultra-550b-a55b`) |
+| Meterless | Exécuter Nemotron via le Meterless Runtime | `app/integrations/agent_runtime/meterless.py` | Oui (26/10/2026, Nightshift Windows, chat de bout en bout) |
+| Zetaris | Couche d'accès aux annonces (SQL via API REST) | `app/integrations/data/zetaris.py` | Oui (26/10/2026, instance locale 2.4.3, annonces lues via `kwatsur_pg.zetaris_listings`) |
 | Cursor | Environnement de développement de l'équipe | `AGENTS.md` | Sans objet à l'exécution |
 
 ## NVIDIA Nemotron
@@ -49,9 +49,11 @@ Modèles Nemotron listés dans la documentation NVIDIA : `nvidia/llama-3.3-nemot
 ```env
 LLM_PROVIDER=meterless
 METERLESS_API_KEY=<contenu de proxy-token>
-METERLESS_MODEL=meterless/auto   # remplacer par la route Nemotron listée par GET /v1/models
+METERLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b   # route Nemotron listée par GET /v1/models
 ```
-Dans Docker, l'API joint le runtime de l'hôte via `METERLESS_DOCKER_BASE_URL` (par défaut `http://host.docker.internal:8088/v1`).
+`meterless/auto` peut router vers un autre modèle : on épingle une route Nemotron pour que la démo prouve son usage. La clé NVIDIA se saisit dans Nightshift (Setup → Providers), jamais dans `.env`. Le jeton du Runtime se lit dans la Console de Nightshift.
+
+**Docker dans WSL.** Nightshift tourne sous Windows et n'écoute que sur `127.0.0.1` : lancer l'API avec `docker-compose.wsl.yml` (réseau de WSL en mode `mirrored`). Sans cette surcharge, l'API tente `METERLESS_DOCKER_BASE_URL` (par défaut `http://host.docker.internal:8088/v1`), qui ne joint pas un Nightshift limité à `127.0.0.1`.
 
 **Moteurs non intégrés, et pourquoi.** H-MEM, World Model, Markovian et Scout sont publiés comme des spécifications avec une implémentation de référence en TypeScript, sans paquet Python. La mémoire de session de Kwatsur (critères et historique dans PostgreSQL) couvre le besoin du MVP. Réimplémenter un moteur aurait créé un système parallèle sans valeur démontrable dans les délais.
 
@@ -63,29 +65,48 @@ Dans Docker, l'API joint le runtime de l'hôte via `METERLESS_DOCKER_BASE_URL` (
 
 **Rôle.** Couche d'accès aux annonces : avec `LISTING_SOURCE=zetaris`, chaque recherche du chat ou des filtres interroge Zetaris en SQL. Les lignes renvoyées sont normalisées puis filtrées et classées par le backend. PostgreSQL garde l'état applicatif : conversations, messages et import des annonces.
 
-**API utilisée** (spécification officielle : <https://api.saas.enterprise.zetaris.com/redoc/index.html>, section « DB Query ») :
-- `POST /api/v1.0/query/sql/start` avec le corps `{"select": "...", "pageLimit": 100}` ;
-- `GET /api/v1.0/query/sql/page?queryToken=…&pageLimit=…&pageNumber=…` ;
-- `DELETE /api/v1.0/query/sql/close/{queryToken}` ;
-- en-têtes : `Authorization: Bearer <jeton API>`, `X-Request-ID` (UUID), `X-Org-ID` (entier).
+**API utilisée** (installation locale du hackathon, version 2.4.3 ; même contrat que `scripts/zetaris_sql.py` du dépôt `zetaris/getting-started`) :
+- `POST /api/v1.0/sql-editor/sqls/run` avec le corps `{"queryId": "<uuid>", "sql": "...", "source": "SqlEditor", "limit": 300}` ;
+- réponse `{"headers": [colonnes], "data": [[valeurs en texte]], "total", "timeUsed"}`, en un seul appel ;
+- en-têtes : `Authorization: Bearer <clé API>`, `X-Request-ID` (UUID), `X-Org-ID` (`1` en local).
 
-**Mise en place.**
-1. Exporter les annonces : `python -m scripts.export_listings_csv data/kwatsur_listings.csv` (ou `docker compose exec api python -m scripts.export_listings_csv /tmp/listings.csv`).
-2. Dans Zetaris, aller dans NDP File System → `file-store`, créer un dossier puis y téléverser le CSV.
-3. Dans SQL Workspace, cliquer sur « + » à côté de Virtual File Sources, créer un conteneur, ajouter le fichier depuis File Store et le nommer.
-4. Vérifier la table avec l'aperçu (Preview).
+En local : `ZETARIS_BASE_URL=http://127.0.0.1:8888`, `ZETARIS_ORG_ID=1`. L'API n'écoute que sur `127.0.0.1` : lancer Kwatsur avec `docker-compose.wsl.yml`.
+
+**Mise en place retenue : Zetaris fédère la base PostgreSQL de Kwatsur** (vérifiée le 26/10/2026).
+1. La migration `0002_zetaris_listings_view` crée la vue `zetaris_listings`, aux colonnes de `LISTING_COLUMNS`.
+2. Créer un rôle en lecture seule sur cette vue seulement (mot de passe dans `.env` : `ZETARIS_PG_READER_PASSWORD`) :
+   ```sql
+   CREATE ROLE zetaris_reader LOGIN PASSWORD '<ZETARIS_PG_READER_PASSWORD>';
+   GRANT CONNECT ON DATABASE kwatsur TO zetaris_reader;
+   GRANT USAGE ON SCHEMA public TO zetaris_reader;
+   GRANT SELECT ON zetaris_listings TO zetaris_reader;
+   ```
+3. Lancer Kwatsur avec `docker-compose.wsl.yml` : la base rejoint le réseau `zetaris_default` sous le nom `kwatsur-db`.
+4. Dans le SQL Editor de Zetaris (une instruction à la fois) :
+   ```sql
+   CREATE DATASOURCE kwatsur_pg DESCRIBE BY "Kwatsur listings - PostgreSQL" OPTIONS (
+     jdbcdriver "org.postgresql.Driver", jdbcurl "jdbc:postgresql://kwatsur-db:5432/kwatsur",
+     username "zetaris_reader", password "<ZETARIS_PG_READER_PASSWORD>", fetchsize "1000")
+   REGISTER DATASOURCE TABLE "zetaris_listings" FROM kwatsur_pg
+   SELECT * FROM kwatsur_pg.zetaris_listings LIMIT 5
+   ```
+   La description n'accepte que lettres, chiffres, `_ . - ,` et espaces.
 5. Renseigner `.env` :
    ```env
    LISTING_SOURCE=zetaris
-   ZETARIS_BASE_URL=https://<votre instance API>
-   ZETARIS_API_KEY=...
-   ZETARIS_ORG_ID=...
-   ZETARIS_LISTINGS_TABLE=<conteneur>.<table>
+   ZETARIS_BASE_URL=http://127.0.0.1:8888
+   ZETARIS_API_KEY=<clé créée dans l'interface Zetaris>
+   ZETARIS_ORG_ID=1
+   ZETARIS_LISTINGS_TABLE=kwatsur_pg.zetaris_listings
    ```
+
+Zetaris renvoie toutes les valeurs en texte, `null` pour une valeur inconnue, et les dates sans fuseau (session Spark en UTC) : l'adaptateur les relit en UTC.
+
+**Variante CSV.** `python -m scripts.export_listings_csv data/kwatsur_listings.csv`, puis téléversement dans Zetaris (File Store → Virtual File Sources) et nom de la table dans `ZETARIS_LISTINGS_TABLE`. Non vérifiée en réel.
 
 **Sécurité.** L'API n'accepte pas de paramètres liés. Le nom de table est donc contrôlé par une expression régulière, et seule la ville est insérée dans la requête, après validation et échappement. Les autres filtres sont appliqués en Python.
 
-**Limites.** La spécification ne précise pas si les pages commencent à 0 ou à 1 : le client part du `pageNumber` renvoyé. Les colonnes d'un CSV peuvent arriver sous forme de texte : elles sont converties, et une cellule vide reste inconnue. Si Zetaris est indisponible, la bascule vers PostgreSQL est affichée dans la réponse. Pour la démonstration, mettez `ZETARIS_FALLBACK_TO_POSTGRES=false` afin de prouver que les résultats viennent bien de Zetaris.
+**Limites.** Les valeurs arrivent en texte : elles sont converties, et une valeur vide ou `null` reste inconnue. Si Zetaris est indisponible, la bascule vers PostgreSQL est affichée dans la réponse. Pour la démonstration, mettez `ZETARIS_FALLBACK_TO_POSTGRES=false` afin de prouver que les résultats viennent bien de Zetaris.
 
 **Vérifier.** `GET /api/integrations/status?live=true` doit afficher `zetaris` avec `ok`. Les réponses du chat affichent alors « Annonces lues via Zetaris » (`data_source: "zetaris"`).
 

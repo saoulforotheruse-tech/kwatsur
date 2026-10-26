@@ -46,6 +46,14 @@ docker compose up --build -d  # migrations + données fictives appliquées au d�
 - Santé : <http://localhost:8000/health>
 - État des intégrations : <http://localhost:8000/api/integrations/status> (ajouter `?live=true` pour un vrai appel)
 
+Si les ports 8000 ou 5432 sont déjà pris, définir dans `.env` par exemple `API_PORT=8001`, `POSTGRES_PORT=5433` et `CORS_ORIGINS=http://localhost:8001` ; l'interface est alors sur <http://localhost:8001>.
+
+Avec Zetaris et Meterless Nightshift installés en local (Docker dans WSL en réseau `mirrored`), ajouter la surcharge qui place l'API sur le réseau de WSL, seul moyen de joindre `127.0.0.1:8888` et `127.0.0.1:8088` :
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.wsl.yml up -d --build
+```
+
 Arrêter sans effacer la base : `docker compose down`. Repartir de zéro : `docker compose down -v`.
 
 Diagnostic : `docker compose logs -f api` ; les erreurs des services externes y sont journalisées sans secret.
