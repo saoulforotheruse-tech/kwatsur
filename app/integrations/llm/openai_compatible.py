@@ -6,6 +6,7 @@ et pour le Meterless Runtime local, qui expose le même protocole.
 
 import logging
 import re
+import time
 from typing import Any
 
 import httpx
@@ -17,6 +18,9 @@ from app.core.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+RETRYABLE_STATUSES = (502, 503)
+RETRY_DELAY_SECONDS = 1.0
 
 # Les modèles de raisonnement Nemotron peuvent préfixer leur réponse d'un bloc <think>.
 THINK_BLOCK_PATTERN = re.compile(r"<think>.*?(</think>|$)", re.DOTALL | re.IGNORECASE)
@@ -76,6 +80,14 @@ class ChatCompletionClient:
                 response = http.post(
                     f"{self.base_url}/chat/completions", json=payload, headers=headers
                 )
+                if response.status_code in RETRYABLE_STATUSES:
+                    # Coupure passagère entre le runtime et le fournisseur (ex. « fetch failed ») :
+                    # une seule relance, après une courte pause.
+                    logger.info("%s a répondu %s, nouvelle tentative.", self.provider_label, response.status_code)
+                    time.sleep(RETRY_DELAY_SECONDS)
+                    response = http.post(
+                        f"{self.base_url}/chat/completions", json=payload, headers=headers
+                    )
         except httpx.TimeoutException as error:
             raise IntegrationUnavailableError(
                 f"Le modèle IA ({self.provider_label}) n'a pas répondu à temps."

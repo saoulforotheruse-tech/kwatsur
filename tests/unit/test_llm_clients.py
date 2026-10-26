@@ -71,6 +71,28 @@ def test_http_errors_become_readable_errors(status: int, message_part: str) -> N
     assert message_part in error.value.public_message
 
 
+def test_transient_provider_error_is_retried_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.integrations.llm.openai_compatible.time.sleep", lambda _seconds: None)
+    responses = [httpx.Response(502, json={"error": "fetch failed"}), completion("Bonjour !")]
+
+    answer = make_client(lambda _request: responses.pop(0)).complete([{"role": "user", "content": "Salut"}])
+
+    assert answer == "Bonjour !"
+
+
+def test_persistent_provider_error_is_reported_after_one_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.integrations.llm.openai_compatible.time.sleep", lambda _seconds: None)
+    calls: list[int] = []
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return httpx.Response(502, json={"error": "fetch failed"})
+
+    with pytest.raises(IntegrationUnavailableError):
+        make_client(handler).complete([{"role": "user", "content": "Salut"}])
+    assert len(calls) == 2
+
+
 def test_timeout_is_reported_as_unavailable() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("trop long", request=request)
