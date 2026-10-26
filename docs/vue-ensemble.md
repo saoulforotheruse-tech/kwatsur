@@ -41,7 +41,7 @@ FastAPI ── AgentService (le chef d'orchestre)
 | Modèle | **NVIDIA Nemotron 3 Ultra** | Comprend la demande et rédige l'explication. |
 | Build | **Meterless Scout Intent** (`app/engines/scout/`) | Classe l'intention, bloque les demandes dangereuses et signe un contrat avant chaque action. |
 
-PostgreSQL stocke les annonces, les conversations et les messages. Sans Zetaris ni IA, la recherche par filtres fonctionne toujours.
+PostgreSQL stocke les annonces, les conversations et les messages. **Sans aucune clé** (`LLM_PROVIDER=rules`, valeur par défaut), Kwatsur tourne en mode démo : des règles comprennent la demande et le code rédige l'explication.
 
 ## Où est quoi
 
@@ -86,4 +86,4 @@ Mise en place de Zetaris et Meterless : `docs/sponsor-tech.md`.
 
 ## Ce qui manque encore
 
-Voir la section 9 de `exigences.md` : mode démo sans clés, et livrables de soumission (vidéo, slides, dépôt public) avant le 27/10, 23:45 UTC.
+Voir la section 9 de `exigences.md` : livrables de soumission (vidéo, slides, dépôt public) avant le 27/10, 23:45 UTC.

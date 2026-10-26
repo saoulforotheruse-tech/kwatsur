@@ -48,7 +48,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | N1 | Code complet, lançable depuis une installation vierge. | Partiel | `docker compose up` suffit en mode PostgreSQL. Avec Zetaris et Nightshift : étapes manuelles documentées (rôle `zetaris_reader`, `CREATE DATASOURCE`). |
 | N2 | Journaux ou traces montrant comment l'agent a abouti, **y compris quel modèle a traité chaque requête**. | Fait | Chaque réponse contient `scout` (intention, confiance, risque, contrat, outils, modèle), affiché dans l'interface. Journaux `scout.decision`, `contract.issued` (avec le modèle), `contract.verified`. |
 | N3 | Exemples d'entrées et de sorties sur plusieurs cas. | Partiel | Tests `tests/e2e/test_demo_scenario.py` et `tests/integration/`. Pas d'exemples réels exportés pour le jury. |
-| N4 | **Mode échantillon** sans Zetaris, Nightshift ni clés, pour que le jury voie l'application tourner. | Partiel | Sans clés : la recherche par filtres et l'interface fonctionnent, mais le chat renvoie une erreur 503 explicite. |
+| N4 | **Mode échantillon** sans Zetaris, Nightshift ni clés, pour que le jury voie l'application tourner. | Fait | `LLM_PROVIDER=rules` (défaut de `.env.example`) : critères extraits par des règles (`app/integrations/llm/rules.py`), Scout oriente l'explication vers le gabarit (`template.explain`), annonces fictives dans PostgreSQL. Chaque réponse porte « Mode démo sans IA ». Tests : `test_demo_mode_answers_without_any_model_or_key`, `tests/unit/test_rules_provider.py`. |
 | N5 | Aucun secret commité ; `.env.example` avec des valeurs factices. | Fait | `.env`, `token.txt` et `zetaris-platform/` sont ignorés par git ; `.env.example` est vide de secrets. |
 
 ## 5. Ce que le jury valorise
@@ -93,7 +93,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | NF6 | Frontend sans framework, `textContent` uniquement (jamais `innerHTML` avec des données). | Fait | `frontend/public/js/`. |
 | NF7 | Interface et messages en français. | Fait | `frontend/public/js/i18n/fr.js`. |
 | NF8 | Robustesse : délais, 401, 429 et réponses vides donnent des erreurs claires ; limite de débit du chat. | Fait | `openai_compatible.py`, `core/rate_limit.py` (`test_chat_rate_limit`). |
-| NF9 | `pytest` passe sans réseau ; les mocks restent dans `tests/`. | Fait | 95 tests réussis, 2 ignorés (PostgreSQL réel, facultatif). |
+| NF9 | `pytest` passe sans réseau ; les mocks restent dans `tests/`. | Fait | 99 tests réussis, 2 ignorés (PostgreSQL réel, facultatif). |
 | NF10 | Confidentialité : pas de compte ; les journaux ne contiennent ni messages ni secrets. | Fait | `docs/data-sources.md`. |
 | NF11 | Démarrage reproductible par Docker. | Fait | `docker compose up`, plus `docker-compose.wsl.yml` avec Zetaris et Nightshift en local. |
 
@@ -107,6 +107,6 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 
 1. ~~Intégrer un Meterless Engine (T4)~~ : fait avec Scout Intent le 26/10.
 2. ~~Tracer le modèle utilisé (N2)~~ : fait (champ `scout.model` et journaux).
-3. **Ajouter un mode échantillon** (N4) : par exemple un fournisseur de réponses préenregistrées, clairement étiqueté, quand `LLM_PROVIDER=none`.
+3. ~~Ajouter un mode échantillon (N4)~~ : fait (`LLM_PROVIDER=rules`).
 4. **Envisager une étape de validation** (section 5) : un second passage de Nemotron qui vérifie que l'explication ne contient que des faits présents dans les résultats.
 5. Choisir le parcours (L5), rendre le dépôt public (L3), enregistrer la vidéo (L1), faire les slides (L2) et soumettre sur HackOS.

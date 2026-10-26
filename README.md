@@ -37,6 +37,8 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 
 Prérequis : Docker avec Compose v2.24 ou plus récent.
 
+Sans aucune clé, `.env.example` lance le **mode démo** : annonces fictives dans PostgreSQL, critères compris par des règles, explications générées par le code, et Scout Intent actif. Chaque réponse l'indique (« Mode démo sans IA »). Pour Zetaris, Nightshift et Nemotron, voir [`docs/sponsor-tech.md`](./docs/sponsor-tech.md).
+
 Kwatsur se lance en **deux parties**, chacune avec son propre `docker-compose.yml` :
 
 | Partie | Dossier | Contenu | Adresse |
@@ -97,7 +99,8 @@ Toutes les valeurs viennent de l'environnement (`.env`, jamais commité). Les se
 | `LISTING_SOURCE` | `postgres` (défaut) ou `zetaris` |
 | `ZETARIS_FALLBACK_TO_POSTGRES` | Bascule visible vers PostgreSQL si Zetaris échoue |
 | `ZETARIS_BASE_URL`, `ZETARIS_API_KEY`, `ZETARIS_ORG_ID`, `ZETARIS_LISTINGS_TABLE` | Accès Zetaris (API REST officielle) |
-| `LLM_PROVIDER` | `nemotron` (API NVIDIA), `meterless` (runtime local) ou `none` |
+| `LLM_PROVIDER` | `rules` (défaut : **mode démo sans IA ni clé**), `meterless` (Nemotron via Nightshift, utilisé pour le hackathon), `nemotron` (API NVIDIA directe) ou `none` (chat désactivé) |
+| `SCOUT_SIGNING_SECRET` | Secret HMAC des contrats Scout Intent (éphémère s'il est vide) |
 | `NEMOTRON_BASE_URL`, `NEMOTRON_API_KEY`, `NEMOTRON_MODEL` | Nemotron sur le catalogue NVIDIA |
 | `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `METERLESS_MODEL`, `METERLESS_APP_ID` | Nemotron via Meterless Runtime |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Limite de messages par client |
