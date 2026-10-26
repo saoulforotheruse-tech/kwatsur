@@ -53,6 +53,11 @@ async def handle_database_error(
     )
 
 
+# Interface autonome (hackathon) : http://127.0.0.1:8000/static/
+static_directory = Path(__file__).resolve().parent / "static"
+if static_directory.is_dir():
+    app.mount("/static", StaticFiles(directory=static_directory, html=True), name="static")
+
 frontend_directory = Path(__file__).resolve().parents[1] / "frontend" / "public"
 if frontend_directory.is_dir():
     app.mount("/", StaticFiles(directory=frontend_directory, html=True), name="frontend")
