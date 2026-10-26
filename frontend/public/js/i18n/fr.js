@@ -11,6 +11,7 @@ export const fr = {
   "chat.source.zetaris": "Annonces lues via Zetaris",
   "chat.newConversation": "Nouvelle conversation démarrée.",
   "chat.scout": "Scout : {intent} ({confidence} %), risque {risk}",
+  "chat.scoutFallback": "Scout : demande non reconnue, réponse par défaut, risque {risk}",
   "chat.contract": "Contrat signé …{id}",
   "chat.model": "Modèle : {model}",
   "scout.intent.housing.search": "recherche",

@@ -56,8 +56,10 @@ export function describeResponse(response) {
   }
   const scout = response.scout;
   if (scout) {
+    // Bande « reject » : aucune intention reconnue, Scout s'est replié sur l'aide générale.
+    const scoutKey = scout.band === "reject" ? "chat.scoutFallback" : "chat.scout";
     metadata.push(
-      t("chat.scout", {
+      t(scoutKey, {
         intent: t(`scout.intent.${scout.intent}`),
         confidence: Math.round(scout.confidence * 100),
         risk: t(`scout.risk.${scout.risk_level}`),
