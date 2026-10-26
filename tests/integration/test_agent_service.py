@@ -62,6 +62,8 @@ def test_conversation_keeps_criteria_and_history(session: Session) -> None:
     assert all(item.property.monthly_rent <= 110000 for item in second.results)
     # Le modèle reçoit l'historique du premier échange au second message.
     assert [turn.role for turn in llm.received_histories[1]] == ["user", "assistant"]
+    # La rédaction de la réponse reçoit aussi l'historique (« elle », « le premier »…).
+    assert [turn.role for turn in llm.received_contexts[1].conversation_history] == ["user", "assistant"]
     assert count_messages(session) == 4
 
 
@@ -73,6 +75,7 @@ def test_model_only_receives_verified_results(session: Session) -> None:
     response = make_agent(session, llm).handle_message("2 chambres à Douala", None)
 
     context = llm.received_contexts[0]
+    assert all("description" in item for item in context.top_results)
     sent_titles = [item["title"] for item in context.top_results]
     assert sent_titles == [item.property.title for item in response.results[: len(sent_titles)]]
     assert response.reply_generated_by == "nemotron"

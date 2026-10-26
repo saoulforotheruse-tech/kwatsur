@@ -37,4 +37,6 @@ Règles :
 7. `remove_fields` : champs que l'utilisateur abandonne (« peu importe le quartier » → ["neighborhood"]). Noms possibles : city, neighborhood, property_type, min_rent, max_rent, bedrooms, water_available, electricity_available, furnished, preferences.
 8. `clarification_question` : UNE question courte en français si une information indispensable manque après fusion avec les critères actuels (d'abord la ville, puis le budget), ou si le message est ambigu. Sinon null.
 9. `intent` : "search" pour une nouvelle demande, "refine" pour une modification, "question" pour une question sur les résultats, "other" pour un message sans rapport avec le logement.
-10. Si une valeur est incertaine, laisse-la à null plutôt que de deviner.
+10. Si une valeur est incertaine, laisse-la à null plutôt que de deviner. Un mot incompréhensible ou mal orthographié (« un ia ») ne donne jamais un type de logement : laisse `property_type` à null.
+11. Garde ensemble ce qui va ensemble dans `preferences`, mais sépare les souhaits distincts : « une cour, de couleur bleue » → ["cour", "couleur bleue"].
+12. Une question sur les annonces déjà proposées (« est-ce qu'elle a une cour ? ») est `intent: "question"` : n'ajoute pas de critère.

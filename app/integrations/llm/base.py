@@ -24,6 +24,8 @@ class ReplyContext:
     follow_up_question: str | None = None
     relaxation_suggestions: list[str] = field(default_factory=list)
     notices: list[str] = field(default_factory=list)
+    # Derniers messages : pour comprendre « elle », « le premier »… jamais comme source de faits.
+    conversation_history: list[ChatTurn] = field(default_factory=list)
 
 
 class LLMProvider(Protocol):

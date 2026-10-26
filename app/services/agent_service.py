@@ -16,7 +16,7 @@ import logging
 
 from app.core.exceptions import KwatsurError
 from app.engines.scout import ScoutDecision, ScoutEngine
-from app.integrations.llm.base import LLMProvider, ReplyContext
+from app.integrations.llm.base import ChatTurn, LLMProvider, ReplyContext
 from app.models.conversation import Conversation
 from app.schemas.chat import ChatResponse, ReplyAuthor, ScoutTrace
 from app.schemas.criteria import SearchCriteria
@@ -86,6 +86,9 @@ def summarize_for_model(result: PropertySearchResult) -> dict:
         "source_name": listing.source_name,
         "source_is_demo": listing.source_is_demo,
         "listing_status": listing.listing_status,
+        # Texte de l'annonce tel que fourni par la source : permet de répondre à « a-t-elle une cour ? ».
+        "description": listing.description,
+        "location_description": listing.location_description,
         "reasons": result.reasons,
         "tradeoffs": result.tradeoffs,
         "to_verify": result.to_verify,
@@ -183,7 +186,7 @@ class AgentService:
                 session_id, criteria, question or DEFAULT_CITY_QUESTION, author, notices
             )
         return self._search_and_explain(
-            session_id, message, criteria, extraction.clarification_question, notices, decision
+            session_id, message, criteria, extraction.clarification_question, notices, decision, history
         )
 
     def _ranked_results(
@@ -270,6 +273,7 @@ class AgentService:
         follow_up_question: str | None,
         notices: list[str],
         decision: ScoutDecision,
+        history: list[ChatTurn],
     ) -> ChatResponse:
         self.scout.verifier.require(decision.contract, "listings.search")
         outcome = self.search_service.search(criteria, limit=RESULTS_RETURNED)
@@ -282,6 +286,7 @@ class AgentService:
             follow_up_question=follow_up_question,
             relaxation_suggestions=relaxation_suggestions(criteria) if outcome.total == 0 else [],
             notices=notices,
+            conversation_history=history,
         )
 
         author: ReplyAuthor = self.llm.name
