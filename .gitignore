@@ -9,3 +9,7 @@ htmlcov/
 token.txt
 # Exports CSV destinés à Zetaris
 /data/
+
+# Plateforme Zetaris locale (contient ses propres secrets)
+zetaris-platform/
+zetaris-platform.zip
