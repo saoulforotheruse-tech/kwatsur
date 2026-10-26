@@ -27,7 +27,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | T1 | **Zetaris** est la couche de données de l'agent, installé en local (Docker). | Fait | Avec `LISTING_SOURCE=zetaris`, chaque recherche interroge Zetaris en SQL (`app/integrations/data/zetaris.py`). Zetaris fédère la vue PostgreSQL `zetaris_listings` (source `kwatsur_pg`). Vérifié le 26/10 : `/api/integrations/status?live=true` → `ok`, réponses du chat avec `data_source: "zetaris"`. |
 | T2 | **Meterless Nightshift** est le fournisseur IA principal. | Fait | `LLM_PROVIDER=meterless` (`app/integrations/agent_runtime/meterless.py`) : en-têtes `meterless-app` et `meterless-scope`, découverte par `GET /v1/models`. Vérifié le 26/10 : réponses avec `reply_generated_by: "meterless"`. |
 | T3 | **NVIDIA Nemotron** utilisé là où il apporte quelque chose (prix DGX Spark si Nemotron alimente réellement une fonctionnalité). | Fait | Route épinglée `nvidia/nemotron-3-ultra-550b-a55b` (`METERLESS_MODEL`). Nemotron extrait les critères et rédige l'explication. La clé NVIDIA est dans Nightshift (Providers), jamais dans le code. |
-| T4 | **Au moins un Meterless Engine** (H-MEM, Markovian, World Model ou Scout) dans une fonctionnalité qui marche, **avec un test qui le prouve**. Le prompt « Add Meterless as a provider » ne suffit pas. | **Manquant** | Aucun moteur intégré. La mémoire de conversation actuelle (critères et historique dans PostgreSQL) est du code maison, pas un Meterless Engine. **Bloquant pour l'éligibilité.** |
+| T4 | **Au moins un Meterless Engine** (H-MEM, Markovian, World Model ou Scout) dans une fonctionnalité qui marche, **avec un test qui le prouve**. Le prompt « Add Meterless as a provider » ne suffit pas. | Fait | **Scout Intent** (`app/engines/scout/`) : chaque message passe par Sense, Interpret, Guard, Route et Recommend, puis un contrat signé autorise chaque outil. Preuves : `python -m scripts.run_scout_evals` (tous les seuils officiels respectés), `tests/unit/test_scout.py`, et le champ `scout` de chaque réponse en réel. |
 | T5 | Cursor ou tout outil de code IA (facultatif). | Fait | `AGENTS.md` sert de règles aux agents de code. |
 
 ## 3. Livrables de soumission
@@ -37,7 +37,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | L1 | Vidéo de démonstration de 1 à 4 minutes : parcours principal, défi choisi, intégration Zetaris et Meterless. | Manquant | Scénario prêt : `docs/demo-script.md`. |
 | L2 | Présentation (slides) : problème, utilisateurs, solution, architecture, stack, usage de Zetaris et Meterless, originalité, visuels, suites. | Manquant | Contenu disponible dans ce document et `docs/architecture.md`. |
 | L3 | Dépôt GitHub **public** avec un README (installation, usage, dépendances). | Partiel | README complet. Dépôt à rendre public avant la soumission. |
-| L4 | Explication des technologies sponsors : intégration Zetaris, moteur(s) Meterless et le test qui le prouve, connexion à Nightshift, apport de NVIDIA. | Partiel | `docs/sponsor-tech.md`. Il manque la partie Meterless Engine (voir T4). |
+| L4 | Explication des technologies sponsors : intégration Zetaris, moteur(s) Meterless et le test qui le prouve, connexion à Nightshift, apport de NVIDIA. | Fait | `docs/sponsor-tech.md`, y compris Scout Intent et ses preuves. |
 | L5 | Choix d'**un seul parcours (« track »)** principal. | Manquant | Recommandé : « The Agent That Can Explain Why » (réponses justifiées par des preuves), ou « Solving Fragmented Intelligence ». |
 | L6 | Déclaration des composants préexistants. | À faire | Aucun composant antérieur au 22/10 identifié. |
 
@@ -46,7 +46,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | # | Élément attendu | État | Preuve ou écart |
 | --- | --- | --- | --- |
 | N1 | Code complet, lançable depuis une installation vierge. | Partiel | `docker compose up` suffit en mode PostgreSQL. Avec Zetaris et Nightshift : étapes manuelles documentées (rôle `zetaris_reader`, `CREATE DATASOURCE`). |
-| N2 | Journaux ou traces montrant comment l'agent a abouti, **y compris quel modèle a traité chaque requête**. | Partiel | Chaque réponse indique `data_source`, `reply_generated_by` et `notices`. Le nom exact du modèle n'est ni journalisé ni renvoyé. |
+| N2 | Journaux ou traces montrant comment l'agent a abouti, **y compris quel modèle a traité chaque requête**. | Fait | Chaque réponse contient `scout` (intention, confiance, risque, contrat, outils, modèle), affiché dans l'interface. Journaux `scout.decision`, `contract.issued` (avec le modèle), `contract.verified`. |
 | N3 | Exemples d'entrées et de sorties sur plusieurs cas. | Partiel | Tests `tests/e2e/test_demo_scenario.py` et `tests/integration/`. Pas d'exemples réels exportés pour le jury. |
 | N4 | **Mode échantillon** sans Zetaris, Nightshift ni clés, pour que le jury voie l'application tourner. | Partiel | Sans clés : la recherche par filtres et l'interface fonctionnent, mais le chat renvoie une erreur 503 explicite. |
 | N5 | Aucun secret commité ; `.env.example` avec des valeurs factices. | Fait | `.env`, `token.txt` et `zetaris-platform/` sont ignorés par git ; `.env.example` est vide de secrets. |
@@ -57,8 +57,8 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | --- | --- |
 | Un agent qui fait un vrai travail, sur un vrai problème | Oui : trouver un logement à Douala ou Yaoundé à partir d'une phrase, avec explication. |
 | Exécution fiable, traçabilité | Oui : classement déterministe, sources affichées, réponse de secours signalée, 76 tests sans réseau. |
-| Plusieurs agents qui interagissent, se critiquent ou se valident ; branchements, relances, escalade | **Faible.** Kwatsur est un seul agent au déroulé linéaire (extraire → chercher → expliquer), avec une relance si le JSON est invalide et une bascule de secours. Le jury pénalise « un seul agent présenté comme un système d'agents ». |
-| Technologie sponsor au cœur, pas ajoutée à la fin | Zetaris et Nightshift sont sur le chemin de chaque requête. Le moteur Meterless manque (T4). |
+| Plusieurs agents qui interagissent, se critiquent ou se valident ; branchements, relances, escalade | **Moyen.** Scout aiguille chaque message vers une voie différente (recherche, comparaison, contact, refus, clarification) et chaque outil vérifie le contrat. Il reste un seul agent qui rédige, sans second agent qui relise sa réponse. |
+| Technologie sponsor au cœur, pas ajoutée à la fin | Zetaris, Nightshift et Scout Intent sont sur le chemin de chaque requête. |
 
 ## 6. Exigences fonctionnelles
 
@@ -79,6 +79,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | F13 | Brouillon de message de contact, sans aucun envoi. | Fait | `contact_service.py`, `POST /api/properties/{id}/contact-draft` | `test_property_detail_and_contact_draft` |
 | F14 | Afficher l'état réel des intégrations, avec un vrai appel sur demande. | Fait | `GET /api/integrations/status?live=true` | `test_integrations_status_without_credentials` |
 | F15 | Basculer vers PostgreSQL si Zetaris tombe, et le dire. | Fait | `search_service`, `ZETARIS_FALLBACK_TO_POSTGRES` | `test_falls_back_to_postgres_and_says_so` |
+| F16 | Comprendre l'intention avant d'agir : comparer ou préparer un message par le rang (« le n°2 »), refuser tout paiement, bloquer les injections de prompt. | Fait | `app/engines/scout/`, `comparison_service.py` | `test_scout_routes_comparison_and_contact_draft_by_rank`, `test_scout_refuses_payment_with_a_safety_reminder`, `test_scout_blocks_injection_before_any_model_call` |
 
 ## 7. Exigences non fonctionnelles
 
@@ -92,7 +93,7 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 | NF6 | Frontend sans framework, `textContent` uniquement (jamais `innerHTML` avec des données). | Fait | `frontend/public/js/`. |
 | NF7 | Interface et messages en français. | Fait | `frontend/public/js/i18n/fr.js`. |
 | NF8 | Robustesse : délais, 401, 429 et réponses vides donnent des erreurs claires ; limite de débit du chat. | Fait | `openai_compatible.py`, `core/rate_limit.py` (`test_chat_rate_limit`). |
-| NF9 | `pytest` passe sans réseau ; les mocks restent dans `tests/`. | Fait | 76 tests réussis, 2 ignorés (PostgreSQL réel, facultatif). |
+| NF9 | `pytest` passe sans réseau ; les mocks restent dans `tests/`. | Fait | 95 tests réussis, 2 ignorés (PostgreSQL réel, facultatif). |
 | NF10 | Confidentialité : pas de compte ; les journaux ne contiennent ni messages ni secrets. | Fait | `docs/data-sources.md`. |
 | NF11 | Démarrage reproductible par Docker. | Fait | `docker compose up`, plus `docker-compose.wsl.yml` avec Zetaris et Nightshift en local. |
 
@@ -104,12 +105,8 @@ Le travail commité avant l'ouverture de la fenêtre n'est pas éligible, sauf c
 
 ## 9. Actions prioritaires avant le 27/10, 23:45 UTC
 
-1. **Intégrer un Meterless Engine (T4, bloquant).** Candidats naturels :
-   - **Scout Intent** : router les demandes (recherche, comparaison, brouillon de contact, hors sujet) vers le bon outil ;
-   - **H-MEM** : se souvenir des préférences d'une session à l'autre.
-
-   Suivre le prompt IMPLEMENT de meterless.ai/engines.html et ajouter un test qui prouve que le moteur fonctionne.
-2. **Tracer le modèle utilisé** (N2) dans chaque réponse et dans les journaux.
+1. ~~Intégrer un Meterless Engine (T4)~~ : fait avec Scout Intent le 26/10.
+2. ~~Tracer le modèle utilisé (N2)~~ : fait (champ `scout.model` et journaux).
 3. **Ajouter un mode échantillon** (N4) : par exemple un fournisseur de réponses préenregistrées, clairement étiqueté, quand `LLM_PROVIDER=none`.
 4. **Envisager une étape de validation** (section 5) : un second passage de Nemotron qui vérifie que l'explication ne contient que des faits présents dans les résultats.
 5. Choisir le parcours (L5), rendre le dépôt public (L3), enregistrer la vidéo (L1), faire les slides (L2) et soumettre sur HackOS.

@@ -44,11 +44,26 @@ Réponse (extrait) :
       "missing_information": ["Logement meublé ou non"],
       "risk_signals": []
     }
-  ]
+  ],
+  "scout": {
+    "trace_id": "07d1…",
+    "intent": "housing.search",
+    "confidence": 1.0,
+    "band": "high",
+    "risk_level": "low",
+    "risk_flags": [],
+    "contract_id": "01M5WEJ1EA8D98130F5Q563PHS",
+    "tool_plan": ["search_service.search", "llm.write_reply"],
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "clarification_options": [],
+    "latency_ms": 0.4
+  }
 }
 ```
 
-Codes : `404` conversation inconnue, `422` message vide ou trop long, `429` trop de messages, `502` réponse IA inexploitable, `503` modèle non configuré ou indisponible, base indisponible.
+`scout` résume la décision du moteur Meterless Scout Intent. `risk_level: "block"` (injection de prompt, demande de paiement) ou `clarification_options` non vide : aucun outil n'a été appelé.
+
+Codes : `403` action refusée par le contrat d'exécution, `404` conversation inconnue, `422` message vide ou trop long, `429` trop de messages, `502` réponse IA inexploitable, `503` modèle non configuré ou indisponible, base indisponible.
 
 ## GET /api/properties
 

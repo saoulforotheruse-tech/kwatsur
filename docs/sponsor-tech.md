@@ -6,6 +6,7 @@ Ce document distingue ce qui est **implémenté et testé avec des réponses sim
 | --- | --- | --- | --- |
 | NVIDIA Nemotron | Comprendre la demande, expliquer les résultats | `app/integrations/llm/` | Oui, via Meterless (26/10/2026, `nvidia/nemotron-3-ultra-550b-a55b`) |
 | Meterless | Exécuter Nemotron via le Meterless Runtime | `app/integrations/agent_runtime/meterless.py` | Oui (26/10/2026, Nightshift Windows, chat de bout en bout) |
+| Meterless Scout Intent | Intention, garde des risques, orientation et contrat signé avant chaque action | `app/engines/scout/` | Oui (26/10/2026, évaluation au-dessus des seuils officiels, chat réel) |
 | Zetaris | Couche d'accès aux annonces (SQL via API REST) | `app/integrations/data/zetaris.py` | Oui (26/10/2026, instance locale 2.4.3, annonces lues via `kwatsur_pg.zetaris_listings`) |
 | Cursor | Environnement de développement de l'équipe | `AGENTS.md` | Sans objet à l'exécution |
 
@@ -55,7 +56,25 @@ METERLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b   # route Nemotron listée par
 
 **Docker dans WSL.** Nightshift tourne sous Windows et n'écoute que sur `127.0.0.1` : lancer l'API avec `docker-compose.wsl.yml` (réseau de WSL en mode `mirrored`). Sans cette surcharge, l'API tente `METERLESS_DOCKER_BASE_URL` (par défaut `http://host.docker.internal:8088/v1`), qui ne joint pas un Nightshift limité à `127.0.0.1`.
 
-**Moteurs non intégrés, et pourquoi.** H-MEM, World Model, Markovian et Scout sont publiés comme des spécifications avec une implémentation de référence en TypeScript, sans paquet Python. La mémoire de session de Kwatsur (critères et historique dans PostgreSQL) couvre le besoin du MVP. Réimplémenter un moteur aurait créé un système parallèle sans valeur démontrable dans les délais.
+**Moteur Meterless implémenté : Scout Intent** (règle « Build », vérifié le 26/10/2026).
+
+Scout passe avant chaque action de l'agent (`app/engines/scout/`, voir `app/engines/engines_readme.md`) :
+1. **Sense** : score déterministe des intentions du catalogue `kwatsur_intents.json` (recherche, comparaison, brouillon de contact, paiement, aide générale) ;
+2. **Interpret** : rang du logement cité (« le n°2 »), et clarification si la confiance est basse, s'il y a égalité, si un paramètre manque ou si l'action est risquée ;
+3. **Guard** : injection de prompt, politique (Kwatsur ne fait aucun paiement), portée, coordonnées personnelles ;
+4. **Route** : capacités → outils (`search_service.search`, `llm.write_reply`, `comparison.build`, `contact_service.build_contact_draft`) ;
+5. **Recommend** : contrat d'exécution signé (HMAC-SHA256, 5 minutes) qui désigne aussi le modèle (`nvidia/nemotron-3-ultra-550b-a55b`).
+
+Chaque outil vérifie le contrat avant d'agir (`ContractVerifier.require`). Un contrat absent, altéré, expiré ou hors périmètre est refusé et journalisé (`contract.refused`). Sans contrat, ni le modèle ni la recherche ne sont appelés.
+
+**Preuve.**
+- `python -m scripts.run_scout_evals` : jeu de régression (47 intentions, 22 cas d'injection dont les 10 officiels de Meterless, 6 cas limites) comparé aux seuils officiels de `thresholds.yaml`. Résultat du 26/10/2026 : top-1 0,98 (plancher 0,85), top-3 1,00, précision et rappel des injections 1,00, précision des outils 1,00, taux de clarification 0,00 (plafond 0,25).
+- `tests/unit/test_scout.py` et `tests/integration/test_agent_service.py` (`test_scout_*`).
+- En réel : chaque réponse du chat contient `scout` (intention, confiance, risque, identifiant du contrat, outils, modèle), affiché sous la réponse. Les journaux montrent `scout.decision`, `contract.issued` et `contract.verified`.
+
+Le lanceur officiel (`npm run evals`) attend une implémentation JavaScript : le harnais Python en reprend les métriques et les seuils. Non implémentés : Stage 2 (embeddings), plans multi-intentions, `replan`.
+
+**Autres moteurs non intégrés.** H-MEM, World Model et Markovian ne sont pas utilisés : la mémoire de session de Kwatsur (critères et historique dans PostgreSQL) couvre le besoin.
 
 **Limites.** La documentation publique ne précise pas l'identifiant de route qui garantit Nemotron : il faut le lire dans `GET /v1/models` de votre runtime. L'installeur DGX était indiqué « pas encore en ligne ».
 

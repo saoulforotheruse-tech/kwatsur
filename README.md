@@ -31,6 +31,7 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 - Signaux potentiels (annonce ancienne, loyer anormalement bas, annonce peu détaillée…), jamais présentés comme une preuve d'arnaque.
 - Comparaison côte à côte (3 logements) et brouillon de message de contact (aucun envoi).
 - Recherche manuelle par filtres, utilisable même sans IA.
+- **Meterless Scout Intent** avant chaque action : intention (recherche, comparaison, brouillon de contact), blocage des injections de prompt et des demandes de paiement, contrat signé qui autorise chaque outil. Évaluation : `python -m scripts.run_scout_evals`.
 
 ## Démarrage rapide (Docker)
 

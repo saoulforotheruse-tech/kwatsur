@@ -41,7 +41,7 @@ Pas d'abstraction sans usage : chaque interface a au moins deux implémentations
 `POST /api/chat {"message": "2 chambres à Douala vers Bonamoussadi, 150 000 max"}` :
 
 1. `routes/chat.py` valide `ChatRequest`, applique la limite de débit et reçoit un `AgentService` injecté.
-2. `AgentService.handle_message` charge ou crée la conversation via `ConversationService` → `ConversationRepository` (PostgreSQL).
+2. `AgentService.handle_message` charge ou crée la conversation via `ConversationService` → `ConversationRepository` (PostgreSQL), puis appelle **Scout Intent** (`app/engines/scout/`) : intention, garde des risques, plan d'outils et contrat signé. Sans contrat (injection, paiement, clarification), la réponse est un gabarit et aucun outil n'agit. Les intentions « comparaison » et « brouillon de contact » prennent une voie dédiée (`comparison_service`, `contact_service`). Chaque outil appelle `ContractVerifier.require` avant d'agir.
 3. `NemotronProvider.extract_criteria` envoie le prompt `criteria_extraction.md`, les critères actuels et l'historique récent à `ChatCompletionClient` (NVIDIA ou Meterless). La réponse JSON est validée en `CriteriaExtraction`, avec une relance si le format est invalide.
 4. `merge_criteria` fusionne et valide les critères (`SearchCriteria`). Une valeur invalide est ignorée et signalée.
 5. Si la ville manque, l'agent pose une question. Sinon `SearchService.search` :

@@ -20,6 +20,9 @@ Navigateur (HTML/JS)
    ▼
 FastAPI ── AgentService (le chef d'orchestre)
    │
+   ├─ 0. Scout Intent (moteur Meterless) : quelle intention ? est-ce risqué ?
+   │      → contrat signé qui dit quels outils ont le droit d'agir
+   │      (injection ou paiement → refus ; doute → question ; comparaison/contact → autre voie)
    ├─ 1. Nemotron via Meterless : « phrase → critères » (JSON validé)
    ├─ 2. Fusion avec les critères déjà connus (mémoire de conversation)
    ├─ 3. Ville manquante ? → poser une question et s'arrêter là
@@ -36,6 +39,7 @@ FastAPI ── AgentService (le chef d'orchestre)
 | Data | **Zetaris** (local, Docker) | Interroge les annonces en SQL. Il lit la vue `zetaris_listings` de notre base. |
 | Power | **Meterless Nightshift** (appli Windows) | Fournisseur IA : notre code l'appelle, il transmet à Nemotron. |
 | Modèle | **NVIDIA Nemotron 3 Ultra** | Comprend la demande et rédige l'explication. |
+| Build | **Meterless Scout Intent** (`app/engines/scout/`) | Classe l'intention, bloque les demandes dangereuses et signe un contrat avant chaque action. |
 
 PostgreSQL stocke les annonces, les conversations et les messages. Sans Zetaris ni IA, la recherche par filtres fonctionne toujours.
 
@@ -76,4 +80,4 @@ Mise en place de Zetaris et Meterless : `docs/sponsor-tech.md`.
 
 ## Ce qui manque encore
 
-Voir la section 9 de `exigences.md`. Le point bloquant pour le hackathon : intégrer au moins un **Meterless Engine** avant le 27/10, 23:45 UTC.
+Voir la section 9 de `exigences.md` : mode démo sans clés, et livrables de soumission (vidéo, slides, dépôt public) avant le 27/10, 23:45 UTC.
