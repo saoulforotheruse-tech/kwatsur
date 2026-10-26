@@ -6,7 +6,7 @@ Architecture en couches inspirée de MVC, avec séparation explicite entre logiq
 
 | Couche | Dossier | Responsabilité |
 | --- | --- | --- |
-| Vue | `frontend/public/` | HTML/CSS/JS sans framework. Affiche le chat et les annonces, appelle l'API via `fetch`. Aucun secret. |
+| Vue | `frontend/public/` | HTML/CSS/JS sans framework. Affiche le chat et les annonces, appelle l'API via `fetch`. Aucun secret. Servie par son propre conteneur nginx (`frontend/docker-compose.yml`), qui relaie `/api` et `/health` vers le backend : même origine, donc pas de CORS. |
 | Contrôleurs | `app/api/routes/` | Valident les entrées (Pydantic), appellent un service, construisent la réponse HTTP. |
 | Assemblage | `app/api/dependencies.py` | Injection de dépendances FastAPI : choisit la source d'annonces et le fournisseur IA selon la configuration. |
 | Services | `app/services/` | Cas d'usage : agent, recherche, classement, risques, critères, conversations, contact. |

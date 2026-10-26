@@ -53,19 +53,25 @@ PostgreSQL stocke les annonces, les conversations et les messages. Sans Zetaris 
 | `app/prompts/` | Les instructions données au modèle | `criteria_extraction.md` |
 | `app/schemas/`, `app/models/` | Formats de données (Pydantic) et tables (SQLAlchemy) | `schemas/criteria.py` |
 | `db/` | Migrations Alembic et 20 annonces **fictives** | `seed/seed_demo.py` |
-| `frontend/public/` | L'interface, sans framework | `js/app.js` |
+| `frontend/` | L'interface sans framework (`public/`) et son conteneur nginx (`Dockerfile`, `docker-compose.yml`) | `public/js/app.js` |
 | `tests/` | Tests unitaires, d'intégration et de bout en bout, sans réseau | `e2e/test_demo_scenario.py` |
 
 ## Lancer le projet
 
+Deux parties, deux `docker-compose.yml` :
+
 ```sh
+# Backend (PostgreSQL + API), à la racine
 cp .env.example .env
 docker compose up --build -d                     # mode simple : PostgreSQL seul
-# avec Zetaris et Nightshift en local (Docker dans WSL) :
+# ou, avec Zetaris et Nightshift en local (Docker dans WSL) :
 docker compose -f docker-compose.yml -f docker-compose.wsl.yml up -d --build
+
+# Frontend (nginx), dans frontend/
+cd frontend && cp .env.example .env && docker compose up --build -d
 ```
 
-L'interface est sur <http://localhost:8000>, ou sur le port de `API_PORT`. Pour les tests : `docker run --rm --network none -v "$PWD":/src -w /src kwatsur-api python -m pytest -q`.
+L'interface est sur <http://localhost:8080>. L'API répond sur le port `API_PORT` (8000 par défaut). Pour les tests : `docker run --rm --network none -v "$PWD":/src -w /src kwatsur-api python -m pytest -q`.
 
 Mise en place de Zetaris et Meterless : `docs/sponsor-tech.md`.
 

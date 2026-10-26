@@ -37,17 +37,32 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 
 Prérequis : Docker avec Compose v2.24 ou plus récent.
 
+Kwatsur se lance en **deux parties**, chacune avec son propre `docker-compose.yml` :
+
+| Partie | Dossier | Contenu | Adresse |
+| --- | --- | --- | --- |
+| Backend | racine du dépôt | PostgreSQL + API FastAPI | <http://localhost:8000> (`API_PORT`) |
+| Frontend | `frontend/` | Interface servie par nginx, qui relaie `/api` vers le backend | <http://localhost:8080> (`FRONTEND_PORT`) |
+
 ```sh
+# 1. Backend (migrations et données fictives appliquées au démarrage)
 cp .env.example .env          # puis renseigner les clés disponibles (voir plus bas)
-docker compose up --build -d  # migrations + données fictives appliquées au démarrage
+docker compose up --build -d
+
+# 2. Frontend
+cd frontend
+cp .env.example .env          # KWATSUR_API_URL doit viser le port API_PORT du backend
+docker compose up --build -d
 ```
 
-- Interface : <http://localhost:8000>
+- Interface : <http://localhost:8080>
 - Documentation de l'API (OpenAPI) : <http://localhost:8000/docs>
 - Santé : <http://localhost:8000/health>
 - État des intégrations : <http://localhost:8000/api/integrations/status> (ajouter `?live=true` pour un vrai appel)
 
-Si les ports 8000 ou 5432 sont déjà pris, définir dans `.env` par exemple `API_PORT=8001`, `POSTGRES_PORT=5433` et `CORS_ORIGINS=http://localhost:8001` ; l'interface est alors sur <http://localhost:8001>.
+L'image du backend ne contient plus l'interface : l'API seule répond sur son port. Hors Docker (`uvicorn`), l'API sert encore `frontend/public/` pour le développement.
+
+Si les ports 8000 ou 5432 sont déjà pris, définir dans `.env` par exemple `API_PORT=8001` et `POSTGRES_PORT=5433`, puis `KWATSUR_API_URL=http://host.docker.internal:8001` dans `frontend/.env`.
 
 Avec Zetaris et Meterless Nightshift installés en local (Docker dans WSL en réseau `mirrored`), ajouter la surcharge qui place l'API sur le réseau de WSL, seul moyen de joindre `127.0.0.1:8888` et `127.0.0.1:8088` :
 
@@ -55,7 +70,7 @@ Avec Zetaris et Meterless Nightshift installés en local (Docker dans WSL en ré
 docker compose -f docker-compose.yml -f docker-compose.wsl.yml up -d --build
 ```
 
-Arrêter sans effacer la base : `docker compose down`. Repartir de zéro : `docker compose down -v`.
+Arrêter sans effacer la base : `docker compose down` (et `docker compose down` dans `frontend/`). Repartir de zéro : `docker compose down -v`.
 
 Diagnostic : `docker compose logs -f api` ; les erreurs des services externes y sont journalisées sans secret.
 

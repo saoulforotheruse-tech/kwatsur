@@ -1,7 +1,7 @@
 # Scénario de démonstration (3 à 4 minutes)
 
 Préparation :
-- `docker compose up --build -d` ;
+- backend : `docker compose up --build -d` à la racine (ou avec `docker-compose.wsl.yml`), puis frontend : `docker compose up --build -d` dans `frontend/` ; interface sur <http://localhost:8080> ;
 - clés Nemotron (ou Meterless) et Zetaris renseignées, `ZETARIS_FALLBACK_TO_POSTGRES=false` ;
 - vérifier `http://localhost:8000/api/integrations/status?live=true`.
 

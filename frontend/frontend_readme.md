@@ -1,9 +1,26 @@
 # frontend — rôle du dossier
 
-Interface du navigateur. `public/` contient la page de recherche, les styles et les modules JavaScript. Le backend sert les fichiers et répond aux appels API.
+Interface du navigateur, lancée **séparément du backend** dans son propre conteneur.
+
+| Fichier | Rôle |
+| --- | --- |
+| `public/` | Page de recherche, styles et modules JavaScript (sans framework) |
+| `nginx/default.conf.template` | Sert `public/`, relaie `/api` et `/health` vers le backend, ajoute les en-têtes de sécurité (CSP…) |
+| `Dockerfile` | Image nginx avec l'interface |
+| `docker-compose.yml` | Lance l'interface sur `FRONTEND_PORT` (8080 par défaut) |
+| `.env.example` | `FRONTEND_PORT` et `KWATSUR_API_URL` (adresse du backend vue depuis le conteneur) |
+
+```sh
+cp .env.example .env
+docker compose up --build -d   # interface sur http://localhost:8080
+```
+
+Le backend (racine du dépôt) doit tourner. Les appels de l'interface restent relatifs (`/api/...`) : nginx les relaie, le navigateur ne voit qu'une seule origine.
 
 ## Règles de contribution
 
 - N’y mets ni secrets ni accès direct à PostgreSQL.
+- `textContent` uniquement, jamais `innerHTML` avec des données ; textes dans `public/js/i18n/`.
+- Pas de script ni de style en ligne : la CSP de nginx les bloque.
 - Les annonces inconnues doivent rester présentées comme non renseignées.
 - Vérifie les appels API et l’usage mobile après tout changement d’interface.
