@@ -51,6 +51,13 @@ def test_sends_openai_compatible_request_and_strips_reasoning() -> None:
     assert captured["body"]["model"] == "nvidia/test-model"
 
 
+def test_strips_reasoning_when_opening_tag_is_missing() -> None:
+    # Forme observée via Meterless avec Nemotron 3 Ultra : pas de <think> ouvrant.
+    client = make_client(lambda _request: completion("L'utilisateur veut une phrase.</think>Bonjour !"))
+
+    assert client.complete([{"role": "user", "content": "Salut"}]) == "Bonjour !"
+
+
 @pytest.mark.parametrize(
     ("status", "message_part"),
     [(401, "clé"), (429, "Quota"), (500, "refusé")],

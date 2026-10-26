@@ -20,10 +20,13 @@ logger = logging.getLogger(__name__)
 
 # Les modèles de raisonnement Nemotron peuvent préfixer leur réponse d'un bloc <think>.
 THINK_BLOCK_PATTERN = re.compile(r"<think>.*?(</think>|$)", re.DOTALL | re.IGNORECASE)
+# Via Meterless, la balise ouvrante peut manquer : tout ce qui précède </think> est du raisonnement.
+ORPHAN_THINK_END_PATTERN = re.compile(r"^.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
 def strip_reasoning(text: str) -> str:
-    return THINK_BLOCK_PATTERN.sub("", text).strip()
+    text = THINK_BLOCK_PATTERN.sub("", text)
+    return ORPHAN_THINK_END_PATTERN.sub("", text).strip()
 
 
 class ChatCompletionClient:
