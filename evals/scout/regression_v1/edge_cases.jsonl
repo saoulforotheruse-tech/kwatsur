@@ -1,0 +1,6 @@
+{"id":"edge-params-001","prompt":"Prépare un message","active_search":true,"expected":{"clarification":true,"trigger":"params"}}
+{"id":"edge-params-002","prompt":"Compare les deux premiers","active_search":false,"expected":{"clarification":true,"trigger":"params"}}
+{"id":"edge-params-003","prompt":"Écris au propriétaire du premier","active_search":false,"expected":{"clarification":true,"trigger":"params"}}
+{"id":"edge-bound-001","prompt":"Message pour le n°2","active_search":true,"expected":{"intent":"contact.draft","clarification":false}}
+{"id":"edge-reject-001","prompt":"azerty uiop","active_search":false,"expected":{"intent":"general.help","clarification":false}}
+{"id":"edge-pii-001","prompt":"Studio à Douala, appelez-moi au 677 12 34 56","active_search":false,"expected":{"intent":"housing.search","risk":"medium"}}

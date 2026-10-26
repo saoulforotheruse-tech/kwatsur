@@ -1,0 +1,159 @@
+{
+  "registryVersion": 1,
+  "intents": [
+    {
+      "id": "housing.search",
+      "category": "housing",
+      "label": "chercher ou affiner une recherche de logement",
+      "description": "Chercher un logement à louer ou modifier les critères d'une recherche en cours : ville, quartier, type, budget, chambres, équipements.",
+      "parameters": {"type": "object", "properties": {}, "required": []},
+      "capabilities": ["listings.search", "reply.explain"],
+      "riskClass": "low",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": false,
+      "examples": [
+        "Je cherche un deux-chambres à Douala vers Bonamoussadi",
+        "Un studio meublé à Yaoundé pour 80 000 FCFA maximum",
+        "Finalement pas plus de 100 000",
+        "Plutôt à Bastos, avec de l'eau"
+      ],
+      "triggers": [
+        {"pattern": "\\bcherch\\w*", "weight": 2},
+        {"pattern": "\\btrouv\\w*", "weight": 1},
+        {"pattern": "\\blou(er|e|ons|ez)\\b", "weight": 2},
+        {"pattern": "\\blocation\\b", "weight": 2},
+        {"pattern": "\\blogements?\\b", "weight": 2},
+        {"pattern": "\\bappart\\w*", "weight": 3},
+        {"pattern": "\\bstudios?\\b", "weight": 3},
+        {"pattern": "\\bchambres?\\b", "weight": 3},
+        {"pattern": "\\bmaisons?\\b", "weight": 2},
+        {"pattern": "\\bvillas?\\b", "weight": 2},
+        {"pattern": "\\bduplex\\b", "weight": 2},
+        {"pattern": "\\bloyers?\\b", "weight": 3},
+        {"pattern": "\\bbudget\\b", "weight": 3},
+        {"pattern": "\\bf ?cfa\\b|\\bxaf\\b", "weight": 3},
+        {"pattern": "\\b\\d{2,3}[ .]?\\d{3}\\b", "weight": 2},
+        {"pattern": "\\b\\d{2,3} ?k\\b", "weight": 1},
+        {"pattern": "\\bmax(imum)?\\b|\\bpas plus de\\b", "weight": 2},
+        {"pattern": "\\bminimum\\b|\\bau moins\\b", "weight": 1},
+        {"pattern": "\\bmoins cher\\w*", "weight": 2},
+        {"pattern": "\\bquartiers?\\b", "weight": 2},
+        {"pattern": "\\bdouala\\b|\\byaounde\\b", "weight": 3},
+        {"pattern": "\\bmeubl\\w*", "weight": 2},
+        {"pattern": "\\beau\\b|\\belectricite\\b|\\bcourant\\b", "weight": 1},
+        {"pattern": "\\bfinalement\\b|\\bplutot\\b|\\bpeu importe\\b", "weight": 2},
+        {"pattern": "\\bproche\\b|\\bpres de\\b|\\ba cote\\b|\\bvers\\b", "weight": 1},
+        {"pattern": "\\bsalles? de bain\\b|\\bparking\\b|\\bsecuris\\w*", "weight": 1}
+      ],
+      "version": 1
+    },
+    {
+      "id": "housing.compare",
+      "category": "housing",
+      "label": "comparer des logements déjà trouvés",
+      "description": "Comparer côte à côte des logements de la dernière recherche, désignés par leur rang.",
+      "parameters": {
+        "type": "object",
+        "properties": {"ranks": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 10}}},
+        "required": []
+      },
+      "capabilities": ["listings.search", "listings.compare"],
+      "riskClass": "low",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": true,
+      "examples": [
+        "Compare le premier et le deuxième",
+        "Quelle différence entre le 1 et le 3 ?",
+        "Lequel est le mieux ?"
+      ],
+      "triggers": [
+        {"pattern": "\\bcompar\\w*", "weight": 4},
+        {"pattern": "\\bdifferen\\w*", "weight": 3},
+        {"pattern": "\\blequel\\b|\\blaquelle\\b", "weight": 2},
+        {"pattern": "\\ble mieux\\b|\\bla mieux\\b|\\bmeilleur\\w*", "weight": 2},
+        {"pattern": "\\bvs\\b|\\bversus\\b|\\bcote a cote\\b", "weight": 3}
+      ],
+      "version": 1
+    },
+    {
+      "id": "contact.draft",
+      "category": "contact",
+      "label": "préparer un message pour un logement",
+      "description": "Préparer un brouillon de message pour contacter la source d'un logement trouvé. Kwatsur n'envoie jamais rien.",
+      "parameters": {
+        "type": "object",
+        "properties": {"rank": {"type": "integer", "minimum": 1, "maximum": 10}},
+        "required": ["rank"]
+      },
+      "capabilities": ["listings.search", "contact.draft"],
+      "riskClass": "medium",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": true,
+      "examples": [
+        "Prépare un message pour le premier",
+        "Écris au propriétaire du logement n°2",
+        "Je veux contacter le troisième pour une visite"
+      ],
+      "triggers": [
+        {"pattern": "\\bmessage\\b", "weight": 3},
+        {"pattern": "\\bcontact\\w*", "weight": 3},
+        {"pattern": "\\becri(re|s|vez)\\b|\\bredig\\w*", "weight": 2},
+        {"pattern": "\\bbrouillon\\b", "weight": 3},
+        {"pattern": "\\bprepar\\w*", "weight": 1},
+        {"pattern": "\\bproprietaires?\\b|\\bbailleurs?\\b|\\bagent immobilier\\b", "weight": 2},
+        {"pattern": "\\bvisiter?\\b|\\bvisites?\\b", "weight": 2},
+        {"pattern": "\\bjoindre\\b|\\bappeler\\b", "weight": 2}
+      ],
+      "version": 1
+    },
+    {
+      "id": "payment.send",
+      "category": "payment",
+      "label": "envoyer de l'argent",
+      "description": "Payer, verser une avance ou envoyer de l'argent. Kwatsur ne manipule jamais d'argent : cette intention est enregistrée pour être reconnue et refusée.",
+      "parameters": {"type": "object", "properties": {}, "required": []},
+      "capabilities": ["payment.send"],
+      "riskClass": "high",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": false,
+      "examples": [
+        "Paye la caution au propriétaire",
+        "Envoie 50 000 par Mobile Money pour réserver"
+      ],
+      "triggers": [
+        {"pattern": "\\bpa(y|i)(e|er|ez)\\b|\\bpaiement\\b", "weight": 3},
+        {"pattern": "\\bvers(e|er|ez|ement)\\b", "weight": 3},
+        {"pattern": "\\bmobile money\\b|\\bmomo\\b|\\borange money\\b", "weight": 3},
+        {"pattern": "\\benvo(ie|yer|yez)\\b.{0,20}\\b(argent|\\d)", "weight": 3},
+        {"pattern": "\\btransf(e|ere)r\\w*", "weight": 3},
+        {"pattern": "\\bcaution\\b|\\bavance\\b", "weight": 1}
+      ],
+      "version": 1
+    },
+    {
+      "id": "general.help",
+      "category": "general",
+      "label": "obtenir de l'aide ou discuter",
+      "description": "Intention sûre par défaut (GENERAL) : salutations, aide, questions hors du logement.",
+      "parameters": {"type": "object", "properties": {}, "required": []},
+      "capabilities": ["reply.redirect"],
+      "riskClass": "low",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": false,
+      "examples": ["Bonjour", "Que sais-tu faire ?", "Merci beaucoup"],
+      "triggers": [
+        {"pattern": "\\bbonjour\\b|\\bbonsoir\\b|\\bsalut\\b|\\bhello\\b", "weight": 2},
+        {"pattern": "\\bmerci\\b|\\bau revoir\\b", "weight": 2},
+        {"pattern": "\\bqui es[- ]tu\\b|\\bque (sais|peux)[- ]tu faire\\b|\\bcomment (ca|tu) marche", "weight": 3},
+        {"pattern": "\\baide\\b|\\baider\\b", "weight": 1},
+        {"pattern": "\\bmeteo\\b|\\bfoot\\w*|\\bblague\\b|\\brecette\\b", "weight": 3}
+      ],
+      "version": 1
+    }
+  ]
+}

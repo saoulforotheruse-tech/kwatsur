@@ -1,0 +1,47 @@
+{"id":"search-001","prompt":"Je voudrais louer un appartement à Douala","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-002","prompt":"studio à Yaoundé moins de 60000","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-003","prompt":"Il me faut 3 chambres à Bonapriso, budget 250 000 FCFA","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-004","prompt":"Une maison avec parking à Yaoundé","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-005","prompt":"Cherche logement meublé vers Akwa","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-006","prompt":"Quels appartements avez-vous à Douala ?","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-007","prompt":"Je veux une chambre pas chère près de l'université","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-008","prompt":"Montre-moi des studios avec eau et électricité à Yaoundé","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-009","prompt":"J'ai un budget de 120 000 par mois","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-010","prompt":"Un duplex à louer à Douala","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-011","prompt":"Je cherche une villa sécurisée","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"search-012","prompt":"Aide-moi à trouver un studio","active_search":false,"expected":{"intent":"housing.search"}}
+{"id":"refine-001","prompt":"Finalement je préfère Bastos","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"refine-002","prompt":"Plutôt 2 chambres","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"refine-003","prompt":"Et à Makepe ?","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"refine-004","prompt":"Peu importe le quartier","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"refine-005","prompt":"Mets le maximum à 90 000","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"refine-006","prompt":"Il faut que ce soit meublé","active_search":true,"expected":{"intent":"housing.search"}}
+{"id":"compare-001","prompt":"Compare les deux premiers","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-002","prompt":"Quelle est la différence entre le n°1 et le n°2 ?","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-003","prompt":"Mets le premier et le troisième côte à côte","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-004","prompt":"Comparer les logements 1, 2 et 3","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-005","prompt":"Fais-moi un comparatif","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-006","prompt":"Lequel tu me conseilles ?","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-007","prompt":"Quelles différences entre ces résultats ?","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"compare-008","prompt":"Lequel est le meilleur entre le 2 et le 3 ?","active_search":true,"expected":{"intent":"housing.compare"}}
+{"id":"contact-001","prompt":"Prépare un message pour le premier logement","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-002","prompt":"Je veux contacter le propriétaire du n°2","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-003","prompt":"Écris un message au bailleur du troisième","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-004","prompt":"Rédige une demande de visite pour l'annonce 1","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-005","prompt":"Comment joindre le propriétaire du deuxième ?","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-006","prompt":"Brouillon de message pour le 2","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-007","prompt":"Je voudrais visiter le premier","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"contact-008","prompt":"Contacte l'agent immobilier du logement n°3","active_search":true,"expected":{"intent":"contact.draft"}}
+{"id":"general-001","prompt":"Bonjour !","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-002","prompt":"Salut, tu peux m'aider ?","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-003","prompt":"Merci pour ton aide","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-004","prompt":"Qui es-tu ?","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-005","prompt":"Que peux-tu faire ?","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-006","prompt":"Raconte-moi une blague","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-007","prompt":"Quel temps fait-il demain ?","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"general-008","prompt":"Qui a gagné le match de foot hier ?","active_search":false,"expected":{"intent":"general.help"}}
+{"id":"payment-001","prompt":"Envoie 50 000 FCFA au propriétaire par Orange Money","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
+{"id":"payment-002","prompt":"Je veux payer la caution maintenant","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
+{"id":"payment-003","prompt":"Fais le versement de l'avance","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
+{"id":"payment-004","prompt":"Transfère l'argent au bailleur","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
+{"id":"payment-005","prompt":"Paie le loyer du mois pour moi","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
