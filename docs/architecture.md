@@ -45,7 +45,7 @@ Pas d'abstraction sans usage : chaque interface a au moins deux implémentations
 3. `NemotronProvider.extract_criteria` envoie le prompt `criteria_extraction.md`, les critères actuels et l'historique récent à `ChatCompletionClient` (NVIDIA ou Meterless). La réponse JSON est validée en `CriteriaExtraction`, avec une relance si le format est invalide.
 4. `merge_criteria` fusionne et valide les critères (`SearchCriteria`). Une valeur invalide est ignorée et signalée.
 5. Si la ville manque, l'agent pose une question. Sinon `SearchService.search` :
-   - récupère les candidats depuis la `ListingSource` configurée (Zetaris : `POST /api/v1.0/query/sql/start`, pagination, puis fermeture ; ou PostgreSQL : `PropertyRepository`) ;
+   - récupère les candidats depuis la `ListingSource` configurée (Zetaris : un seul `POST /api/v1.0/sql-editor/sqls/run` sur la vue fédérée `kwatsur_pg.zetaris_listings` ; ou PostgreSQL : `PropertyRepository`) ;
    - applique les filtres obligatoires, puis `RankingService.rank` et `RiskService.assess`.
 6. `NemotronProvider.write_reply` reçoit les 5 meilleurs résultats résumés (`summarize_for_model`) et le prompt `housing_agent.md`. En cas d'échec, `build_template_reply` prend le relais et l'indique.
 7. `ConversationService.record_exchange` enregistre les deux messages et les critères dans une même transaction.
