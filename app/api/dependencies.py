@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, settings
 from app.db.session import get_session
+from app.engines.scout import ModelProfile, ScoutEngine
 from app.integrations.data.postgres import PostgresListingSource
 from app.integrations.data.zetaris import ZetarisClient, ZetarisListingSource
 from app.integrations.llm.base import LLMProvider
@@ -66,12 +67,25 @@ def get_conversation_service(session: DatabaseSession) -> ConversationService:
 ConversationServiceDependency = Annotated[ConversationService, Depends(get_conversation_service)]
 
 
+def build_model_profile(app_settings: Settings) -> ModelProfile:
+    if app_settings.llm_provider == "meterless":
+        return ModelProfile("meterless", app_settings.meterless_model, bool(app_settings.meterless_api_key))
+    if app_settings.llm_provider == "nemotron":
+        return ModelProfile("nvidia", app_settings.nemotron_model, bool(app_settings.nemotron_api_key))
+    return ModelProfile("none", "template", False)
+
+
+def get_scout_engine(app_settings: AppSettings) -> ScoutEngine:
+    return ScoutEngine(build_model_profile(app_settings), app_settings.scout_signing_secret)
+
+
 def get_agent_service(
     search_service: SearchServiceDependency,
     conversation_service: ConversationServiceDependency,
     llm_provider: Annotated[LLMProvider, Depends(get_llm_provider)],
+    scout: Annotated[ScoutEngine, Depends(get_scout_engine)],
 ) -> AgentService:
-    return AgentService(llm_provider, search_service, conversation_service)
+    return AgentService(llm_provider, search_service, conversation_service, scout)
 
 
 AgentServiceDependency = Annotated[AgentService, Depends(get_agent_service)]

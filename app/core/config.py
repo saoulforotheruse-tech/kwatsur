@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     meterless_model: str = "meterless/auto"
     meterless_app_id: str = "kwatsur"
 
+    # Meterless Scout Intent : secret HMAC des contrats d'exécution (éphémère s'il est vide).
+    scout_signing_secret: str = ""
+
     # Nombre maximal de messages /api/chat par client et par minute.
     chat_rate_limit_per_minute: int = 20
 

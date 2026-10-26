@@ -14,9 +14,14 @@ from app.core.config import settings
 from app.core.exceptions import KwatsurError
 from app.core.logging import configure_logging
 from app.core.rate_limit import SlidingWindowRateLimiter
+from app.engines.scout.registry import load_registry
+from app.engines.scout.sense import self_test as scout_self_test
 
 configure_logging()
 logger = logging.getLogger(__name__)
+
+# Scout Intent : le Stage 1 doit tenir sous 16 ms, sinon l'application refuse de démarrer.
+logger.info("scout.selftest stage1Ms=%.3f", scout_self_test(load_registry()))
 
 app = FastAPI(
     title=settings.app_name,

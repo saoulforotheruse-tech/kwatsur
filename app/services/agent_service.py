@@ -2,20 +2,27 @@
 
 Flux d'un message :
   1. charger la conversation et ses critères ;
-  2. faire extraire les nouveaux critères par le modèle ;
-  3. les fusionner et les valider côté backend ;
-  4. poser une question si la ville manque, sinon rechercher, filtrer, classer et évaluer les risques ;
-  5. faire rédiger l'explication par le modèle à partir des seuls faits calculés ;
-  6. enregistrer l'échange et renvoyer réponse + logements structurés.
+  2. Scout Intent (moteur Meterless) classe l'intention, contrôle les risques et signe un
+     contrat d'exécution ; sans contrat (blocage ou clarification), aucun outil n'agit ;
+  3. selon l'intention : recherche, comparaison, brouillon de contact ou redirection,
+     chaque outil vérifiant le contrat avant d'agir ;
+  4. pour une recherche : extraction des critères par le modèle, fusion et validation,
+     question si la ville manque, sinon recherche, filtres, classement, risques, puis
+     explication rédigée par le modèle à partir des seuls faits calculés ;
+  5. enregistrer l'échange et renvoyer réponse + logements structurés + trace Scout.
 """
 
 import logging
 
 from app.core.exceptions import KwatsurError
+from app.engines.scout import ScoutDecision, ScoutEngine
 from app.integrations.llm.base import LLMProvider, ReplyContext
-from app.schemas.chat import ChatResponse, ReplyAuthor
+from app.models.conversation import Conversation
+from app.schemas.chat import ChatResponse, ReplyAuthor, ScoutTrace
 from app.schemas.criteria import SearchCriteria
-from app.schemas.property import PropertySearchResult
+from app.schemas.property import DataSourceName, PropertySearchResult
+from app.services.comparison_service import build_comparison
+from app.services.contact_service import build_contact_draft
 from app.services.conversation_service import ConversationService
 from app.services.criteria_service import merge_criteria, relaxation_suggestions
 from app.services.ranking_service import format_fcfa
@@ -30,6 +37,38 @@ OFF_TOPIC_REPLY = (
     "Je suis spécialisé dans la recherche de logements à louer au Cameroun. "
     "Décrivez-moi ce que vous cherchez : ville, quartier, budget, nombre de chambres…"
 )
+PAYMENT_REFUSAL = (
+    "Je ne fais aucun paiement ni transfert d'argent. Ne versez jamais d'avance ni de caution "
+    "avant d'avoir visité le logement et vérifié l'identité du bailleur."
+)
+BLOCKED_REPLY = "Je ne peux pas traiter cette demande. Décrivez simplement le logement que vous cherchez."
+
+
+def scout_trace(decision: ScoutDecision) -> ScoutTrace:
+    """Résumé de la décision Scout renvoyé au frontend : intention, risque, contrat, modèle."""
+    contract = decision.contract
+    return ScoutTrace(
+        trace_id=decision.trace_id,
+        intent=decision.intent_id,
+        confidence=decision.confidence,
+        band=decision.band,
+        risk_level=decision.risk.level,
+        risk_flags=[flag["kind"] for flag in decision.risk.flags],
+        contract_id=contract["contractId"] if contract else None,
+        tool_plan=[step["tool"] for step in decision.tool_plan],
+        model=contract["modelProfile"]["model"] if contract else None,
+        clarification_options=decision.clarification.options if decision.clarification else [],
+        latency_ms=decision.latency_ms,
+    )
+
+
+def clarification_reply(decision: ScoutDecision) -> str:
+    clarification = decision.clarification
+    options = [
+        f"{index}. {option[0].upper()}{option[1:]}"
+        for index, option in enumerate(clarification.options, 1)
+    ]
+    return "\n".join([clarification.question, *options])
 
 
 def summarize_for_model(result: PropertySearchResult) -> dict:
@@ -80,38 +119,129 @@ class AgentService:
         llm_provider: LLMProvider,
         search_service: SearchService,
         conversation_service: ConversationService,
+        scout: ScoutEngine,
     ) -> None:
         self.llm = llm_provider
         self.search_service = search_service
         self.conversations = conversation_service
+        self.scout = scout
 
     def handle_message(self, message: str, conversation_id: str | None) -> ChatResponse:
         conversation = self.conversations.get_or_create(conversation_id)
         current = self.conversations.current_criteria(conversation)
-        history = self.conversations.recent_history(conversation)
+        session_id = conversation.session_id
 
+        decision = self.scout.decide(message, has_active_search=current.city is not None)
+        if not decision.proceeds:
+            response = self._answer_without_contract(session_id, current, decision)
+        elif decision.intent_id == "housing.search":
+            response = self._handle_search(session_id, message, current, conversation, decision)
+        elif decision.intent_id == "housing.compare":
+            response = self._compare(session_id, current, decision)
+        elif decision.intent_id == "contact.draft":
+            response = self._draft_contact(session_id, current, decision)
+        else:
+            self.scout.verifier.require(decision.contract, "reply.redirect")
+            response = self._answer_without_search(session_id, current, OFF_TOPIC_REPLY, "template", [])
+
+        response.scout = scout_trace(decision)
+        self.conversations.record_exchange(conversation, message, response.reply, response.criteria)
+        return response
+
+    def _answer_without_contract(
+        self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision
+    ) -> ChatResponse:
+        if decision.clarification:
+            return self._answer_without_search(
+                session_id, criteria, clarification_reply(decision), "template", []
+            )
+        reply = PAYMENT_REFUSAL if decision.intent_id == "payment.send" else BLOCKED_REPLY
+        response = self._answer_without_search(session_id, criteria, reply, "template", [])
+        response.needs_clarification = False
+        return response
+
+    def _handle_search(
+        self,
+        session_id: str,
+        message: str,
+        current: SearchCriteria,
+        conversation: Conversation,
+        decision: ScoutDecision,
+    ) -> ChatResponse:
+        history = self.conversations.recent_history(conversation)
         # Les erreurs d'extraction remontent : sans compréhension fiable, on ne cherche pas.
         extraction = self.llm.extract_criteria(message, history, current)
         criteria, notices = merge_criteria(current, extraction)
 
-        session_id = conversation.session_id
         if extraction.intent == "other" and criteria.is_empty():
-            response = self._answer_without_search(
-                session_id, criteria, OFF_TOPIC_REPLY, "template", notices
-            )
-        elif criteria.city is None:
+            return self._answer_without_search(session_id, criteria, OFF_TOPIC_REPLY, "template", notices)
+        if criteria.city is None:
             question = extraction.clarification_question
             author: ReplyAuthor = self.llm.name if question else "template"
-            response = self._answer_without_search(
+            return self._answer_without_search(
                 session_id, criteria, question or DEFAULT_CITY_QUESTION, author, notices
             )
-        else:
-            response = self._search_and_explain(
-                session_id, message, criteria, extraction.clarification_question, notices
-            )
+        return self._search_and_explain(
+            session_id, message, criteria, extraction.clarification_question, notices, decision
+        )
 
-        self.conversations.record_exchange(conversation, message, response.reply, criteria)
-        return response
+    def _ranked_results(
+        self, criteria: SearchCriteria, decision: ScoutDecision
+    ) -> tuple[list[PropertySearchResult], DataSourceName]:
+        """Relance la recherche courante pour retrouver les logements par leur rang."""
+        self.scout.verifier.require(decision.contract, "listings.search")
+        outcome = self.search_service.search(criteria, limit=RESULTS_RETURNED)
+        return outcome.results, outcome.data_source
+
+    def _compare(
+        self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision
+    ) -> ChatResponse:
+        results, data_source = self._ranked_results(criteria, decision)
+        self.scout.verifier.require(decision.contract, "listings.compare")
+        wanted = decision.parameters["ranks"]
+        selected = [result for result in results if result.rank in wanted]
+        if len(selected) < 2:
+            reply = (
+                "Il faut au moins deux logements à comparer ; "
+                f"la recherche actuelle en compte {len(results)}."
+            )
+        else:
+            reply = build_comparison(selected)
+        return self._answer_with_results(session_id, criteria, reply, selected, data_source)
+
+    def _draft_contact(
+        self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision
+    ) -> ChatResponse:
+        results, data_source = self._ranked_results(criteria, decision)
+        self.scout.verifier.require(decision.contract, "contact.draft")
+        rank = decision.parameters["rank"]
+        selected = [result for result in results if result.rank == rank]
+        if selected:
+            draft = build_contact_draft(selected[0].property)
+            reply = f"{draft.message}\n\n{draft.notice}"
+        else:
+            reply = f"Il n'y a pas de logement n°{rank} dans la recherche actuelle ({len(results)} résultat(s))."
+        return self._answer_with_results(session_id, criteria, reply, selected, data_source)
+
+    def _answer_with_results(
+        self,
+        session_id: str,
+        criteria: SearchCriteria,
+        reply: str,
+        results: list[PropertySearchResult],
+        data_source: DataSourceName,
+    ) -> ChatResponse:
+        return ChatResponse(
+            conversation_id=session_id,
+            reply=reply,
+            reply_generated_by="template",
+            criteria=criteria,
+            needs_clarification=False,
+            searched=True,
+            total=len(results),
+            data_source=data_source,
+            results=results,
+        )
 
     def _answer_without_search(
         self,
@@ -138,7 +268,9 @@ class AgentService:
         criteria: SearchCriteria,
         follow_up_question: str | None,
         notices: list[str],
+        decision: ScoutDecision,
     ) -> ChatResponse:
+        self.scout.verifier.require(decision.contract, "listings.search")
         outcome = self.search_service.search(criteria, limit=RESULTS_RETURNED)
         notices = notices + outcome.notices
         context = ReplyContext(
@@ -152,6 +284,7 @@ class AgentService:
         )
 
         author: ReplyAuthor = self.llm.name
+        self.scout.verifier.require(decision.contract, "reply.explain")
         try:
             reply = self.llm.write_reply(context)
         except KwatsurError as error:

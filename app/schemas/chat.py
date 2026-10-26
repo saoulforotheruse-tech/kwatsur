@@ -16,6 +16,23 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = Field(default=None, min_length=1, max_length=36)
 
 
+class ScoutTrace(BaseModel):
+    """Décision du moteur Meterless Scout Intent : preuve de ce qui a autorisé la réponse."""
+
+    trace_id: str
+    intent: str
+    confidence: float
+    band: str
+    risk_level: str
+    risk_flags: list[str] = Field(default_factory=list)
+    contract_id: str | None = None
+    tool_plan: list[str] = Field(default_factory=list)
+    # Modèle désigné par le contrat (traçabilité demandée par le jury).
+    model: str | None = None
+    clarification_options: list[str] = Field(default_factory=list)
+    latency_ms: float = 0.0
+
+
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
@@ -28,6 +45,7 @@ class ChatResponse(BaseModel):
     data_source: DataSourceName | None = None
     notices: list[str] = Field(default_factory=list)
     results: list[PropertySearchResult] = Field(default_factory=list)
+    scout: ScoutTrace | None = None
 
 
 class MessageRead(BaseModel):
