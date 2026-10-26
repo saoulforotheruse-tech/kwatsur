@@ -91,7 +91,14 @@ class ChatCompletionClient:
                 f"Quota du modèle IA ({self.provider_label}) atteint. Réessayez plus tard."
             )
         if response.status_code >= 400:
-            logger.warning("%s a répondu %s", self.provider_label, response.status_code)
+            # Corps tronqué pour diagnostiquer (modèle retiré, payload invalide…) sans secret.
+            logger.warning(
+                "%s a répondu %s pour le modèle %s : %s",
+                self.provider_label,
+                response.status_code,
+                self.model,
+                response.text[:300],
+            )
             raise IntegrationUnavailableError(
                 f"Le modèle IA ({self.provider_label}) a refusé la requête."
             )

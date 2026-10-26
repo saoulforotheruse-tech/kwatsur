@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     nemotron_base_url: str = "https://integrate.api.nvidia.com/v1"
     nemotron_api_key: str = ""
-    nemotron_model: str = "nvidia/llama-3.3-nemotron-super-49b-v1.5"
+    nemotron_model: str = "nvidia/nemotron-3.5-bolt-e4b"
 
     # Meterless Runtime : API compatible OpenAI exposée en local.
     meterless_base_url: str = "http://127.0.0.1:8088/v1"

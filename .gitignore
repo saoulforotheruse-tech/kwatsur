@@ -9,3 +9,6 @@ htmlcov/
 token.txt
 # Exports CSV destinés à Zetaris
 /data/
+
+*.whl
+venv/
