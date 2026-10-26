@@ -20,6 +20,15 @@ FIELD_LABELS = {
 }
 
 
+def _drop_blank_strings(updates: dict[str, Any]) -> dict[str, Any]:
+    """Ignore les chaînes vides : le modèle les envoie souvent à la place de null."""
+    return {
+        field_name: value
+        for field_name, value in updates.items()
+        if not (isinstance(value, str) and not value.strip())
+    }
+
+
 def merge_criteria(
     current: SearchCriteria, extraction: CriteriaExtraction
 ) -> tuple[SearchCriteria, list[str]]:
@@ -28,7 +37,7 @@ def merge_criteria(
     for field_name in extraction.remove_fields:
         merged[field_name] = [] if field_name == "preferences" else None
 
-    updates = extraction.updates.model_dump(exclude_none=True)
+    updates = _drop_blank_strings(extraction.updates.model_dump(exclude_none=True))
     # Les nouvelles préférences s'ajoutent aux anciennes au lieu de les remplacer.
     if "preferences" in updates:
         updates["preferences"] = merged["preferences"] + updates["preferences"]

@@ -60,6 +60,20 @@ def test_merge_drops_contradictory_min_rent() -> None:
     assert merged.min_rent is None
 
 
+def test_merge_ignores_blank_strings_instead_of_clearing_fields() -> None:
+    current = SearchCriteria(city="Douala", neighborhood="Akwa", bedrooms=2)
+
+    merged, notices = merge_criteria(
+        current, extraction({"city": "", "neighborhood": "  ", "max_rent": 90000})
+    )
+
+    assert merged.city == "Douala"
+    assert merged.neighborhood == "Akwa"
+    assert merged.bedrooms == 2
+    assert merged.max_rent == 90000
+    assert notices == []
+
+
 def test_merge_ignores_invalid_value_and_reports_it() -> None:
     current = SearchCriteria(city="Douala")
 
