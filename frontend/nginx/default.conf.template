@@ -1,0 +1,30 @@
+# Sert l'interface et relaie /api et /health vers le backend Kwatsur.
+# ${KWATSUR_API_URL} est remplacé au démarrage du conteneur (image nginx officielle).
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'" always;
+
+    location /api/ {
+        proxy_pass ${KWATSUR_API_URL};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        # La rédaction par Nemotron via Meterless peut prendre plusieurs dizaines de secondes.
+        proxy_read_timeout 300s;
+    }
+
+    location = /health {
+        proxy_pass ${KWATSUR_API_URL};
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

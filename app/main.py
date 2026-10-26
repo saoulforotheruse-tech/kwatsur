@@ -58,6 +58,8 @@ async def handle_database_error(
     )
 
 
+# Hors Docker (développement, tests), l'API sert aussi l'interface. L'image Docker ne la contient
+# pas : l'interface tourne dans son propre conteneur nginx (frontend/docker-compose.yml).
 frontend_directory = Path(__file__).resolve().parents[1] / "frontend" / "public"
 if frontend_directory.is_dir():
     app.mount("/", StaticFiles(directory=frontend_directory, html=True), name="frontend")

@@ -1,0 +1,16 @@
+# Interface web de Kwatsur, lancée séparément du backend.
+# Usage (depuis le dossier frontend/) : docker compose up -d --build
+# Le backend doit tourner (docker compose à la racine) sur le port de KWATSUR_API_URL.
+name: kwatsur-frontend
+
+services:
+  web:
+    build: .
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    environment:
+      # Adresse du backend vue depuis ce conteneur (port API_PORT du .env racine).
+      KWATSUR_API_URL: ${KWATSUR_API_URL:-http://host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

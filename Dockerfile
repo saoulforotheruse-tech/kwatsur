@@ -11,7 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY db ./db
 COPY scripts ./scripts
-COPY frontend/public ./frontend/public
 COPY alembic.ini .
 RUN chmod +x scripts/docker-entrypoint.sh
 
