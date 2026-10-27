@@ -16,6 +16,14 @@ class SubmissionRepository:
     def get(self, submission_id: int) -> ListingSubmission | None:
         return self.session.get(ListingSubmission, submission_id)
 
+    def get_for_review(self, submission_id: int) -> ListingSubmission | None:
+        return self.session.scalar(
+            select(ListingSubmission)
+            .where(ListingSubmission.id == submission_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+
     def open_draft(self, session_id: str) -> ListingSubmission | None:
         """Proposition en cours de description pour cette conversation, s'il y en a une."""
         statement = (

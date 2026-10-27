@@ -142,6 +142,8 @@ class SubmissionService:
             review_note=submission.review_note,
             created_at=submission.created_at or self.now(),
             submitted_at=submission.submitted_at,
+            reviewed_at=submission.reviewed_at,
+            approved_property_id=submission.approved_property_id,
         )
 
     def get_for_session(self, submission_id: int, session_id: str) -> ListingSubmission:
@@ -202,7 +204,7 @@ class SubmissionService:
         return self._review(submission, note)
 
     def _pending(self, submission_id: int) -> ListingSubmission:
-        submission = self.repository.get(submission_id)
+        submission = self.repository.get_for_review(submission_id)
         if submission is None:
             raise SubmissionNotFoundError()
         if submission.status != "pending":

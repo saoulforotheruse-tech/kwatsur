@@ -1,10 +1,10 @@
 # Sponsor technology explanation
 
-All the integrations below are **working and verified with real calls** (27/10/2026), not just mentioned. Technical details (in French): `docs/sponsor-tech.md`, `docs/outils.md`, `docs/image-generation.md`.
+The evidence below records real calls on 27/10/2026, not permanent service availability. Recent searches received a Zetaris rejection and used the explicitly reported PostgreSQL fallback. Nightshift/Nemotron, Cloudflare generation and pending submission with admin rejection were verified live; approval and photo attachment are also covered offline. Technical details (French): `docs/sponsor-tech.md`, `docs/image-generation.md`.
 
 ## Zetaris — the agent's data layer
 
-**Integration.** Zetaris runs locally in Docker (hackathon platform 2.4.3). Kwatsur uses it as the **single access point to listings**:
+**Integration.** Zetaris runs locally in Docker (hackathon platform 2.4.3). Kwatsur uses it as the **configured primary listing source**, with a visible PostgreSQL fallback:
 - every search (chat or filters) sends a SQL query to the Zetaris REST API (`POST /api/v1.0/sql-editor/sqls/run`, API key, `X-Org-ID`, `X-Request-ID`);
 - the response (`headers` and `data`) is converted into listings; a `null` value stays "not specified";
 - in Zetaris, Kwatsur's PostgreSQL database is registered as a federated source (`CREATE DATASOURCE kwatsur_pg`, then `REGISTER DATASOURCE TABLE`). Zetaris reads the `zetaris_listings` view through a **read-only** role limited to that view;
@@ -12,9 +12,9 @@ All the integrations below are **working and verified with real calls** (27/10/2
 
 **Role.** Federation and query layer: tomorrow, other listing sources (partner APIs, agency CSV files) will be added in Zetaris without touching the agent's code.
 
-**Proof.**
+**Historical evidence (recorded successful call).**
 - `GET /api/integrations/status?live=true` → `zetaris: ok`.
-- Every response carries `data_source: "zetaris"`, and the interface shows "Listings read via Zetaris".
+- Searches in this recording carried `data_source: "zetaris"`; the interface must always report the source actually used.
 - Real log: `POST http://127.0.0.1:8888/api/v1.0/sql-editor/sqls/run "HTTP/1.1 200 OK"`.
 - If Zetaris goes down, a visible fallback to PostgreSQL is announced in the response.
 
@@ -57,6 +57,10 @@ The ticket is **signed** with a server secret key (HMAC-SHA256): change a single
 - End-to-end tests: `tests/integration/test_agent_service.py`, `tests/integration/test_submissions.py`.
 - **Live**, every chat response contains its Scout trace (intent, confidence, risk, contract id, tools, model), shown under the reply, and the logs contain `scout.decision`, `contract.issued` and `contract.verified`.
 
+### Current routing configuration
+
+`SCOUT_ROUTING_ENABLED=false` is the default: search fragments are not classified, preserving accumulated criteria. Explicit image and listing-submission requests still use parameter binding, guards and signed contracts; chat comparison and contact commands require `true`. The classification metrics above describe full Scout mode, not the simplified mode. Fixed courtesy replies do not call the model.
+
 ### Meterless Nightshift — primary AI provider
 
 Kwatsur calls Nightshift, and only Nightshift, for AI (`LLM_PROVIDER=meterless`), through its OpenAI-compatible API at `http://127.0.0.1:8088/v1`:
@@ -74,7 +78,22 @@ A transient outage (`502 fetch failed`) is retried once automatically. Nemotron 
   - understands a landlord's description and fills in their listing (`listing_extraction.md`);
   - writes the explanation of the results and answers questions about a listing ("does the first one have its own meter?"), based only on the facts provided and the last 8 messages (`housing_agent.md`).
 - **It does not filter, rank or decide anything**: that is the code's job.
-- **Proof of the model used**: every response states `scout.model = "nvidia/nemotron-3-ultra-550b-a55b"` and `reply_generated_by = "meterless"`, and the interface shows "Written by Nemotron via Meterless · Model: nvidia/nemotron-3-ultra-550b-a55b". The log line `contract.issued … profile=nvidia/nemotron-3-ultra-550b-a55b` confirms it for every request.
+- **Proof of the model used**: replies generated in the Nightshift checks state `scout.model = "nvidia/nemotron-3-ultra-550b-a55b"` and `reply_generated_by = "meterless"`. The interface and logs expose this provenance; fixed or fallback replies carry `template`, not a fabricated model attribution.
+
+## Cloudflare — on-demand images
+
+- No images are sent into the chat without an explicit visual request. Image metadata remains part of the text model's facts; it does not receive image pixels.
+- Named targets are resolved before the call: Logpom is not replaced by a first-ranked home elsewhere. Ambiguous or missing names cause clarification, not generation.
+- For the requested room: owner photo, credited sample photo, existing illustration, then a new FLUX.1 schnell illustration.
+- `build_illustration_prompt` reserves Douala/Yaoundé context within 2,048 characters: documentary style, urban housing, known facts taking priority. Regional context is not evidence of the actual architecture.
+- `IMAGE_GENERATION_DAILY_LIMIT` counts successfully stored generations application-wide since midnight UTC (1 a.m. in Cameroon), separately from Cloudflare quota. Reuse costs no new generation.
+- A real call generated the fictional Logpom apartment facade from its description alone: the image was stored, served with HTTP 200 and explicitly labelled AI.
+
+## Submissions and administration
+
+Chat confirmation → `listing_submissions.pending` → decision at `/admin.html`, protected by `ADMIN_TOKEN`. No published `properties` row exists before approval. Approval creates the listing and attaches photos; rejection retains the proposal and note without publication. Dates, filters, decision notes and logout are available. Review locks the row to serialize concurrent decisions; a second decision returns 409. Approval never means a verified landlord or confirmed availability.
+
+Latest offline suite: **214 passed, 2 skipped**. Live check: a fictional proposal was committed as pending in PostgreSQL, then rejected without publication. Dashboard interactions were also checked using simulated data, separately from that live verification.
 
 ## Cursor (with Space XAI)
 
@@ -87,16 +106,16 @@ The project was developed with AI coding assistants. The repository rules for co
    - it blocks the classic Cameroonian rental scams ("send the deposit by Orange Money") before any model call;
    - it is measured against the official Meterless thresholds.
 2. **Zetaris federates a living database.** Listings that landlords submit in the chat, once approved by an administrator, immediately appear in searches made through Zetaris: the data layer stays the same as the sources grow.
-3. **Nemotron explains without inventing.** It only receives verified facts and is instructed never to invent. When information is missing, it says so ("the description does not specify…; ask the source").
+3. **Nemotron explains computed facts.** It receives code results and listing declarations, not a certification of their accuracy. Its prompt forbids invention and requires missing information to be flagged.
 4. **Demo reliability.**
    - `SAMPLE_MODE=true` runs the whole flow without Zetaris, Nightshift or Cloudflare (fictional listings, rules, Scout active);
-   - 148 tests pass without network;
-   - the integrations were verified with real calls.
+   - latest offline suite: **214 passed, 2 skipped**;
+   - historical real calls and recent fallback status are distinguished above.
 
 ## Complementary technologies (not sponsors)
 
 - **Cloudflare Workers AI**:
-  - FLUX.1 schnell generates **illustrations** of a room when no photo exists. The prompt starts with an explicit instruction to depict a real home in Cameroon, followed by the listing description and Cameroonian housing context. Images are always labelled "AI-generated illustrative image";
+  - FLUX.1 schnell generates **illustrations** on request after checking reusable photos or illustrations. The prompt reserves Cameroonian urban context and gives listing facts priority. Images are always labelled "AI-generated illustrative image";
   - LLaVA describes real photos to guide those illustrations;
   - the provider sits behind a common interface, so it can be replaced.
 - **Web Speech** (browser): voice conversation; the reply is read aloud.

@@ -8,7 +8,19 @@ Recorded on **27/10/2026** on the team's setup:
 
 Kwatsur talks to its users in French. Inputs are given in the original French with an English translation; replies are **translated** and shortened with "…" when long. The original French outputs are in [`../fr/05_exemples_entrees_sorties.md`](../fr/05_exemples_entrees_sorties.md). The listings are **fictional** (demo data set).
 
-Every JSON response contains the full trace: `scout` (intent, confidence, risk, contract, tools, model), `data_source` (`zetaris`) and `reply_generated_by` (`meterless` = Nemotron via Nightshift, `template` = reply computed by code).
+The recorded searches below reported `data_source=zetaris`. These are historical traces, not a guarantee for current calls. `scout` describes intent, confidence, risk, contract, tools and model; `reply_generated_by` distinguishes Nemotron via Nightshift (`meterless`) from code (`template`). Recent checks encountered a Zetaris failure and explicitly reported PostgreSQL fallback.
+
+## Verified additions after these recordings
+
+These are observations, not quoted model responses:
+
+- Ordinary search followed by a price refinement returned no top-level chat images. Listing cards retain their images in the initially collapsed panel.
+- "Montre-moi les images de celui de Logpom" (show images of the one in Logpom) targeted Logpom at rank 4, not Bonamoussadi. Reusing an existing illustration consumed no quota.
+- A real Cloudflare call generated a facade from the fictional Logpom listing description alone, served with HTTP 200. It remains an AI interpretation, not a photograph of the home; Cameroonian urban context is reserved in the prompt.
+- An explicitly fictional technical proposal using `test@example.invalid` was committed as pending in PostgreSQL, without publication, then rejected through the authenticated admin API. Approval and photo attachment are covered offline, not claimed here as a live publication.
+- Latest offline suite: **214 passed, 2 skipped**. Submission and admin screenshots in the presentations are anonymised.
+
+Current configuration: `SCOUT_ROUTING_ENABLED=false` by default. Historical chat comparison/contact examples require `true`; fragmented search, submissions and explicit image requests remain available with the default.
 
 ---
 

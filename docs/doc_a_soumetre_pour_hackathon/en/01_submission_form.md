@@ -21,14 +21,22 @@ In Douala and Yaoundé, looking for a place to rent means digging through scatte
 - flags potential risks (unusually low rent, old listing);
 - has Nemotron explain all of this, based only on the computed facts.
 
-They can refine ("actually 110,000 max"), compare ("compare the first and the second"), ask a question about a listing, draft a message to the landlord, or see a room ("show me the shower of number 2"). In that case Kwatsur shows the real photo if one exists, otherwise an AI illustration of a Cameroonian home, clearly labelled.
+They can refine ("actually 110,000 max"), compare ("compare the first and the second"), ask a question about a listing, draft a message to the landlord, or see a room ("show me the shower of number 2"). In that case Kwatsur distinguishes owner photos, credited sample photos and clearly labelled AI illustrations.
 
 **For landlords.** They describe their property in the chat ("I'm renting out my studio in Bastos…"). The agent asks for what is missing, accepts photos, then sends the listing to an administrator who approves it before anything is published.
 
-**Before every action**, the **Meterless Scout Intent** engine:
+**Conversation-first interface.** Listing cards and comparison live in a collapsible panel, closed by default, with a visible result count. Users can describe a search across several messages without losing previously collected criteria.
+
+**Images only on request.** Ordinary searches do not send images into the chat. A request naming Logpom targets that listing rather than automatically picking the first result; ambiguous targets require clarification. Owner photos, credited sample photos and AI illustrations remain distinct. The Cloudflare prompt reserves room for Cameroonian urban context within 2,048 characters, without claiming to reconstruct the actual home. Existing illustrations are reused without new generation; the daily limit applies across the application.
+
+**Persistent moderation.** Confirmed proposals are stored in `listing_submissions` as `pending`, without a published listing. At `/admin.html`, administrators review details and photos, approve or reject with a note, and filter past decisions. Approval creates the listing in `properties` and attaches its photos; it does not certify the landlord or availability. The dashboard requires `ADMIN_TOKEN` and includes logout.
+
+**Before tool actions**, the **Meterless Scout Intent** engine:
 - recognises the intent;
 - blocks prompt injections and any payment request;
 - signs an execution contract that every tool checks.
+
+By default, `SCOUT_ROUTING_ENABLED=false` avoids classifying search fragments: standalone greetings receive fixed replies, while explicit image and submission requests retain guards and signed contracts. Chat comparison and contact commands require `true`; their card buttons remain available.
 
 The model is served by **Meterless Nightshift** (primary AI provider), with **NVIDIA Nemotron 3 Ultra** pinned.
 

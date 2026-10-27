@@ -24,6 +24,11 @@
     </header>
 
     <main class="admin-page">
+      <section class="admin-intro" aria-labelledby="admin-title">
+        <p class="eyebrow">Administration</p>
+        <h1 id="admin-title">Validation des annonces</h1>
+        <p>Consultez les propositions et leurs photos avant de les publier ou de les refuser. Une approbation ne certifie ni le propriétaire ni la disponibilité du logement.</p>
+      </section>
       <form id="admin-login" class="admin-toolbar">
         <label>Jeton d'administration
           <input id="admin-token" type="password" autocomplete="current-password" required placeholder="Valeur de ADMIN_TOKEN">
@@ -36,9 +41,10 @@
           </select>
         </label>
         <button class="primary-button" type="submit">Afficher</button>
+        <button id="admin-logout" class="ghost-button" type="button">Déconnexion</button>
       </form>
       <p id="admin-message" class="muted-text" role="status" aria-live="polite">Saisissez le jeton défini dans ADMIN_TOKEN (fichier .env du serveur).</p>
-      <div id="admin-list" class="admin-list"></div>
+      <div id="admin-list" class="admin-list" aria-label="Propositions d'annonces"></div>
     </main>
     <script type="module" src="/js/admin.js"></script>
   </body>

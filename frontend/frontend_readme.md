@@ -22,6 +22,18 @@ Le backend (racine du dépôt) doit tourner. Les appels de l'interface restent r
 
 Les cartes d'annonces et leur tableau de comparaison sont regroupés sous le chat dans « Logements correspondants », un panneau natif `details` fermé par défaut et accessible au clavier. Le nombre de résultats reste visible dans son en-tête, même avec zéro résultat. Les nouvelles recherches respectent son état ouvert/fermé ; une nouvelle conversation le replie. Le bouton « Voir la comparaison » le déplie avant de rejoindre le tableau, et une erreur de recherche manuelle l'ouvre pour rester visible.
 
+## Validation des propositions
+
+Ouvrir `/admin.html` sur le port du frontend (par défaut `http://localhost:8080/admin.html`) et saisir le `ADMIN_TOKEN` configuré sur le backend. Sans jeton côté serveur, l'administration est fermée ; aucun jeton n'est inclus dans les fichiers frontend ni dans l'URL.
+
+- Les propositions confirmées par « oui » dans le chat sont enregistrées dans `listing_submissions` avec le statut `pending`, sans annonce publiée.
+- La page affiche les informations, photos, dates et notes ; les filtres permettent de consulter les propositions en attente, approuvées ou refusées.
+- « Approuver et publier » crée une annonce dans `properties` et y rattache les photos. L'annonce reste non vérifiée, avec disponibilité à confirmer.
+- « Refuser » conserve la proposition et la note sans publier d'annonce. Une décision déjà enregistrée ne peut pas être appliquée une seconde fois.
+- Le jeton est mémorisé dans l'onglet après un chargement réussi. « Déconnexion » l'efface ainsi que la liste affichée. Les boutons sont désactivés pendant les requêtes pour éviter les doubles actions ; les erreurs sont affichées.
+
+Après une modification, reconstruire le frontend (`docker compose up --build -d` dans ce dossier), puis recharger sans cache (Ctrl + F5). Une page admin vide malgré une proposition confirmée peut utiliser des modules JavaScript anciens : vérifier le filtre « En attente », le message d'erreur et l'onglet Réseau du navigateur. Ne jamais communiquer le jeton pour diagnostiquer. Une modification de `ADMIN_TOKEN` dans `.env` exige la recréation du conteneur API, pas seulement son redémarrage.
+
 ## Règles de contribution
 
 - N’y mets ni secrets ni accès direct à PostgreSQL.

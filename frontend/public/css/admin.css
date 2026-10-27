@@ -1,5 +1,9 @@
 /* Page d'administration : réutilise les variables et composants de styles.css. */
 .admin-page { width: min(1000px, calc(100% - 2rem)); margin: 1.5rem auto 4rem; display: grid; gap: 1rem; }
+.admin-intro h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 0.4rem 0; }
+.admin-intro p { max-width: 48rem; color: var(--ink-soft); }
+.admin-toolbar { padding: 1rem; border: 1px solid var(--line); border-radius: 16px; background: var(--panel-solid); }
+.admin-card-status { margin: 0; color: var(--accent-deep); font-weight: 600; }
 
 .admin-toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
 .admin-toolbar label { display: grid; gap: 0.3rem; font-size: 0.82rem; font-weight: 600; color: var(--ink-soft); }
@@ -12,7 +16,14 @@
 .admin-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0; font-size: 0.9rem; }
 .admin-card dt { color: var(--muted); font-weight: 600; }
 .admin-card dd { margin: 0; }
+.admin-card dd { overflow-wrap: anywhere; white-space: pre-wrap; min-width: 0; }
+.admin-card label { font-size: 0.85rem; font-weight: 600; }
 .admin-card dd.unknown { color: var(--unknown); font-style: italic; }
 .admin-card textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel-tint); }
 .admin-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
 .danger-button { border-color: var(--danger); color: var(--danger); }
+@media (max-width: 600px) {
+  .admin-toolbar label, .admin-toolbar input, .admin-toolbar select { min-width: 0; width: 100%; }
+  .admin-card dl { grid-template-columns: 1fr; gap: 0.25rem; }
+  .admin-card dd { margin-bottom: 0.6rem; }
+}

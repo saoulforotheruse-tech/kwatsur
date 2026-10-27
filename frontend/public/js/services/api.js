@@ -67,6 +67,20 @@ export function fetchSubmission(submissionId, conversationId) {
   });
 }
 
+export function fetchAdminSubmissions(status, token) {
+  return requestJson(`/api/admin/submissions?status=${encodeURIComponent(status)}`, {
+    headers: { "X-Admin-Token": token },
+  });
+}
+
+export function reviewSubmission(submissionId, action, note, token) {
+  return requestJson(`/api/admin/submissions/${submissionId}/${action}`, {
+    method: "POST",
+    headers: { "X-Admin-Token": token },
+    body: JSON.stringify({ note: note.trim() || null }),
+  });
+}
+
 // La photo est envoyée telle quelle (corps brut) ; le serveur vérifie qu'il s'agit d'une image.
 export function uploadSubmissionPhoto(submissionId, conversationId, file, room) {
   return requestJson(`/api/submissions/${submissionId}/photos?room=${encodeURIComponent(room)}`, {

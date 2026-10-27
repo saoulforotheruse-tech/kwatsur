@@ -19,7 +19,7 @@ Documentation interactive générée par FastAPI : `/docs` (Swagger) et `/redoc`
 | GET | `/api/admin/submissions?status=pending` | Propositions à valider (en-tête `X-Admin-Token`) |
 | POST | `/api/admin/submissions/{id}/approve` ou `/reject` | Décision de l'administrateur (`{"note": "…"}`) |
 
-Chaque réponse du chat peut aussi contenir `images` (photos ou illustrations IA, chacune avec `kind`, `label`, `is_ai_generated` et `caption`) et `submission` (la proposition d'annonce en cours : `status`, `fields`, `missing_fields`, `images`). Les résultats de recherche portent leurs `images`.
+Chaque réponse du chat peut aussi contenir `images` (photos ou illustrations IA, chacune avec `kind`, `label`, `is_ai_generated` et `caption`) et `submission` (la proposition d'annonce en cours : `status`, `fields`, `missing_fields`, `images`). **Une recherche ordinaire renvoie une liste `images` vide au niveau du chat**, même en repli ; les images imbriquées dans les résultats restent disponibles pour les cartes. Seule une demande visuelle explicite joint des images au chat. Une cible nommée est prioritaire sur le premier rang ; une cible ambiguë provoque une clarification sans génération.
 
 ## POST /api/chat
 
@@ -83,3 +83,15 @@ Paramètres facultatifs : `city`, `neighborhood` (préférence de classement), `
 - **Obligatoires** (excluent) : ville, type, fourchette de loyer, chambres minimum, équipements exigés, mobilier demandé. Une valeur **inconnue** n'exclut pas l'annonce : elle apparaît dans `to_verify`.
 - **Préférences** (classent) : quartier, mobilier, souhaits libres (`preferences`).
 - `match_points` sert à ordonner les résultats d'une même recherche. Ce n'est ni une note ni une probabilité.
+
+## Propositions et modération
+
+Le chat collecte un brouillon (`draft`). Sa confirmation le passe à `pending` dans `listing_submissions`, sans publication. La lecture et l'ajout de photos exigent le `X-Conversation-Id` de la conversation propriétaire.
+
+L'administration exige `X-Admin-Token`, configuré par `ADMIN_TOKEN`. La liste accepte les filtres `pending`, `approved`, `rejected` ; la réponse d'une proposition comprend aussi `reviewed_at` et `approved_property_id`, nuls avant décision/publication. La note de décision est facultative, limitée à 500 caractères. L'approbation crée une annonce dans `properties` et rattache les photos ; le refus ne publie rien. Ces décisions ne certifient ni le propriétaire ni la disponibilité.
+
+Erreurs de modération : `401` jeton absent ou incorrect, `404` proposition inconnue, `409` proposition non en attente (y compris une seconde décision), `422` données invalides. Le verrouillage de la ligne sérialise les décisions concurrentes.
+
+## Images et quota
+
+`/api/images/status` expose la configuration et le quota restant. `IMAGE_GENERATION_DAILY_LIMIT` s'applique globalement aux générations réussies enregistrées depuis minuit UTC ; réutiliser une illustration ne consomme pas de génération. Le modèle conversationnel reçoit les métadonnées des images, pas leurs pixels. Voir [le contrat des images](image-generation.md).

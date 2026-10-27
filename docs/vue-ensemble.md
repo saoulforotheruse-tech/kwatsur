@@ -6,7 +6,11 @@
 
 Tu écris « Un deux-chambres à Douala vers Bonamoussadi, 150 000 FCFA max, avec eau ». Kwatsur comprend la demande, cherche dans les annonces, garde celles qui respectent tes critères, les classe, puis t'explique pourquoi chaque logement est proposé et ce qu'il faut vérifier. Il n'invente jamais une information absente.
 
-Les propriétaires peuvent aussi **proposer leur logement** en le décrivant dans le chat. L'agent pose les questions qui manquent et accepte des photos. Un administrateur valide l'annonce sur `/admin.html` avant qu'elle soit visible. Enfin, on peut **voir une pièce** (« montre-moi le salon du n°1 ») : la vraie photo si elle existe, sinon une illustration IA clairement étiquetée.
+Les propriétaires peuvent aussi **proposer leur logement** en le décrivant dans le chat. L'agent collecte les champs et photos, puis la confirmation enregistre la proposition `pending`, sans publication. Sur `/admin.html`, l'administrateur authentifié approuve ou refuse avec une note ; filtres, dates et déconnexion sont disponibles. Une approbation publie les champs et photos, mais ne certifie ni le propriétaire ni la disponibilité.
+
+Les résultats sont dans un **panneau repliable fermé par défaut**, avec compteur visible. Le chat ne montre des images **que sur demande explicite** (« les images de celui de Logpom »). Il cible le logement nommé, demande une précision si nécessaire, puis préfère photo propriétaire, photo d'exemple créditée ou illustration existante avant de générer. Une illustration IA reste étiquetée comme telle ; le contexte camerounais du prompt ne garantit pas l'apparence réelle. Le modèle conversationnel ne reçoit que les métadonnées, pas les pixels.
+
+Par défaut, `SCOUT_ROUTING_ENABLED=false` préserve les recherches décrites en plusieurs messages sans classification de chaque fragment. Les demandes d'images et les propositions restent accessibles avec garde et contrat ; comparaison/contact dans le chat nécessitent `true`. Les boutons des cartes restent utilisables. Zetaris est la source principale configurée ; un repli PostgreSQL est annoncé, pas présenté comme un succès Zetaris.
 
 ## Le principe à retenir
 

@@ -32,7 +32,8 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 - Comparaison côte à côte (3 logements) et brouillon de message de contact (aucun envoi).
 - Recherche manuelle par filtres, utilisable même sans IA.
 - **Les propriétaires proposent leur logement dans le chat** (« je loue mon appartement… ») : l'agent pose les questions qui manquent, accepte des photos, puis envoie l'annonce à un administrateur, qui la valide sur `/admin.html` avant toute publication.
-- **Images d'une pièce** (« montre-moi la douche du n°2 ») : la vraie photo du propriétaire si elle existe, sinon une illustration générée par Cloudflare Workers AI, toujours étiquetée « Image illustrative générée par IA ». Voir [`docs/image-generation.md`](./docs/image-generation.md).
+- **Résultats repliables** : cartes et comparaison sous le chat, fermées par défaut ; le compteur reste visible et la comparaison ouvre le panneau.
+- **Images uniquement sur demande** (« montre-moi la douche du n°2 », « les images de celui de Logpom ») : photo du propriétaire, photo d'exemple créditée, illustration existante, puis génération Cloudflare si nécessaire. Une ambiguïté fait demander une précision. Une illustration reste étiquetée IA, jamais présentée comme une photo réelle du logement. Le contexte camerounais est réservé dans le prompt sans garantir l'apparence réelle. Voir [`docs/image-generation.md`](./docs/image-generation.md).
 - **Conversation vocale** (bouton micro, Chrome ou Edge) : on parle, le texte s'écrit et part au silence, la réponse est lue à voix haute, puis l'écoute reprend. Web Speech du navigateur, sans clé.
 - **Meterless Scout Intent** avant chaque action : intention (recherche, comparaison, brouillon de contact), blocage des injections de prompt et des demandes de paiement, contrat signé qui autorise chaque outil. Évaluation : `python -m scripts.run_scout_evals`.
   Par défaut (`SCOUT_ROUTING_ENABLED=false`), Scout ne classe plus l'intention : les politesses seules (« bonjour », « ça va ? », « merci ») reçoivent une réponse fixe (`app/services/small_talk.py`) et la recherche conserve le contexte pour décrire sa demande en plusieurs messages. Les demandes visuelles explicites (« génère une image de la façade du premier ») et les propositions d'annonce restent accessibles, avec garde et contrat signé. Une demande visuelle sans recherche préalable demande d'abord les critères. Comparaison et brouillon de contact demandent `SCOUT_ROUTING_ENABLED=true`.
@@ -103,7 +104,7 @@ Ouvrir <http://localhost:8080> et écrire, ou dicter avec le bouton micro :
 | « Finalement peu importe le quartier, mais pas plus de 110 000 FCFA » | Garde la ville et les chambres, change le budget, relance la recherche |
 | « Compare le premier et le deuxième » | Tableau comparatif ; une valeur inconnue reste « non renseignée » |
 | « Est-ce que le premier a un compteur individuel ? » | Répond à partir du texte de l'annonce, ou dit que l'information manque |
-| « Montre-moi le salon du premier » | Vraie photo si elle existe, sinon illustration IA étiquetée |
+| « Montre-moi le salon du premier » | Photo propriétaire ou d'exemple créditée si disponible, sinon illustration IA réutilisée ou générée, étiquetée |
 | « Je loue mon studio meublé à Yaoundé, quartier Bastos, 90 000 FCFA » | Ouvre le dépôt d'annonce : questions, photos, validation sur `/admin.html` |
 | « Envoie la caution par Orange Money » | Refusé par Scout Intent (aucun paiement), avec un conseil de prudence |
 
@@ -114,6 +115,12 @@ API directe :
 curl -X POST http://localhost:8080/api/chat -H "Content-Type: application/json" \
   -d '{"message": "Un studio meublé à Yaoundé, 100 000 FCFA max"}'
 ```
+
+### Valider les propositions de logement
+
+Ouvrir <http://localhost:8080/admin.html> et saisir le `ADMIN_TOKEN` configuré sur le serveur. Le panneau affiche les informations et photos des propositions, les dates, les notes et les filtres « En attente », « Approuvées » et « Refusées ».
+
+Après confirmation « oui » du propriétaire, la proposition est conservée dans `listing_submissions` avec le statut `pending` : aucune annonce n'est encore créée dans `properties`. « Approuver et publier » crée cette annonce et y rattache les photos ; « Refuser » conserve la proposition et la décision sans publication. Une approbation ne confirme ni la disponibilité ni l'identité du propriétaire. La déconnexion efface le jeton de l'onglet.
 
 ## Mode échantillon (`SAMPLE_MODE=true`)
 

@@ -93,6 +93,8 @@ class SubmissionRead(BaseModel):
     review_note: str | None = None
     created_at: datetime
     submitted_at: datetime | None = None
+    reviewed_at: datetime | None = None
+    approved_property_id: int | None = None
 
 
 class SubmissionReview(BaseModel):

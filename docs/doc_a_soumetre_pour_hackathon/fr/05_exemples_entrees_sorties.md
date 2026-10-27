@@ -8,7 +8,19 @@ Enregistrés le **27/10/2026** sur l'installation de l'équipe :
 
 Les réponses sont recopiées telles quelles, abrégées par « … » quand elles sont longues. Les annonces sont **fictives** (jeu de démonstration).
 
-Chaque réponse JSON contient la trace complète : `scout` (intention, confiance, risque, contrat, outils, modèle), `data_source` (`zetaris`) et `reply_generated_by` (`meterless` = Nemotron via Nightshift, `template` = réponse calculée par le code).
+Les recherches enregistrées ci-dessous indiquaient `data_source=zetaris`. Il s'agit de traces historiques, pas d'une garantie pour les appels actuels. `scout` décrit intention, confiance, risque, contrat, outils et modèle ; `reply_generated_by` distingue Nemotron via Nightshift (`meterless`) du code (`template`). Les derniers essais ont rencontré une erreur Zetaris et annoncé le repli PostgreSQL.
+
+## Compléments vérifiés après ces enregistrements
+
+Ces observations ne sont pas des réponses citées du modèle :
+
+- Une recherche ordinaire puis un affinage de prix n'ont renvoyé aucune image au niveau du chat. Les cartes conservent leurs images dans le panneau replié par défaut.
+- La demande « Montre-moi les images de celui de Logpom » a ciblé Logpom au rang 4, sans choisir Bonamoussadi. Une illustration existante a été réutilisée sans consommer le quota.
+- Une génération réelle de façade à partir de la seule description de l'annonce fictive de Logpom a produit une illustration Cloudflare servie en HTTP 200. Elle reste une interprétation IA, pas une photo de ce logement ; le contexte urbain camerounais est réservé dans le prompt.
+- Une proposition technique explicitement fictive avec `test@example.invalid` a été persistée en attente dans PostgreSQL, sans publication, puis refusée via l'API admin authentifiée. L'approbation et le rattachement des photos sont vérifiés par tests hors réseau, pas revendiqués ici comme publication réelle.
+- Dernière suite hors réseau : **214 réussites, 2 tests ignorés**. Les images du panneau admin et du dépôt jointes aux présentations sont anonymisées.
+
+Configuration actuelle : `SCOUT_ROUTING_ENABLED=false` par défaut. Les exemples historiques de comparaison/contact dans le chat demandent `true` ; recherche fractionnée, dépôt et demandes explicites d'images restent disponibles avec le défaut.
 
 ---
 

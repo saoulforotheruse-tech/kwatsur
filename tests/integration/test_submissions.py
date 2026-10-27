@@ -6,17 +6,90 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.api.dependencies import get_settings
 from app.core.exceptions import IntegrationUnavailableError
 from app.integrations.llm.rules import parse_listing
 from app.main import app
 from app.models.image import PropertyImage
+from app.models.property import Property
+from app.models.submission import ListingSubmission
 from app.services.image_storage import LocalImageStore
 from tests.conftest import make_test_settings
 from tests.fakes import TINY_PNG, FakeImageProvider, MockLLMProvider, scripted_extractions
 
 ADMIN = {"X-Admin-Token": "admin-de-test"}
+
+
+@pytest.mark.parametrize("message", [
+    "Je mets en location une maison à Douala",
+    "Je veux proposer une maison à Yaoundé",
+])
+@pytest.mark.parametrize("scout_routing", [True, False])
+def test_owner_can_start_submission_with_natural_phrasing(
+    client: TestClient, mock_llm: MockLLMProvider, message: str, scout_routing: bool,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(scout_routing_enabled=scout_routing)
+    mock_llm.listing_rule = parse_listing
+    response = chat(client, message)
+    assert response["scout"]["intent"] == "listing.submit"
+    assert response["submission"]["status"] == "draft"
+
+
+@pytest.mark.parametrize("scout_routing", [True, False])
+@pytest.mark.parametrize("action", ["approve", "reject"])
+def test_submission_is_persisted_pending_until_admin_decision(
+    client: TestClient, mock_llm: MockLLMProvider, session: Session,
+    scout_routing: bool, action: str,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(
+        admin_token="admin-de-test", scout_routing_enabled=scout_routing,
+    )
+    summary = describe_listing(client, mock_llm)
+    submission_id = summary["submission"]["id"]
+    sent = chat(client, "oui", summary["conversation_id"])
+    assert sent["submission"]["status"] == "pending"
+    reference = f"submission-{submission_id}"
+
+    with Session(session.get_bind()) as reader:
+        stored = reader.get(ListingSubmission, submission_id)
+        assert stored.status == "pending"
+        assert stored.submitted_at is not None
+        assert stored.reviewed_at is None and stored.approved_property_id is None
+        assert stored.city == "Douala" and stored.monthly_rent == 130000
+        assert reader.scalar(select(Property).where(Property.source_property_id == reference)) is None
+
+    unauthorized = client.post(
+        f"/api/admin/submissions/{submission_id}/{action}", json={"note": "Décision interdite"},
+    )
+    assert unauthorized.status_code == 401
+    response = client.post(
+        f"/api/admin/submissions/{submission_id}/{action}", headers=ADMIN, json={"note": "Décision de test"},
+    )
+    assert response.status_code == 200
+    reviewed = response.json()
+    assert reviewed["reviewed_at"] is not None
+    assert reviewed["review_note"] == "Décision de test"
+    assert reviewed["status"] == ("approved" if action == "approve" else "rejected")
+
+    with Session(session.get_bind()) as reader:
+        stored = reader.get(ListingSubmission, submission_id)
+        listing = reader.scalar(select(Property).where(Property.source_property_id == reference))
+        assert stored.status == reviewed["status"]
+        if action == "approve":
+            assert listing is not None
+            assert reviewed["approved_property_id"] == listing.id == stored.approved_property_id
+            assert listing.verification_status == "unverified"
+            assert listing.listing_status == "unconfirmed"
+        else:
+            assert listing is None and stored.approved_property_id is None
+    for repeated_action in ("approve", "reject"):
+        assert client.post(
+            f"/api/admin/submissions/{submission_id}/{repeated_action}",
+            headers=ADMIN, json={"note": None},
+        ).status_code == 409
+    assert client.get("/api/admin/submissions", headers=ADMIN).json() == []
 
 
 @pytest.mark.parametrize("scout_routing", [True, False])

@@ -21,14 +21,22 @@ Kwatsur est un agent conversationnel qui aide à trouver un logement à louer au
 - signale les risques potentiels (loyer anormalement bas, annonce ancienne) ;
 - fait expliquer le tout par Nemotron, sur la base des seuls faits calculés.
 
-Elle peut affiner (« finalement 110 000 max »), comparer (« compare le premier et le deuxième »), poser une question sur une annonce, préparer un message au propriétaire, ou voir une pièce (« montre-moi la douche du n°2 »). Dans ce dernier cas, Kwatsur montre la vraie photo si elle existe, sinon une illustration IA clairement étiquetée.
+Elle peut affiner (« finalement 110 000 max »), comparer (« compare le premier et le deuxième »), poser une question sur une annonce, préparer un message au propriétaire, ou voir une pièce (« montre-moi la douche du n°2 »). Dans ce dernier cas, Kwatsur distingue photo propriétaire, photo d'exemple créditée et illustration IA clairement étiquetée.
 
 **Pour le propriétaire.** Il décrit son logement dans le chat (« je loue mon studio à Bastos… »). L'agent lui demande ce qui manque, accepte ses photos, puis envoie l'annonce à un administrateur, qui la valide avant toute publication.
 
-**Avant chaque action**, le moteur **Meterless Scout Intent** :
+**Interface centrée sur la conversation.** Les annonces et la comparaison sont regroupées dans un panneau repliable, fermé par défaut, dont le compteur reste visible. Une recherche peut être décrite en plusieurs messages sans perdre les critères déjà retenus.
+
+**Images uniquement sur demande.** Une recherche ordinaire n'envoie aucune image dans le chat. Une demande nommant Logpom cible ce logement, pas automatiquement le premier résultat ; en cas d'ambiguïté, l'agent demande de préciser. Photo du propriétaire, photo d'exemple créditée et illustration IA restent distinguées. Le prompt Cloudflare réserve une place au contexte urbain camerounais, dans la limite de 2048 caractères, sans garantir l'apparence réelle du logement. Une illustration existante est réutilisée sans nouvelle génération ; la limite quotidienne est globale à l'application.
+
+**Modération persistante.** Les propositions confirmées sont enregistrées dans `listing_submissions` au statut `pending`, sans annonce publiée. Sur `/admin.html`, l'administrateur consulte les détails et photos, approuve ou refuse avec une note, puis retrouve les décisions dans les filtres dédiés. L'approbation crée l'annonce dans `properties` et y rattache les photos ; elle ne certifie ni le propriétaire ni la disponibilité. Le panneau est protégé par `ADMIN_TOKEN`, avec déconnexion.
+
+**Avant les actions outillées**, le moteur **Meterless Scout Intent** :
 - reconnaît l'intention ;
 - bloque les injections de prompt et toute demande de paiement ;
 - signe un contrat d'exécution que chaque outil vérifie.
+
+Par défaut, `SCOUT_ROUTING_ENABLED=false` évite de classifier les fragments d'une recherche : les politesses seules reçoivent une réponse fixe, les demandes explicites d'images et de dépôt restent accessibles avec garde et contrat. Les commandes de comparaison et de contact dans le chat nécessitent `true` ; leurs boutons dans les cartes restent disponibles.
 
 Le modèle est servi par **Meterless Nightshift** (fournisseur IA principal), avec **NVIDIA Nemotron 3 Ultra** épinglé.
 

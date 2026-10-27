@@ -145,12 +145,12 @@
       ],
       "triggers": [
         {"pattern": "\\bje (loue|mets|propose)\\b.{0,25}\\bmon\\b|\\bje (loue|mets|propose) (ma|mon|mes)\\b", "weight": 5, "startsWorkflow": "submission"},
-        {"pattern": "\\bmettre (ma|mon|mes|une|un)?\\s?\\w*\\s?en location\\b|\\bmise en location\\b", "weight": 5, "startsWorkflow": "submission"},
-        {"pattern": "\\b(publier|poster|deposer|ajouter) (une|mon|ma) annonce\\b|\\bproposer (un|mon|ma) (logement|appart\\w*|maison|studio)\\b", "weight": 5, "startsWorkflow": "submission"},
+        {"pattern": "\\bmettre (ma|mon|mes|une|un)?\\s?\\w*\\s?en location\\b|\\bmise en location\\b|\\bje mets en location\\b", "weight": 5, "startsWorkflow": "submission"},
+        {"pattern": "\\b(publier|poster|deposer|ajouter) (une|mon|ma) annonce\\b|\\bproposer (un|une|mon|ma) (logement|appart\\w*|maison|studio|chambre|villa)\\b", "weight": 5, "startsWorkflow": "submission"},
         {"pattern": "\\bje suis (le |la )?(proprietaire|bailleur|bailleresse)\\b", "weight": 4, "startsWorkflow": "submission"},
         {"pattern": "\\b(mon|ma) (appart\\w*|studio|logement|maison|chambre|villa|duplex|propriete)\\b", "weight": 3}
       ],
-      "version": 2
+      "version": 3
     },
     {
       "id": "listing.visualize",

@@ -41,7 +41,7 @@ Pas d'abstraction sans usage : chaque interface a au moins deux implémentations
 `POST /api/chat {"message": "2 chambres à Douala vers Bonamoussadi, 150 000 max"}` :
 
 1. `routes/chat.py` valide `ChatRequest`, applique la limite de débit et reçoit un `AgentService` injecté.
-2. `AgentService.handle_message` charge ou crée la conversation via `ConversationService` → `ConversationRepository` (PostgreSQL), puis appelle **Scout Intent** (`app/engines/scout/`) : intention, garde des risques, plan d'outils et contrat signé. Sans contrat (injection, paiement, clarification), la réponse est un gabarit et aucun outil n'agit. Les intentions « comparaison » et « brouillon de contact » prennent une voie dédiée (`comparison_service`, `contact_service`). Chaque outil appelle `ContractVerifier.require` avant d'agir.
+2. `AgentService.handle_message` charge ou crée la conversation via `ConversationService` → `ConversationRepository` (PostgreSQL), puis appelle **Scout Intent** (`app/engines/scout/`) : garde, plan d'outils et contrat signé. Avec le défaut `SCOUT_ROUTING_ENABLED=false`, la classification des fragments de recherche est désactivée ; les politesses seules reçoivent une réponse fixe, les demandes explicites d'images et de dépôt restent reconnues. Le mode complet (`true`) active notamment les voies comparaison/contact dans le chat. Sans contrat (injection, paiement, clarification), aucun outil n'agit. Chaque outil appelle `ContractVerifier.require` avant d'agir.
 3. `NemotronProvider.extract_criteria` envoie le prompt `criteria_extraction.md`, les critères actuels et l'historique récent à `ChatCompletionClient` (NVIDIA ou Meterless). La réponse JSON est validée en `CriteriaExtraction`, avec une relance si le format est invalide.
 4. `merge_criteria` fusionne et valide les critères (`SearchCriteria`). Une valeur invalide est ignorée et signalée.
 5. Si la ville manque, l'agent pose une question. Sinon `SearchService.search` :
@@ -57,5 +57,13 @@ Pas d'abstraction sans usage : chaque interface a au moins deux implémentations
 - `properties` : annonce ; colonnes facultatives nullables (`NULL` = inconnu), contraintes de cohérence (loyer ≥ 0, coordonnées valides), index sur ville, quartier, loyer, source.
 - `conversations` : `session_id` (UUID public), `search_criteria` (JSON validé par `SearchCriteria`).
 - `messages` : historique (`role`, `content`), supprimé avec la conversation.
+- `listing_submissions` : champs collectés, conversation propriétaire, statut `draft/pending/approved/rejected`, note, dates de soumission et de décision, identifiant de l'annonce approuvée.
+- `property_images` : photos de propriétaire, photos d'exemple et illustrations IA, pièce, provenance et rattachement au logement ou à la proposition.
+
+## Parcours images et propriétaires
+
+- Une recherche ne joint aucune image au chat ; les cartes conservent leurs médias. Les résultats et la comparaison sont dans un panneau replié par défaut. Une demande visuelle explicite résout d'abord le logement nommé ou son rang ; une ambiguïté entraîne une question. Photo propriétaire, exemple crédité, illustration existante, puis génération : les types restent visibles. Le modèle textuel reçoit des métadonnées, pas les pixels.
+- Le service d'images réserve le contexte urbain camerounais dans les 2048 caractères du prompt Cloudflare. Une illustration n'est pas une reconstitution vérifiée. Le quota quotidien global compte les générations réussies enregistrées, pas les réutilisations.
+- `SubmissionService` collecte et persiste le brouillon, puis la confirmation `pending`. Les routes admin authentifiées appellent le service ; `SubmissionRepository.get_for_review` verrouille la ligne. L'approbation crée le logement et rattache les photos dans la transaction ; le refus ne publie rien. Une nouvelle décision sur une proposition traitée renvoie 409. L'approbation ne confirme aucune disponibilité.
 
 Toute modification de modèle s'accompagne d'une migration dans `db/migrations/versions/`.
