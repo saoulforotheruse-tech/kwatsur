@@ -115,6 +115,18 @@ L'image a été générée la première fois par Cloudflare FLUX.1 schnell. Le t
 
 ---
 
+## Exemple 7 — Quartier sans ville, puis réponse à la question
+
+| Entrée | Ce que comprend Nemotron | Résultat |
+| --- | --- | --- |
+| *bonjour comment ca va je cherche un appart a bastos pas tres chere* | ville **Yaoundé** (déduite du quartier), quartier Bastos, type appartement ; budget vague laissé vide | recherche lancée, 4 annonces, la première à Bastos (14,5 s) |
+| *un studio vers Akwa* | ville **Douala**, quartier Akwa | recherche lancée |
+| *je suis dans la ville de bastos* (réponse à « Dans quelle ville cherchez-vous ? ») | Bastos est un quartier : ville Yaoundé, quartier Bastos | Scout traite ce message comme la suite de la recherche commencée (`housing.search`), même sans mot-clé |
+
+Si Nemotron ne déduisait pas la ville, une courte liste de quartiers sans ambiguïté, dans le code, sert de filet de sécurité et l'annonce (« Bastos est un quartier de Yaoundé : recherche à Yaoundé »). Une ville donnée par l'utilisateur n'est jamais remplacée.
+
+---
+
 ## Journaux du backend (extrait réel de l'exemple 1)
 
 `docker compose logs api` :

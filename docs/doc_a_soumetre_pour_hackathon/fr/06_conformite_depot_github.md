@@ -17,7 +17,7 @@ Dépôt : <https://github.com/saoulforotheruse-tech/kwatsur>
 
 | Recommandation | Où | État |
 | --- | --- | --- |
-| Au moins 3 exemples d'entrées et de sorties | `05_exemples_entrees_sorties.md` (6 exemples réels) | Fait |
+| Au moins 3 exemples d'entrées et de sorties | `05_exemples_entrees_sorties.md` (7 exemples réels) | Fait |
 | Journaux ou traces, y compris le modèle de chaque requête | Champ `scout` de chaque réponse (`model`, `contract_id`, `tool_plan`) ; journaux `scout.decision` et `contract.*` | Fait |
 | Test démontrant le moteur Meterless | `tests/unit/test_scout.py`, `python -m scripts.run_scout_evals` (seuils officiels) | Fait |
 | `.env.example` avec uniquement des valeurs de remplacement | `.env.example` | Fait (aucun secret) |
@@ -35,4 +35,4 @@ cd frontend && cp .env.example .env && docker compose up --build -d
 # → http://localhost:8080
 ```
 
-Les captures d'écran WhatsApp de ce dossier (consignes de soumission) ne sont pas versionnées : ce sont des photos d'écran de téléphone.
+Les captures d'écran WhatsApp des consignes de soumission (dossier parent) ne sont pas versionnées : ce sont des photos d'écran de téléphone.

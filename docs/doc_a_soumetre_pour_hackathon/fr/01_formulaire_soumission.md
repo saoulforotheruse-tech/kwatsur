@@ -37,9 +37,9 @@ Règle de conception : *l'IA comprend et explique, le code décide*. Une informa
 ## Équipe
 
 | Membre | GitHub |
-| --- | --- |
-| Raoul DARIL Tankam Soh | (compte du dépôt) |
-| *nom à compléter* | ravenger26 |
+| ---    | ---    |
+| Raoul DARIL Tankam Soh | saoulforotheruse-tech |
+| NOUBISSI mEIKEM Indira Leslie | ravenger26 |
 
 Nom de l'équipe sur HackOS : **Kwatsur** (2 membres).
 
@@ -55,8 +55,6 @@ Alternative : *Solving Fragmented Intelligence* (annonces dispersées réunies d
 ## Composants préexistants (déclaration)
 
 - Aucun code antérieur à l'ouverture de la fenêtre de développement (22/10/2026). Premier commit du dépôt : 23/10/2026.
-- `old-kwatsur/` : premier prototype de l'équipe (23-24/10/2026), dans la fenêtre, conservé pour l'historique.
-- Plan de travail préparé avant l'événement (`Plan_travail_Kwatsur_Open_Agent_Hackathon_2026.docx`) : un document de cadrage, pas du code.
 - Bibliothèques open source : FastAPI, SQLAlchemy, Alembic, Pydantic, httpx, pytest, nginx, PostgreSQL.
 - Spécification et seuils d'évaluation de Meterless Scout Intent, ainsi que son jeu d'injections : dépôt public Meterless (Apache-2.0). L'implémentation Python est la nôtre.
 - 4 photos d'exemple de Wikimedia Commons (CC BY-SA, crédits affichés) et 20 annonces **fictives** pour la démonstration.

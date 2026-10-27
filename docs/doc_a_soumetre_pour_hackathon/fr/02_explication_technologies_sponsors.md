@@ -34,6 +34,18 @@ Implémentation Python de la spécification publique `engines/scout-intent` (Apa
 | Route | Graphe capacités → outils : recherche, rédaction, comparaison, contact, proposition, photos, génération d'image. |
 | Recommend | **Contrat d'exécution signé** (HMAC-SHA256, valable 5 minutes), qui désigne aussi le modèle. Chaque outil vérifie le contrat avant d'agir. Un contrat absent, altéré, expiré ou hors périmètre est refusé (`contract.refused`). |
 
+**Le contrat signé, expliqué simplement.** Scout n'est pas une IA générative : c'est un moteur de règles rapide (1 ms) qui décide *avant* l'IA. Quand il accepte un message, il remet aux outils un **ticket d'autorisation** :
+
+| Ce que dit le ticket | Exemple |
+| --- | --- |
+| Quelle demande il autorise | `housing.search` (une recherche) |
+| Quels outils ont le droit d'agir | recherche d'annonces, rédaction de la réponse |
+| Niveau de risque | `low` |
+| Quel modèle traite la requête | `nvidia/nemotron-3-ultra-550b-a55b` |
+| Jusqu'à quand | 5 minutes |
+
+Le ticket est **signé** avec une clé secrète du serveur (HMAC-SHA256) : si quelqu'un modifie une seule lettre, la signature ne correspond plus. Chaque outil vérifie le ticket avant d'agir : sans ticket valide, **il refuse**. Conséquence : même si un message piégé trompait l'IA, celle-ci ne pourrait déclencher aucune action non autorisée, par exemple un paiement. Code : `app/engines/scout/contract.py`.
+
 **Fonctionnalités qu'il porte.**
 - L'aiguillage de chaque message vers la bonne voie : recherche, comparaison, contact, dépôt d'annonce, image.
 - Le blocage des injections et des demandes de paiement, sans appeler le modèle.
@@ -52,19 +64,19 @@ Kwatsur appelle Nightshift et lui seul pour l'IA (`LLM_PROVIDER=meterless`), via
 - en-têtes `meterless-app: kwatsur` et `meterless-scope: user` ;
 - découverte des modèles par `GET /v1/models`.
 
-Une coupure passagère (`502 fetch failed`) est relancée une fois automatiquement. Code : `app/integrations/agent_runtime/meterless.py`.
+Une coupure passagère (`502 fetch failed`) est relancée une fois automatiquement. Nemotron 3 Ultra est un modèle à raisonnement : Kwatsur lui demande de répondre sans raisonnement caché (`enable_thinking=false`, réglable par `LLM_THINKING_ENABLED`), ce qui divise le temps d'un appel par environ quatre (mesuré : 26,5 s → 6,9 s pour la même extraction, résultat identique). Code : `app/integrations/agent_runtime/meterless.py`.
 
 ## NVIDIA — Nemotron via Nightshift
 
 - **Modèle utilisé : `nvidia/nemotron-3-ultra-550b-a55b`**, épinglé dans Nightshift. `meterless/auto` pourrait router vers un autre modèle. La clé NVIDIA est enregistrée dans l'onglet *Providers* de Nightshift, jamais dans le projet.
 - **Ce que fait Nemotron, dans des fonctionnalités opérationnelles** :
-  - comprendre la demande et en extraire les critères en JSON validé (prompt `criteria_extraction.md`) ;
+  - comprendre la demande et en extraire les critères en JSON validé, y compris la ville déduite d'un quartier connu (« un appart à Bastos » → Yaoundé) (prompt `criteria_extraction.md`) ;
   - comprendre la description d'un propriétaire et remplir son annonce (`listing_extraction.md`) ;
   - rédiger l'explication des résultats et répondre aux questions sur une annonce (« le premier a-t-il un compteur individuel ? »), à partir des seuls faits fournis et des 8 derniers messages (`housing_agent.md`).
 - **Il ne filtre, ne classe et ne décide rien** : c'est le rôle du code.
 - **Preuve du modèle utilisé** : chaque réponse indique `scout.model = "nvidia/nemotron-3-ultra-550b-a55b"` et `reply_generated_by = "meterless"`, et l'interface affiche « Rédigé par Nemotron via Meterless · Modèle : nvidia/nemotron-3-ultra-550b-a55b ». Le journal `contract.issued … profile=nvidia/nemotron-3-ultra-550b-a55b` le confirme pour chaque requête.
 
-## Cursor (avec Space XAI) — facultatif
+## Cursor (avec Space XAI) 
 
 Le projet a été développé avec des assistants de code IA. Les règles du dépôt destinées aux agents de code (véracité, architecture, style, tests sans réseau) sont dans `AGENTS.md`, que Cursor lit automatiquement. Une partie du code a aussi été écrite avec Claude Code.
 
@@ -78,7 +90,7 @@ Le projet a été développé avec des assistants de code IA. Les règles du dé
 3. **Nemotron explique sans inventer.** Il ne reçoit que des faits vérifiés et il est contraint à ne rien inventer. Quand une information manque, il le dit (« la description ne précise pas… ; demandez-le à la source »).
 4. **Fiabilité de démonstration.**
    - `SAMPLE_MODE=true` fait tourner tout le parcours sans Zetaris, Nightshift ni Cloudflare (annonces fictives, règles, Scout actif) ;
-   - 143 tests passent sans réseau ;
+   - 148 tests passent sans réseau ;
    - les intégrations ont été vérifiées en réel.
 
 ## Technologies complémentaires (hors sponsors)

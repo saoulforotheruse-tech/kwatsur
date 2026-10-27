@@ -23,7 +23,7 @@ Exigences couvertes :
    - <http://localhost:8080/admin.html> (jeton déjà saisi).
 4. Garder Nightshift ouvert sur l'écran des exécutions (« run details »), **jamais sur la Console** (elle affiche le jeton).
 5. Ne jamais montrer le fichier `.env`. Zoom du navigateur à 110 %.
-6. Si Nemotron est lent (10 à 30 s par réponse), couper l'attente au montage, en le signalant (« accéléré »).
+6. Une recherche complète prend environ 15 s (deux appels à Nemotron). Si l'attente est longue, la couper au montage en le signalant (« accéléré »).
 
 ## Déroulé
 

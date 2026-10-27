@@ -106,7 +106,7 @@ Ouvrir <http://localhost:8080> et écrire, ou dicter avec le bouton micro :
 | « Je loue mon studio meublé à Yaoundé, quartier Bastos, 90 000 FCFA » | Ouvre le dépôt d'annonce : questions, photos, validation sur `/admin.html` |
 | « Envoie la caution par Orange Money » | Refusé par Scout Intent (aucun paiement), avec un conseil de prudence |
 
-Les sorties réelles de ces exemples, avec leurs traces (intention, contrat, modèle utilisé), sont dans [`docs/doc_a_soumetre_pour_hackathon/05_exemples_entrees_sorties.md`](./docs/doc_a_soumetre_pour_hackathon/05_exemples_entrees_sorties.md). Chaque réponse de l'API contient `scout.model` (le modèle qui a traité la requête), `data_source` et `reply_generated_by` ; les journaux (`docker compose logs api`) montrent `scout.decision`, `contract.issued` et `contract.verified`.
+Les sorties réelles de ces exemples, avec leurs traces (intention, contrat, modèle utilisé), sont dans [`docs/doc_a_soumetre_pour_hackathon/fr/05_exemples_entrees_sorties.md`](./docs/doc_a_soumetre_pour_hackathon/fr/05_exemples_entrees_sorties.md). Chaque réponse de l'API contient `scout.model` (le modèle qui a traité la requête), `data_source` et `reply_generated_by` ; les journaux (`docker compose logs api`) montrent `scout.decision`, `contract.issued` et `contract.verified`.
 
 API directe :
 ```sh
@@ -203,7 +203,7 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 - Dépôt d'annonces par les propriétaires dans le chat, avec photos et validation par un administrateur.
 - Images : vraies photos, photos d'exemple créditées, illustrations Cloudflare FLUX.1 guidées par la vision et le contexte camerounais.
 - Interface : chat, cartes illustrées, comparaison, panneaux « Mon annonce » et « Visualiser », page d'administration, conversation vocale.
-- 143 tests sans réseau ; `SAMPLE_MODE` de repli.
+- 148 tests sans réseau ; `SAMPLE_MODE` de repli ; Nemotron sans raisonnement caché (une recherche en ~15 s au lieu de ~60 s).
 
 **Limites connues**
 - Aucune source d'annonces réelle autorisée n'est encore connectée : la démo repose sur 20 annonces fictives.
@@ -213,4 +213,4 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 
 ## Soumission au hackathon
 
-Tout le dossier (formulaire, explication des sponsors, script vidéo, présentation, exemples) est dans [`docs/doc_a_soumetre_pour_hackathon/`](./docs/doc_a_soumetre_pour_hackathon/README.md).
+Tout le dossier (formulaire, explication des sponsors, script vidéo, présentation, exemples) est dans [`docs/doc_a_soumetre_pour_hackathon/`](./docs/doc_a_soumetre_pour_hackathon/README.md), en français (`fr/`) et en anglais (`en/`).

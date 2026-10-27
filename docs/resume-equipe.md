@@ -23,6 +23,18 @@ Un agent qui aide à **trouver un logement à louer au Cameroun** : on lui parle
 
 > Règle d'or : **l'IA comprend et explique, le code décide.**
 
+### Scout, c'est une IA ?
+
+Non. Scout est un **trieur rapide à base de règles** (1 milliseconde). Il ne « comprend » pas les phrases comme Nemotron : il repère le type de demande et les dangers, *avant* d'appeler l'IA. C'est voulu : un trieur à règles ne peut pas être manipulé par un message piégé. **Comprendre** (« Bastos, c'est à Yaoundé ») est le travail de **Nemotron**.
+
+### Le « contrat signé », c'est quoi ?
+
+Un **ticket d'autorisation** que Scout donne aux outils : « c'est une recherche, tu as le droit de chercher et de répondre, pendant 5 minutes ». Il est signé avec une clé secrète, donc impossible à falsifier. Chaque outil vérifie le ticket avant d'agir. Sans ticket valide, rien ne se passe. Même si quelqu'un trompait l'IA, il ne pourrait déclencher aucune action interdite (un paiement, par exemple).
+
+### Pourquoi une réponse prend ~15 secondes ?
+
+Nemotron est appelé deux fois : une fois pour comprendre, une fois pour rédiger. On a coupé son « raisonnement caché » : c'était ~60 s, c'est maintenant ~15 s. Zetaris et Scout prennent moins d'une seconde.
+
 ## Les outils (où les trouver)
 
 | Outil | Rôle | Adresse |
@@ -49,10 +61,10 @@ Sans Zetaris ni Nightshift : mettre `SAMPLE_MODE=true` dans `.env` (mode démo).
 
 - `docs/vue-ensemble.md` : le projet en 5 minutes, avec le plan du code.
 - `docs/outils.md` : chaque outil, son rôle et son accès.
-- `docs/doc_a_soumetre_pour_hackathon/` : tout ce qu'on soumet au jury.
+- `docs/doc_a_soumetre_pour_hackathon/` : tout ce qu'on soumet au jury, en français (`fr/`) et en anglais (`en/`).
 
 ## Ce qu'il reste à faire avant 23h45 UTC
 
-1. Enregistrer la vidéo (`docs/doc_a_soumetre_pour_hackathon/03_script_video_demo.md`).
+1. Enregistrer la vidéo (`docs/doc_a_soumetre_pour_hackathon/en/03_demo_video_script.md`, ou la version `fr/`).
 2. Fusionner `version4.0` dans `main` (le dépôt GitHub est déjà public).
 3. Soumettre sur HackOS (une seule piste, recommandée : *The Agent That Can Explain Why*).
