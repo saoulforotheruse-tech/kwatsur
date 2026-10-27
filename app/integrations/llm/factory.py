@@ -16,6 +16,7 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
             model=settings.meterless_model,
             app_id=settings.meterless_app_id,
             timeout_seconds=settings.llm_timeout_seconds,
+            thinking_enabled=settings.llm_thinking_enabled,
         )
         return NemotronProvider(client, name="meterless")
     if settings.llm_provider == "nemotron":
@@ -25,6 +26,7 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
             model=settings.nemotron_model,
             timeout_seconds=settings.llm_timeout_seconds,
             provider_label="Nemotron",
+            thinking_enabled=settings.llm_thinking_enabled,
         )
         return NemotronProvider(client, name="nemotron")
     if settings.llm_provider == "rules":

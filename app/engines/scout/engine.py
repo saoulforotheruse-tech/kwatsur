@@ -16,9 +16,15 @@ from datetime import datetime, timezone
 
 from app.engines.scout.contract import ContractVerifier, issue_contract
 from app.engines.scout.guard import POLICY_PACK_VERSION, GuardResult, run_guard
-from app.engines.scout.interpret import Clarification, Interpretation, interpret
+from app.engines.scout.interpret import Clarification, Interpretation, interpret, is_visualization_request
 from app.engines.scout.registry import IntentRegistry, load_registry
-from app.engines.scout.sense import LOW_BAND, IntentCandidate, classify
+from app.engines.scout.sense import (
+    LOW_BAND,
+    IntentCandidate,
+    classify,
+    continue_workflow,
+    detect_workflow_start,
+)
 
 logger = logging.getLogger("kwatsur.scout")
 
@@ -30,6 +36,9 @@ CAPABILITY_GRAPH: dict[str, str] = {
     "listings.compare": "comparison.build",
     "contact.draft": "contact_service.build_contact_draft",
     "reply.redirect": "template.redirect",
+    "submission.collect": "submission_service.apply",
+    "images.show": "image_service.owner_photos",
+    "images.generate": "image_service.generate_illustration",
 }
 OFFLINE_FALLBACKS = {"llm.write_reply": "template.explain"}
 
@@ -84,11 +93,21 @@ class ScoutEngine:
         role: str = "visitor",
         user: str = "anonymous",
         has_active_search: bool = False,
+        active_workflow: str | None = None,
+        search_in_progress: bool = False,
     ) -> ScoutDecision:
+        """`active_workflow` : « submission » quand un propriétaire est en train de décrire son logement.
+
+        `has_active_search` : des résultats existent (comparer, visualiser…).
+        `search_in_progress` : une recherche est commencée mais incomplète (ville encore demandée) ;
+        une réponse sans mot-clé (« je suis à Bastos ») en est alors la suite.
+        """
         started = time.perf_counter()
         trace_id = uuid.uuid4().hex
 
-        candidates = classify(self.registry, prompt, has_active_search)               # Sense
+        candidates = classify(self.registry, prompt, has_active_search or search_in_progress)  # Sense
+        workflow = active_workflow or detect_workflow_start(self.registry, prompt)
+        candidates = continue_workflow(candidates, workflow)
         interpretation = interpret(self.registry, prompt, candidates, has_active_search)  # Interpret
         competing = tuple(item.intent_id for item in candidates if item.score >= LOW_BAND)
         risk = run_guard(prompt, interpretation.intent, surface, role, competing)      # Guard
@@ -124,6 +143,57 @@ class ScoutEngine:
         logger.info(
             "scout.decision traceId=%s intent=%s band=%s risk=%s latencyMs=%s stage2=skipped",
             trace_id, decision.intent_id, decision.band, risk.level, latency_ms,
+        )
+        return ScoutDecision(**{**decision.__dict__, "latency_ms": latency_ms})
+
+    def starts_submission(self, prompt: str) -> bool:
+        return detect_workflow_start(self.registry, prompt) == "submission"
+
+    def requests_visualization(self, prompt: str) -> bool:
+        return is_visualization_request(prompt)
+
+    def authorize(
+        self, prompt: str, intent_id: str, surface: str = "chat", role: str = "visitor", user: str = "anonymous",
+        has_active_search: bool = False,
+    ) -> ScoutDecision:
+        """Intention imposée par l'agent, sans classification ni clarification.
+
+        Utilisé quand le routage Scout est désactivé : seule la garde (injection, paiement,
+        portée) s'applique, puis le contrat est signé comme d'habitude.
+        """
+        started = time.perf_counter()
+        trace_id = uuid.uuid4().hex
+        intent = self.registry.get(intent_id)
+        interpretation = interpret(
+            self.registry, prompt, [IntentCandidate(intent_id, 1.0, 0.0)], has_active_search
+        )
+        risk = run_guard(prompt, intent, surface, role)
+        decision_fields = {
+            "trace_id": trace_id,
+            "intent_id": intent.id,
+            "intent_label": intent.label,
+            "confidence": 1.0,
+            "band": "high",
+            "parameters": interpretation.parameters,
+            "candidates": [IntentCandidate(intent.id, 1.0, 0.0)],
+            "risk": risk,
+        }
+        if risk.blocked:
+            decision = ScoutDecision(**decision_fields, refusal_reason=risk.reason)
+        elif interpretation.clarification:
+            decision = ScoutDecision(**decision_fields, clarification=interpretation.clarification)
+        else:
+            tool_plan = self._route(interpretation)
+            if tool_plan is None:
+                decision = ScoutDecision(
+                    **decision_fields, refusal_reason="Aucun outil autorisé ne permet cette action."
+                )
+            else:
+                contract = self._recommend(interpretation, risk, tool_plan, trace_id, surface, user)
+                decision = ScoutDecision(**decision_fields, tool_plan=tool_plan, contract=contract)
+        latency_ms = round((time.perf_counter() - started) * 1000, 3)
+        logger.info(
+            "scout.authorize traceId=%s intent=%s risk=%s latencyMs=%s", trace_id, intent.id, risk.level, latency_ms
         )
         return ScoutDecision(**{**decision.__dict__, "latency_ms": latency_ms})
 

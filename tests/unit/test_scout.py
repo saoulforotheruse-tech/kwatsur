@@ -17,6 +17,24 @@ def make_engine(now: datetime | None = None) -> ScoutEngine:
     return ScoutEngine(ModelProfile("meterless", "nvidia/test-model", True), SECRET, now=clock)
 
 
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Génère une image de la façade du premier", True),
+        ("Montre-moi les photos du logement", True),
+        ("Je veux voir le salon du n°2", True),
+        ("À quoi ressemble la maison ?", True),
+        ("Donne-moi une représentation du lieu", True),
+        ("Je cherche un appartement avec des photos", False),
+        ("Deux chambres et un salon", False),
+        ("Est-ce qu'il y a des photos ?", False),
+        ("Douala, 95 000 FCFA maximum", False),
+    ],
+)
+def test_explicit_visual_requests_do_not_capture_search_fragments(message: str, expected: bool) -> None:
+    assert make_engine().requests_visualization(message) is expected
+
+
 def test_regression_set_clears_every_meterless_threshold() -> None:
     report = run_evals(make_engine())
 
@@ -134,3 +152,37 @@ def test_contract_from_another_deployment_is_refused() -> None:
 
 def test_stage1_self_test_stays_under_budget() -> None:
     assert self_test(load_registry()) < STAGE1_BUDGET_MS
+
+
+def test_greeting_does_not_compete_with_a_real_request() -> None:
+    decision = make_engine().decide(
+        "bonjour jespere que tu vas bien je veux une grande maison avec un toit de couleur verte "
+        "esceque vous avez ca en stock"
+    )
+
+    assert decision.intent_id == "housing.search"
+    assert decision.band == "high"
+    assert decision.clarification is None
+
+
+def test_greeting_alone_is_still_general_help() -> None:
+    assert make_engine().decide("Bonjour !").intent_id == "general.help"
+
+
+def test_owner_contact_details_continue_the_listing_description() -> None:
+    decision = make_engine().decide(
+        "Il y a l'eau et l'électricité. Vous pouvez me joindre au 699 11 22 33",
+        active_workflow="submission",
+    )
+
+    assert decision.intent_id == "listing.submit"
+    assert decision.contract is not None
+    assert decision.risk.level == "medium"
+
+
+def test_long_owner_description_opens_the_listing_workflow() -> None:
+    decision = make_engine().decide(
+        "Bonjour, je loue ma maison de 3 chambres à Yaoundé, quartier Mendong, 180 000 FCFA"
+    )
+
+    assert decision.intent_id == "listing.submit"

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Kwatsur — validation des annonces</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230f6b52'/%3E%3Cpath d='M8 17 16 9l8 8v7h-5v-5h-6v5H8z' fill='white'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" aria-label="Retour à Kwatsur">
+          <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z"/></svg>
+          <span>Kwatsur<span class="brand-dot">.</span></span>
+        </a>
+        <p class="status-pill">Validation des annonces</p>
+      </div>
+    </header>
+
+    <main class="admin-page">
+      <section class="admin-intro" aria-labelledby="admin-title">
+        <p class="eyebrow">Administration</p>
+        <h1 id="admin-title">Validation des annonces</h1>
+        <p>Consultez les propositions et leurs photos avant de les publier ou de les refuser. Une approbation ne certifie ni le propriétaire ni la disponibilité du logement.</p>
+      </section>
+      <form id="admin-login" class="admin-toolbar">
+        <label>Jeton d'administration
+          <input id="admin-token" type="password" autocomplete="current-password" required placeholder="Valeur de ADMIN_TOKEN">
+        </label>
+        <label>Statut
+          <select id="admin-status">
+            <option value="pending">En attente</option>
+            <option value="approved">Approuvées</option>
+            <option value="rejected">Refusées</option>
+          </select>
+        </label>
+        <button class="primary-button" type="submit">Afficher</button>
+        <button id="admin-logout" class="ghost-button" type="button">Déconnexion</button>
+      </form>
+      <p id="admin-message" class="muted-text" role="status" aria-live="polite">Saisissez le jeton défini dans ADMIN_TOKEN (fichier .env du serveur).</p>
+      <div id="admin-list" class="admin-list" aria-label="Propositions d'annonces"></div>
+    </main>
+    <script type="module" src="/js/admin.js"></script>
+  </body>
+</html>

@@ -3,117 +3,211 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Kwatsur : un agent conversationnel pour rechercher et comparer des logements au Cameroun.">
-    <title>Kwatsur — trouver un logement</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23167653'/%3E%3Cpath d='M8 17 16 9l8 8v7h-5v-5h-6v5H8z' fill='white'/%3E%3C/svg%3E">
+    <meta name="description" content="Kwatsur : un agent conversationnel pour rechercher, comparer et comprendre des logements à louer au Cameroun.">
+    <meta name="theme-color" content="#0f6b52">
+    <title>Kwatsur — trouver un logement au Cameroun</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230f6b52'/%3E%3Cpath d='M8 17 16 9l8 8v7h-5v-5h-6v5H8z' fill='white'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap">
     <link rel="stylesheet" href="/css/styles.css">
   </head>
   <body>
-    <header class="site-header">
-      <a class="brand" href="/" aria-label="Kwatsur, accueil">
-        <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z"/></svg>
-        kwatsur<span>.</span>
-      </a>
-      <p>Votre agent de recherche de logement au Cameroun.</p>
+    <a class="skip-link" href="#chat-input">Aller à la conversation</a>
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" aria-label="Kwatsur, accueil">
+          <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9"/><path d="M8 17 16 9l8 8v7h-5v-5h-6v5H8z"/></svg>
+          <span>Kwatsur<span class="brand-dot">.</span></span>
+        </a>
+        <p id="system-status" class="status-pill" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span><span id="system-status-text">Connexion à l'agent…</span>
+        </p>
+      </div>
     </header>
 
-    <main class="page-shell">
-      <section class="intro" aria-labelledby="page-title">
-        <p class="eyebrow">LOCATION · DOUALA · YAOUNDÉ</p>
-        <h1 id="page-title">Décrivez votre logement idéal, Kwatsur cherche pour vous.</h1>
-        <p>L'agent comprend votre demande, filtre les annonces disponibles, les classe et explique chaque recommandation. Il n'invente jamais d'annonce : les informations inconnues restent signalées comme telles.</p>
+    <main class="page">
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Location · Douala · Yaoundé</p>
+        <h1 id="page-title">Décrivez le logement idéal.<br><span class="hero-accent">Kwatsur cherche, compare et explique.</span></h1>
+        <p class="hero-lead">L'agent comprend votre demande en français, interroge les annonces disponibles, les classe et vous dit pourquoi. Il n'invente jamais rien : ce qui est inconnu reste signalé comme tel.</p>
+        <ul class="trust-list" aria-label="Engagements de Kwatsur">
+          <li><span class="trust-icon" aria-hidden="true">✓</span>Aucune information inventée</li>
+          <li><span class="trust-icon" aria-hidden="true">✓</span>Classement expliqué</li>
+          <li><span class="trust-icon" aria-hidden="true">✓</span>Demandes vérifiées par Scout</li>
+        </ul>
       </section>
 
       <div class="workspace">
-        <section class="chat-panel" aria-labelledby="chat-title">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">CONVERSATION</p>
-              <h2 id="chat-title">Parlez à l'agent</h2>
+        <section class="panel chat-panel" aria-labelledby="chat-title">
+          <div class="panel-heading">
+            <div class="agent-identity">
+              <span class="agent-avatar" aria-hidden="true">K</span>
+              <div>
+                <h2 id="chat-title">Votre agent logement</h2>
+                <p class="panel-subtitle">Répond en français · ne fait jamais de paiement</p>
+              </div>
             </div>
-            <button id="new-conversation" class="text-button" type="button">Nouvelle conversation</button>
+            <button id="new-conversation" class="ghost-button" type="button">
+              <span aria-hidden="true">↺</span> Nouvelle conversation
+            </button>
           </div>
 
           <div id="chat-messages" class="chat-messages" role="log" aria-live="polite" aria-label="Messages de la conversation"></div>
 
+          <section id="voice-overlay" class="voice-overlay" aria-live="polite" aria-label="Conversation vocale" hidden>
+            <div class="voice-orb" aria-hidden="true"><span></span><span></span><span></span></div>
+            <p id="voice-status" class="voice-status">Je vous écoute…</p>
+            <p id="voice-transcript" class="voice-transcript"></p>
+            <button id="voice-stop" class="ghost-button" type="button">Terminer la conversation vocale</button>
+          </section>
+
           <div class="examples" aria-label="Exemples de demandes">
-            <button type="button" class="example-chip" data-example="Je cherche un appartement de deux chambres à Douala, vers Bonamoussadi, avec un budget maximal de 150 000 FCFA par mois. Je veux de l'eau et de l'électricité, et je préfère être proche des transports.">Appartement à Bonamoussadi</button>
-            <button type="button" class="example-chip" data-example="Un studio à Yaoundé à moins de 100 000 FCFA, de préférence meublé.">Studio à Yaoundé</button>
-            <button type="button" class="example-chip" data-example="Finalement, peu importe le quartier, mais pas plus de 110 000 FCFA.">Assouplir les critères</button>
+            <button type="button" class="example-chip" data-example="Je cherche un appartement de deux chambres à Douala, vers Bonamoussadi, avec un budget maximal de 150 000 FCFA par mois. Je veux de l'eau et de l'électricité, et je préfère être proche des transports.">🏙️ Deux-chambres à Bonamoussadi</button>
+            <button type="button" class="example-chip" data-example="Un studio à Yaoundé à moins de 100 000 FCFA, de préférence meublé.">🛋️ Studio meublé à Yaoundé</button>
+            <button type="button" class="example-chip" data-example="Finalement, peu importe le quartier, mais pas plus de 110 000 FCFA.">🎯 Assouplir les critères</button>
+            <button type="button" class="example-chip" data-example="Compare le premier et le deuxième">⚖️ Comparer les deux premiers</button>
+            <button type="button" class="example-chip" data-example="Montre-moi le salon du premier">🖼️ Voir le salon du n°1</button>
+            <button type="button" class="example-chip" data-example="Bonjour, je loue mon appartement de 2 chambres à Douala vers Bonapriso, 130 000 FCFA par mois, avec eau et électricité.">🏡 Je loue mon appartement</button>
           </div>
 
-          <form id="chat-form" class="chat-form">
+          <form id="chat-form" class="composer">
             <label class="visually-hidden" for="chat-input">Votre message</label>
-            <textarea id="chat-input" name="message" rows="2" maxlength="2000" required placeholder="Ex. : un deux-chambres à Douala, 150 000 FCFA maximum, avec eau et électricité"></textarea>
-            <button class="primary-button" type="submit">Envoyer</button>
+            <textarea id="chat-input" name="message" rows="1" maxlength="2000" required placeholder="Ex. : un deux-chambres à Douala, 150 000 FCFA max, avec eau et électricité"></textarea>
+            <button id="voice-button" class="voice-button" type="button" aria-label="Parler à l'agent" title="Parler à l'agent" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0"/><path d="M12 18v3"/></svg>
+            </button>
+            <button class="send-button" type="submit" aria-label="Envoyer le message">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+            </button>
           </form>
+          <p class="composer-hint">Entrée pour envoyer · Maj + Entrée pour aller à la ligne</p>
+        </section>
 
-          <div class="criteria-block">
-            <h3>Critères retenus par l'agent</h3>
+        <aside class="side-column">
+          <section class="panel criteria-panel" aria-labelledby="criteria-title">
+            <h2 id="criteria-title" class="small-title">Ce que l'agent a retenu</h2>
             <div id="criteria" aria-live="polite"></div>
-          </div>
-        </section>
+          </section>
 
-        <section class="results-section" aria-labelledby="results-title">
-          <div class="section-heading results-heading">
-            <div>
-              <p class="eyebrow">ANNONCES</p>
-              <h2 id="results-title">Logements correspondants</h2>
-            </div>
-            <p id="result-count" class="result-count" aria-live="polite"></p>
-          </div>
-          <p id="status-message" class="status-message" role="status" aria-live="polite">
-            Les logements trouvés par l'agent s'afficheront ici.
-          </p>
-          <div id="property-results" class="property-grid"></div>
-
-          <details class="filter-panel">
-            <summary>Recherche manuelle par filtres (sans IA)</summary>
-            <form id="search-form">
-              <label>Ville<input name="city" autocomplete="address-level2" placeholder="Ex. Douala"></label>
-              <label>Quartier souhaité<input name="neighborhood" placeholder="Ex. Bonamoussadi"></label>
-              <label>Type
-                <select name="property_type">
-                  <option value="">Indifférent</option>
-                  <option value="studio">Studio</option>
+          <section id="submission-panel" class="panel submission-panel" aria-labelledby="submission-title" hidden>
+            <h2 id="submission-title" class="small-title">Mon annonce proposée</h2>
+            <p id="submission-status" class="submission-status"></p>
+            <div id="submission-fields"></div>
+            <div id="submission-photos" class="photo-strip"></div>
+            <form id="photo-form" class="photo-form">
+              <label>Pièce photographiée
+                <select name="room">
+                  <option value="facade">Façade</option>
+                  <option value="salon">Salon</option>
                   <option value="chambre">Chambre</option>
-                  <option value="appartement">Appartement</option>
-                  <option value="maison">Maison</option>
+                  <option value="cuisine">Cuisine</option>
+                  <option value="salle_de_bain">Salle de bain / douche</option>
+                  <option value="autre">Autre</option>
                 </select>
               </label>
-              <label>Chambres (minimum)
-                <select name="bedrooms">
-                  <option value="">Indifférent</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                </select>
+              <label class="file-label">
+                <input id="photo-input" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+                <span>＋ Ajouter une photo</span>
               </label>
-              <label>Loyer minimum (FCFA/mois)<input name="min_rent" type="number" min="0" step="5000" placeholder="50000"></label>
-              <label>Loyer maximum (FCFA/mois)<input name="max_rent" type="number" min="0" step="5000" placeholder="150000"></label>
-              <fieldset class="amenity-filters">
-                <legend>Équipements indispensables</legend>
-                <label class="check-label"><input name="water_available" type="checkbox"> Eau</label>
-                <label class="check-label"><input name="electricity_available" type="checkbox"> Électricité</label>
-              </fieldset>
-              <button class="primary-button" type="submit">Rechercher</button>
+              <p id="photo-message" class="muted-text" aria-live="polite"></p>
             </form>
-          </details>
-        </section>
+          </section>
+
+          <section class="panel filter-panel generator-panel" aria-labelledby="generator-title">
+            <details>
+              <summary id="generator-title"><span>Visualiser un logement</span><span class="summary-hint">IA</span></summary>
+              <form id="generate-form" class="filter-form">
+                <label>Pièce ou vue
+                  <select name="room">
+                    <option value="facade">Façade (vue extérieure)</option>
+                    <option value="salon">Salon</option>
+                    <option value="chambre">Chambre</option>
+                    <option value="cuisine">Cuisine</option>
+                    <option value="salle_de_bain">Salle de bain / douche</option>
+                  </select>
+                </label>
+                <label>Description
+                  <textarea name="description" rows="3" minlength="3" maxlength="600" required placeholder="Ex. : salon spacieux et lumineux, murs clairs, sol carrelé, mobilier simple"></textarea>
+                </label>
+                <button class="primary-button" type="submit">Générer une image</button>
+                <p id="generator-status" class="muted-text" aria-live="polite"></p>
+              </form>
+              <div id="generator-result"></div>
+            </details>
+          </section>
+
+          <section class="panel filter-panel" aria-labelledby="filter-title">
+            <details>
+              <summary id="filter-title"><span>Recherche manuelle</span><span class="summary-hint">sans IA</span></summary>
+              <form id="search-form" class="filter-form">
+                <label>Ville<input name="city" autocomplete="address-level2" placeholder="Douala"></label>
+                <label>Quartier souhaité<input name="neighborhood" placeholder="Bonamoussadi"></label>
+                <label>Type
+                  <select name="property_type">
+                    <option value="">Indifférent</option>
+                    <option value="studio">Studio</option>
+                    <option value="chambre">Chambre</option>
+                    <option value="appartement">Appartement</option>
+                    <option value="maison">Maison</option>
+                  </select>
+                </label>
+                <label>Chambres min.
+                  <select name="bedrooms">
+                    <option value="">Indifférent</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                  </select>
+                </label>
+                <label>Loyer min. (FCFA)<input name="min_rent" type="number" min="0" step="5000" placeholder="50 000"></label>
+                <label>Loyer max. (FCFA)<input name="max_rent" type="number" min="0" step="5000" placeholder="150 000"></label>
+                <fieldset class="amenity-filters">
+                  <legend>Indispensable</legend>
+                  <label class="check-label"><input name="water_available" type="checkbox"> Eau</label>
+                  <label class="check-label"><input name="electricity_available" type="checkbox"> Électricité</label>
+                </fieldset>
+                <button class="primary-button" type="submit">Rechercher</button>
+              </form>
+            </details>
+          </section>
+        </aside>
       </div>
 
-      <section id="comparison" class="comparison-section" aria-labelledby="comparison-title" hidden>
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">VUE CÔTE À CÔTE</p>
-            <h2 id="comparison-title">Comparer les logements</h2>
+      <section class="results-section" aria-labelledby="results-title">
+        <details id="results-disclosure" class="results-disclosure">
+          <summary class="results-summary">
+            <h2 id="results-title">Logements correspondants</h2>
+            <span id="result-count" class="result-count" aria-live="polite"></span>
+          </summary>
+          <div class="results-content">
+            <div id="status-message" class="empty-state" role="status" aria-live="polite">
+              <span class="empty-illustration" aria-hidden="true">🏠</span>
+              <p id="status-text">Les logements trouvés par l'agent s'afficheront ici.</p>
+            </div>
+            <div id="property-results" class="property-grid"></div>
+
+            <section id="comparison" class="panel comparison-section" aria-labelledby="comparison-title" hidden>
+              <div class="results-heading">
+                <div>
+                  <p class="eyebrow">Vue côte à côte</p>
+                  <h2 id="comparison-title">Comparer les logements</h2>
+                </div>
+                <button id="clear-comparison" class="ghost-button" type="button">Effacer la sélection</button>
+              </div>
+              <div id="comparison-table" class="comparison-scroll"></div>
+            </section>
           </div>
-          <button id="clear-comparison" class="text-button" type="button">Effacer la sélection</button>
-        </div>
-        <div id="comparison-table" class="comparison-scroll"></div>
+        </details>
       </section>
     </main>
+
+    <div id="compare-tray" class="compare-tray" hidden>
+      <p id="compare-tray-text"></p>
+      <button id="compare-tray-button" class="primary-button" type="button">Voir la comparaison</button>
+    </div>
 
     <dialog id="contact-dialog" class="contact-dialog" aria-labelledby="contact-title">
       <form method="dialog">
@@ -124,12 +218,13 @@
         <textarea id="contact-message" rows="10"></textarea>
         <div class="dialog-actions">
           <button id="copy-contact" class="primary-button" type="button">Copier le message</button>
-          <button class="text-button" value="close">Fermer</button>
+          <button class="ghost-button" value="close">Fermer</button>
         </div>
       </form>
     </dialog>
 
     <footer class="site-footer">
+      <p><strong>Kwatsur</strong> · Open Agent Hackathon 2026 · Zetaris, Meterless, NVIDIA Nemotron</p>
       <p>Les annonces marquées « Démo fictive » sont inventées pour la démonstration. Une disponibilité ou une information non confirmée reste à vérifier auprès de la source. Ne versez jamais d'argent avant une visite.</p>
     </footer>
     <script type="module" src="/js/app.js"></script>

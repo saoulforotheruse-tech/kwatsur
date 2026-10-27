@@ -34,6 +34,7 @@ def build_meterless_chat_client(
     app_id: str,
     timeout_seconds: float,
     transport: httpx.BaseTransport | None = None,
+    thinking_enabled: bool = True,
 ) -> ChatCompletionClient:
     return ChatCompletionClient(
         base_url=normalize_meterless_base_url(base_url),
@@ -43,4 +44,5 @@ def build_meterless_chat_client(
         provider_label="Nemotron via Meterless",
         extra_headers={"meterless-app": app_id.lower(), "meterless-scope": "user"},
         transport=transport,
+        thinking_enabled=thinking_enabled,
     )

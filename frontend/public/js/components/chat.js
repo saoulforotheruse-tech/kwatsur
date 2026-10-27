@@ -1,11 +1,30 @@
 import { t } from "../i18n/index.js";
 import { createElement } from "../utils/format.js";
+import { createGallery } from "./images.js";
 
-// Fil de conversation : affichage des messages et indicateur de chargement.
+// Le modèle met parfois du gras Markdown (**texte**) : on le rend en <strong>, sans jamais
+// interpréter de HTML (texte découpé et inséré avec textContent).
+function createRichText(text) {
+  const paragraph = createElement("p", null, "bubble");
+  text.split(/\*\*(.+?)\*\*/g).forEach((part, index) => {
+    if (part) {
+      paragraph.append(index % 2 ? createElement("strong", part) : document.createTextNode(part));
+    }
+  });
+  return paragraph;
+}
+
+function createAvatar() {
+  const avatar = createElement("span", "K", "agent-avatar");
+  avatar.setAttribute("aria-hidden", "true");
+  return avatar;
+}
+
+// Fil de conversation : bulles, métadonnées sous les réponses et indicateur « l'agent écrit ».
 export class ChatThread {
   constructor(container) {
     this.container = container;
-    this.loadingMessage = null;
+    this.loadingRow = null;
   }
 
   reset() {
@@ -14,31 +33,54 @@ export class ChatThread {
   }
 
   addUserMessage(text) {
-    this.#append(createElement("div", text, "message message-user"));
+    const row = createElement("div", null, "message-row user");
+    const body = createElement("div", null, "message-body");
+    body.append(createElement("p", text, "bubble"));
+    row.append(body);
+    this.#append(row);
   }
 
-  addAssistantMessage(text, metadata = []) {
-    const message = createElement("div", null, "message message-assistant");
-    // Les réponses peuvent contenir des retours à la ligne : on les préserve en texte brut.
-    message.append(createElement("p", text, "message-text"));
-    if (metadata.length) {
-      message.append(createElement("p", metadata.join(" · "), "message-meta"));
+  // `metadata` : liste de { text, kind } (kind : ai, scout, notice ou vide).
+  // `images` : photos ou illustrations IA jointes à la réponse (toujours étiquetées).
+  addAssistantMessage(text, metadata = [], images = []) {
+    const row = createElement("div", null, "message-row assistant");
+    const body = createElement("div", null, "message-body");
+    // Les retours à la ligne sont préservés par le CSS (white-space: pre-wrap).
+    body.append(createRichText(text));
+    if (images.length) {
+      body.append(createGallery(images));
     }
-    this.#append(message);
+    if (metadata.length) {
+      const list = createElement("ul", null, "meta-list");
+      for (const item of metadata) {
+        list.append(createElement("li", item.text, `meta-pill ${item.kind || ""}`.trim()));
+      }
+      body.append(list);
+    }
+    row.append(createAvatar(), body);
+    this.#append(row);
   }
 
   addErrorMessage(text) {
-    this.#append(createElement("div", text, "message message-error"));
+    const row = createElement("div", null, "message-row assistant error");
+    const body = createElement("div", null, "message-body");
+    body.append(createElement("p", text, "bubble"));
+    row.append(createAvatar(), body);
+    this.#append(row);
   }
 
   showLoading() {
-    this.loadingMessage = createElement("div", t("chat.thinking"), "message message-assistant loading");
-    this.#append(this.loadingMessage);
+    this.loadingRow = createElement("div", null, "message-row assistant");
+    const bubble = createElement("p", null, "bubble typing");
+    bubble.setAttribute("aria-label", t("chat.thinking"));
+    bubble.append(createElement("span"), createElement("span"), createElement("span"));
+    this.loadingRow.append(createAvatar(), bubble);
+    this.#append(this.loadingRow);
   }
 
   hideLoading() {
-    this.loadingMessage?.remove();
-    this.loadingMessage = null;
+    this.loadingRow?.remove();
+    this.loadingRow = null;
   }
 
   #append(element) {
@@ -50,27 +92,32 @@ export class ChatThread {
 // Métadonnées affichées sous une réponse : qui l'a rédigée, d'où viennent les annonces
 // et ce qu'a décidé le moteur Scout Intent (intention, confiance, risque, contrat, modèle).
 export function describeResponse(response) {
-  const metadata = [t(`chat.author.${response.reply_generated_by}`)];
+  const author = response.reply_generated_by;
+  const metadata = [{ text: t(`chat.author.${author}`), kind: author === "template" ? "" : "ai" }];
   if (response.data_source) {
-    metadata.push(t(`chat.source.${response.data_source}`));
+    metadata.push({ text: t(`chat.source.${response.data_source}`) });
   }
   const scout = response.scout;
   if (scout) {
     // Bande « reject » : aucune intention reconnue, Scout s'est replié sur l'aide générale.
     const scoutKey = scout.band === "reject" ? "chat.scoutFallback" : "chat.scout";
-    metadata.push(
-      t(scoutKey, {
+    metadata.push({
+      text: t(scoutKey, {
         intent: t(`scout.intent.${scout.intent}`),
         confidence: Math.round(scout.confidence * 100),
         risk: t(`scout.risk.${scout.risk_level}`),
       }),
-    );
+      kind: "scout",
+    });
     if (scout.contract_id) {
-      metadata.push(t("chat.contract", { id: scout.contract_id.slice(-6) }));
+      metadata.push({ text: t("chat.contract", { id: scout.contract_id.slice(-6) }), kind: "scout" });
     }
-    if (scout.model && response.reply_generated_by !== "template") {
-      metadata.push(t("chat.model", { model: scout.model }));
+    if (scout.model && author !== "template") {
+      metadata.push({ text: t("chat.model", { model: scout.model }), kind: "ai" });
     }
   }
-  return [...metadata, ...response.notices];
+  for (const notice of response.notices) {
+    metadata.push({ text: notice, kind: "notice" });
+  }
+  return metadata;
 }

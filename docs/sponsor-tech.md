@@ -24,9 +24,9 @@ Le modèle ne filtre pas, ne calcule pas de budget et ne classe pas. Il ne reço
 ```env
 LLM_PROVIDER=nemotron
 NEMOTRON_API_KEY=...
-NEMOTRON_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1.5
+NEMOTRON_MODEL=nvidia/nemotron-3.5-bolt-e4b
 ```
-Modèles Nemotron listés dans la documentation NVIDIA : `nvidia/llama-3.3-nemotron-super-49b-v1.5`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-nano-30b-a3b`, `nvidia/nvidia-nemotron-nano-9b-v2`, etc. Choisissez-en un selon les crédits fournis.
+Modèles Nemotron listés dans la documentation NVIDIA : `nvidia/nemotron-3.5-bolt-e4b`, `nvidia/nemotron-3.5-lightning-30b-a3b`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-nano-30b-a3b`, etc. Choisissez-en un selon les crédits fournis.
 
 **Données transmises.** Pour comprendre la demande : les critères courants et les 8 derniers messages. Pour rédiger la réponse : le message, les 8 derniers messages (pour comprendre « elle », « le premier »…) et les 5 meilleurs résultats (titre, quartier, loyer, texte de l'annonce, raisons, points à vérifier). Aucune coordonnée personnelle.
 
@@ -59,13 +59,15 @@ METERLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b   # route Nemotron listée par
 **Moteur Meterless implémenté : Scout Intent** (règle « Build », vérifié le 26/10/2026).
 
 Scout passe avant chaque action de l'agent (`app/engines/scout/`, voir `app/engines/engines_readme.md`) :
-1. **Sense** : score déterministe des intentions du catalogue `kwatsur_intents.json` (recherche, comparaison, brouillon de contact, paiement, aide générale) ;
+1. **Sense** : score déterministe des intentions du catalogue `kwatsur_intents.json` (recherche, comparaison, brouillon de contact, proposition d'annonce par un propriétaire, images d'une pièce, paiement, aide générale). Les formules de politesse ne comptent que si le message ne contient rien d'autre, et « je loue mon… » ouvre le flux de proposition d'annonce, dont les messages suivants restent la suite ;
 2. **Interpret** : rang du logement cité (« le n°2 »), et clarification si la confiance est basse, s'il y a égalité, si un paramètre manque ou si l'action est risquée ;
 3. **Guard** : injection de prompt, politique (Kwatsur ne fait aucun paiement), portée, coordonnées personnelles ;
 4. **Route** : capacités → outils (`search_service.search`, `llm.write_reply`, `comparison.build`, `contact_service.build_contact_draft`) ;
 5. **Recommend** : contrat d'exécution signé (HMAC-SHA256, 5 minutes) qui désigne aussi le modèle (`nvidia/nemotron-3-ultra-550b-a55b`).
 
 Chaque outil vérifie le contrat avant d'agir (`ContractVerifier.require`). Un contrat absent, altéré, expiré ou hors périmètre est refusé et journalisé (`contract.refused`). Sans contrat, ni le modèle ni la recherche ne sont appelés.
+
+**Routage désactivable** (`SCOUT_ROUTING_ENABLED`, `false` par défaut depuis le 27/10/2026). Les étapes Sense et Interpret coupaient les demandes fractionnées (« 2 chambres », puis « Douala ») par des clarifications ou des redirections. Désactivé, l'agent répond en dur aux politesses seules (`app/services/small_talk.py`), impose l'intention `housing.search`, `listing.submit` pour un propriétaire ou `listing.visualize` pour une demande visuelle explicite, et appelle `ScoutEngine.authorize` : paramètres, recherche préalable, Guard, Route et Recommend s'appliquent toujours, avec contrat signé. Comparaison et brouillon de contact demandent `true`.
 
 **Preuve.**
 - `python -m scripts.run_scout_evals` : jeu de régression (47 intentions, 22 cas d'injection dont les 10 officiels de Meterless, 6 cas limites) comparé aux seuils officiels de `thresholds.yaml`. Résultat du 26/10/2026 : top-1 0,98 (plancher 0,85), top-3 1,00, précision et rappel des injections 1,00, précision des outils 1,00, taux de clarification 0,00 (plafond 0,25).

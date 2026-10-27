@@ -13,3 +13,15 @@ token.txt
 # Plateforme Zetaris locale (contient ses propres secrets)
 zetaris-platform/
 zetaris-platform.zip
+
+# Images enregistrées en développement hors Docker
+/media/
+
+# Environnements Python locaux
+*.whl
+venv/
+
+# Captures des consignes de soumission (photos de téléphone)
+docs/doc_a_soumetre_pour_hackathon/WhatsApp Image *
+# Fichiers de verrouillage de PowerPoint/Word
+~$*

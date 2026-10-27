@@ -40,6 +40,8 @@ INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         r"\b(internal_\w+|admin(istrateur)? panel|grant me admin|donne[- ]moi (les )?droits|drop table|delete from|truncate table|base de donnees|database admin)\b"
     )),
 )
+# Intentions où un propriétaire donne volontairement ses coordonnées (contact de l'annonce).
+PERSONAL_DATA_EXPECTED_INTENTS = {"listing.submit"}
 PHONE_PATTERN = re.compile(r"(\+?237[\s.-]?)?\b6\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b")
 EMAIL_PATTERN = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
 
@@ -111,7 +113,9 @@ def run_guard(
 
     found = [("phone", PHONE_PATTERN), ("email", EMAIL_PATTERN)]
     detected = [kind for kind, pattern in found if pattern.search(prompt)]
-    if detected:
+    if detected and intent.id in PERSONAL_DATA_EXPECTED_INTENTS:
+        layers.append(LayerResult("sensitivity", "pass", "Coordonnées attendues pour une annonce."))
+    elif detected:
         layers.append(LayerResult("sensitivity", "warn", "Coordonnées personnelles dans le message."))
         redactions += [{"dataClass": kind, "action": "not-forwarded-to-tools"} for kind in detected]
     else:

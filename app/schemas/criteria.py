@@ -50,6 +50,35 @@ def canonical_city(name: str) -> str:
     return CANONICAL_CITIES.get(normalize_text(name), name.strip())
 
 
+# Quartiers connus dont la ville ne fait aucun doute : « Bastos » suffit pour chercher à Yaoundé.
+# Les noms partagés avec une autre ville (Mokolo, Village…) sont volontairement absents.
+NEIGHBORHOOD_CITIES = {
+    "Douala": (
+        "Akwa", "Bonanjo", "Bonapriso", "Bali", "Deido", "Bonabéri", "Bonamoussadi", "Makepe",
+        "Kotto", "Logbessou", "Logpom", "Ndokoti", "New Bell", "Bépanda", "Cité des Palmiers",
+        "Ndogbong", "Japoma", "Yassa", "Denver", "PK14", "Bessengue", "Nyalla", "Youpwe",
+    ),
+    "Yaoundé": (
+        "Bastos", "Biyem-Assi", "Mvog-Mbi", "Mvog-Ada", "Essos", "Emana", "Ngousso", "Nlongkak",
+        "Omnisport", "Mimboman", "Odza", "Mendong", "Melen", "Ngoa-Ekellé", "Etoudi", "Nkolbisson",
+        "Tsinga", "Mvan", "Ekounou", "Nkoldongo", "Elig-Essono", "Santa Barbara", "Simbock",
+        "Obili", "Nsimeyong", "Efoulan", "Nkolmesseng", "Etoa-Meki", "Messassi",
+    ),
+}
+
+# Clé normalisée (sans accents ni tirets) → (orthographe de référence, ville).
+KNOWN_NEIGHBORHOODS = {
+    normalize_text(name).replace("-", " "): (name, city)
+    for city, names in NEIGHBORHOOD_CITIES.items()
+    for name in names
+}
+
+
+def known_neighborhood(name: str) -> tuple[str, str] | None:
+    """(quartier, ville) si le nom désigne un quartier connu sans ambiguïté, sinon None."""
+    return KNOWN_NEIGHBORHOODS.get(normalize_text(name).replace("-", " "))
+
+
 class SearchCriteria(BaseModel):
     """Critères conservés pendant une conversation.
 

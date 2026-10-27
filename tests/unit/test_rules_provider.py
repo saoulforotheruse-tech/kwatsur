@@ -39,3 +39,10 @@ def test_refinement_removes_neighborhood_and_keeps_unknowns_unknown() -> None:
     assert extraction.remove_fields == ["neighborhood"]
     assert extraction.updates.max_rent == 100000
     assert extraction.updates.city is None
+
+
+def test_finds_a_known_neighborhood_written_in_lowercase() -> None:
+    extraction = parse_criteria("je cherche un appart a bastos pas tres cher", SearchCriteria())
+
+    assert extraction.updates.neighborhood == "Bastos"
+    assert extraction.updates.city is None  # la ville est déduite ensuite par merge_criteria
