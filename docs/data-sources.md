@@ -10,6 +10,10 @@
 
 Ces données ne doivent pas être présentées comme un inventaire réel.
 
+## Photos d'exemple
+
+`db/seed/sample_photos.json` liste 4 photos de logements au Cameroun issues de Wikimedia Commons (CC BY-SA 4.0), rattachées à des annonces fictives : Denver, Biyem-Assi, Akwa et Emana. Elles ne montrent pas ces logements. Elles sont étiquetées « Photo d'exemple » avec auteur, licence et lien, comme l'exige la licence. Chargement : `python -m scripts.seed_sample_photos`.
+
 ## Provenance affichée
 
 Chaque résultat indique `source_name`, `source_is_demo`, `source_url` (si connue), `listing_status`, `verification_status` et `last_seen_at`. L'interface distingue :

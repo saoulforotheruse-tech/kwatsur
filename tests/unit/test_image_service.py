@@ -125,7 +125,8 @@ def test_owner_photos_are_described_and_guide_the_illustration(session: Session,
 
     assert illustration.reference_photo_count == 1
     assert describer.received_sizes == [len(TINY_PNG)]
-    assert "Visible on the owner's real photos: Murs jaunes, sol carrelé blanc." in provider.prompts[0]
+    assert "Visible on the owner's real photos of this home: Murs jaunes, sol carrelé blanc." in provider.prompts[0]
+    assert "a villa in Douala" in provider.prompts[0]
     assert "Listing description: Villa avec jardin" in provider.prompts[0]
     # Deuxième demande pour la même pièce : l'illustration existante est réutilisée.
     assert service.existing_illustration(1, "facade").id == illustration.id
@@ -139,3 +140,45 @@ def test_without_vision_the_illustration_uses_text_only(session: Session, tmp_pa
 
     assert image.reference_photo_count == 0
     assert "Visible on the owner's real photos" not in provider.prompts[0]
+
+
+def test_prompt_is_anchored_in_cameroonian_housing() -> None:
+    exterior = build_illustration_prompt("facade", "Maison avec cour", None)
+    interior = build_illustration_prompt("cuisine", "Cuisine carrelée", None)
+
+    assert "urban Cameroon" in exterior and "corrugated metal" in exterior
+    assert "Not a European or North American house" in exterior
+    assert "ceramic floor tiles" in interior and "corrugated metal" not in interior
+    # La description réelle de l'annonce passe avant le contexte régional.
+    assert exterior.index("Maison avec cour") < exterior.index("urban Cameroon")
+
+
+def test_sample_photo_is_credited_and_guides_illustrations_when_no_owner_photo(
+    session: Session, tmp_path: Path
+) -> None:
+    from tests.fakes import FakeImageDescriber
+
+    provider, describer = FakeImageProvider(), FakeImageDescriber("Façade jaune, toit en tôle.")
+    store = LocalImageStore(tmp_path, max_bytes=1_000)
+    service = ImageService(provider, store, ImageRepository(session), daily_limit=2, now=lambda: NOW, describer=describer)
+
+    sample = service.add_sample_photo(
+        3, TINY_PNG, "facade", "Auteur Exemple", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:X.jpg"
+    )
+
+    assert sample.kind == "sample_photo"
+    assert sample.is_ai_generated is False
+    assert "ne montre pas ce logement" in sample.label
+    assert sample.credit == "Auteur Exemple · CC BY-SA 4.0 · Wikimedia Commons"
+    # Une photo d'exemple n'est jamais présentée comme une photo du propriétaire.
+    assert service.owner_photos(3) == []
+
+    from app.repositories.property_repository import PropertyRepository
+    from app.integrations.data.postgres import property_to_read
+
+    listing = property_to_read(PropertyRepository(session).get_visible(3))
+    illustration = service.generate_illustration("Appartement", "cuisine", listing)
+
+    assert illustration.reference_photo_kind == "sample_photo"
+    assert "Inspired by reference photos of similar homes in Cameroon: Façade jaune, toit en tôle." in provider.prompts[0]
+    assert "owner's real photos" not in provider.prompts[0]

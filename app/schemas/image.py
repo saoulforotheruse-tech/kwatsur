@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ImageKind = Literal["owner_photo", "ai_generated_illustration", "ai_edited_photo"]
+ImageKind = Literal["owner_photo", "sample_photo", "ai_generated_illustration", "ai_edited_photo"]
 RoomType = Literal["facade", "salon", "chambre", "cuisine", "salle_de_bain", "autre"]
 
 ROOM_LABELS: dict[str, str] = {
@@ -20,6 +20,7 @@ ROOM_LABELS: dict[str, str] = {
 # Libellé toujours affiché avec l'image : une illustration IA n'est jamais présentée comme une photo.
 KIND_LABELS: dict[str, str] = {
     "owner_photo": "Photo fournie par le propriétaire",
+    "sample_photo": "Photo d'exemple (ne montre pas ce logement)",
     "ai_generated_illustration": "Image illustrative générée par IA",
     "ai_edited_photo": "Photo réelle retouchée par IA",
 }
@@ -38,8 +39,12 @@ class ImageRead(BaseModel):
     is_ai_generated: bool
     caption: str | None = None
     property_id: int | None = None
-    # Vraies photos du propriétaire décrites pour guider cette illustration (0 si aucune).
+    # Photos réelles décrites pour guider cette illustration (0 si aucune) et leur type.
     reference_photo_count: int = 0
+    reference_photo_kind: ImageKind | None = None
+    # Crédit obligatoire d'une photo d'exemple : auteur, licence et page source.
+    credit: str | None = None
+    source_url: str | None = None
     created_at: datetime
 
 

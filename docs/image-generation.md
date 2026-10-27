@@ -10,6 +10,7 @@
 | `kind` | Signification | Libellé affiché |
 | --- | --- | --- |
 | `owner_photo` | Photo envoyée par le propriétaire | « Photo fournie par le propriétaire » |
+| `sample_photo` | Photo d'exemple sous licence libre (annonces de démo), qui ne montre pas ce logement | « Photo d'exemple (ne montre pas ce logement) », avec auteur, licence et lien vers la source |
 | `ai_generated_illustration` | Image générée par l'IA | « Image illustrative générée par IA » et « elle ne représente pas le logement réel » |
 | `ai_edited_photo` | Réservé à une future retouche IA d'une vraie photo | « Photo réelle retouchée par IA » |
 
@@ -46,6 +47,22 @@ Scout Intent (listing.visualize) → contrat signé : images.show, images.genera
         7. métadonnées en base : property_images, kind = ai_generated_illustration
         8. image servie par GET /api/images/{id}
 ```
+
+### Contexte camerounais
+
+Sans indication, le modèle dessine une maison européenne ou américaine. Le texte envoyé ajoute donc, **après** la description réelle de l'annonce, les traits courants de l'habitat urbain camerounais :
+- murs en parpaings enduits et peints, toit en tôle ou en tuiles ;
+- fenêtres à persiennes ou barreaudées, clôture avec portail métallique ;
+- sol carrelé, ventilateur au plafond, végétation tropicale.
+
+Il précise aussi ce qu'il faut éviter (« pas une maison européenne, pas de neige, pas de cheminée »), indique la ville (Douala, port côtier et humide ; Yaoundé, capitale vallonnée) et traduit le type de logement en anglais.
+
+### Photos d'exemple pour la démonstration
+
+`python -m scripts.seed_sample_photos`, à lancer dans le conteneur API, télécharge les photos listées dans `db/seed/sample_photos.json`. Ce sont des photos de Wikimedia Commons sous licence CC BY-SA. Le script vérifie que ce sont de vraies images, puis les rattache aux annonces de démo, avec auteur, licence et page source. Il ne retélécharge pas une photo déjà présente.
+- Elles sont affichées avec le badge « Photo d'exemple » et leur crédit, jamais comme une photo du logement.
+- Quand une annonce n'a pas de photo du propriétaire, la vision décrit ses photos d'exemple. Le texte envoyé dit alors « reference photos of similar homes », et la réponse du chat « à partir de photo(s) d'exemple de maisons camerounaises (pas de ce logement) ».
+- Sur les 8 photos retenues au départ, 4 ont été écartées après vérification visuelle : case en chaume, maison en terre, foyer traditionnel et cuisine rurale ne correspondaient pas à des annonces urbaines.
 
 ### Pourquoi passer par une description des photos
 

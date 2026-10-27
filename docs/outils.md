@@ -155,7 +155,7 @@ docker exec kwatsur-db-1 psql -U kwatsur -d kwatsur -c "select version_num from 
 - Lancement : `cd frontend && docker compose up -d --build`. L'adresse du backend vue par nginx est dans `frontend/.env` (`KWATSUR_API_URL=http://host.docker.internal:8001`).
 - Polices Syne et Figtree chargées depuis **Google Fonts** (autorisé dans la politique de sécurité de nginx).
 
-**Voix.** Le bouton micro utilise l'API Web Speech du navigateur (Chrome, Edge) : reconnaissance vocale en `fr-FR` et lecture à voix haute. Aucune clé, mais il faut autoriser le micro dans le navigateur (cadenas de la barre d'adresse). Firefox ne propose pas la reconnaissance vocale : le bouton y est masqué.
+**Voix.** Le bouton micro utilise l'API Web Speech du navigateur (Chrome, Edge) : reconnaissance vocale en `fr-FR` et lecture à voix haute. La réponse est lue par morceaux de 150 caractères au plus, car Chrome coupe sans prévenir ses voix en ligne (« Google français ») après environ 15 s. La lecture est autorisée par le clic sur le micro (sinon Chrome répond `not-allowed`). En cas de souci, ouvrir la console (F12) et chercher `[Kwatsur voix]`. Aucune clé, mais il faut autoriser le micro dans le navigateur (cadenas de la barre d'adresse). Firefox ne propose pas la reconnaissance vocale : le bouton y est masqué.
 
 **Code.** `frontend/public/js/app.js` (point d'entrée), `components/` (chat, cartes, images, annonce), `i18n/fr.js` (tous les textes), `frontend/nginx/default.conf.template`.
 

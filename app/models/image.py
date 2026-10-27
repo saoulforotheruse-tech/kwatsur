@@ -3,6 +3,7 @@
 Le fichier est sur le disque (dossier MEDIA_DIRECTORY) ; la base ne garde que ses métadonnées.
 `kind` distingue toujours une vraie photo d'une image produite par l'IA :
 - owner_photo : photographie envoyée par le propriétaire ;
+- sample_photo : photo d'exemple sous licence libre (démo), qui ne montre PAS ce logement ;
 - ai_generated_illustration : image illustrative générée par l'IA, jamais une photo du logement ;
 - ai_edited_photo : réservé à une future retouche IA d'une vraie photo.
 """
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
-IMAGE_KINDS = ("owner_photo", "ai_generated_illustration", "ai_edited_photo")
+IMAGE_KINDS = ("owner_photo", "sample_photo", "ai_generated_illustration", "ai_edited_photo")
 ROOM_TYPES = ("facade", "salon", "chambre", "cuisine", "salle_de_bain", "autre")
 
 
@@ -22,7 +23,7 @@ class PropertyImage(Base):
     __tablename__ = "property_images"
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('owner_photo', 'ai_generated_illustration', 'ai_edited_photo')",
+            "kind IN ('owner_photo', 'sample_photo', 'ai_generated_illustration', 'ai_edited_photo')",
             name="ck_image_kind",
         ),
         CheckConstraint(
@@ -51,6 +52,10 @@ class PropertyImage(Base):
     prompt: Mapped[str | None] = mapped_column(Text)
     provider: Mapped[str | None] = mapped_column(String(40))
     model: Mapped[str | None] = mapped_column(String(120))
+    # Crédit d'une photo d'exemple sous licence libre (obligatoire en CC BY-SA).
+    author: Mapped[str | None] = mapped_column(String(200))
+    license: Mapped[str | None] = mapped_column(String(60))
+    source_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )

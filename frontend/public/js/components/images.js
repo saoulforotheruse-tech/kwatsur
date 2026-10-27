@@ -1,10 +1,18 @@
 import { t } from "../i18n/index.js";
 import { createElement } from "../utils/format.js";
 
-// Une image est toujours affichée avec son étiquette : une illustration IA n'est jamais
-// présentée comme une photo réelle du logement.
+// Trois sortes d'images, toujours étiquetées : photo du propriétaire, photo d'exemple
+// (licence libre, ne montre pas ce logement) et illustration IA (jamais une photo réelle).
+function imageVariant(image) {
+  if (image.is_ai_generated) {
+    return "ai";
+  }
+  return image.kind === "sample_photo" ? "sample" : "photo";
+}
+
 export function createImageFigure(image, { compact = false } = {}) {
-  const figure = createElement("figure", null, image.is_ai_generated ? "image-figure ai" : "image-figure photo");
+  const variant = imageVariant(image);
+  const figure = createElement("figure", null, `image-figure ${variant}`);
   if (compact) {
     figure.classList.add("compact");
   }
@@ -14,17 +22,21 @@ export function createImageFigure(image, { compact = false } = {}) {
   picture.loading = "lazy";
   picture.decoding = "async";
 
-  const badge = createElement(
-    "span",
-    image.is_ai_generated ? t("image.badgeAi") : t("image.badgePhoto"),
-    image.is_ai_generated ? "image-badge ai" : "image-badge photo",
-  );
+  const badge = createElement("span", t(`image.badge.${variant}`), `image-badge ${variant}`);
   figure.append(picture, badge);
 
   if (!compact) {
     const caption = createElement("figcaption", image.label);
     if (image.caption) {
       caption.append(createElement("small", image.caption));
+    }
+    // Crédit des photos sous licence libre : lien vers la page d'origine (https seulement).
+    if (image.source_url?.startsWith("https://")) {
+      const link = createElement("a", t("image.source"));
+      link.href = image.source_url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      caption.append(link);
     }
     figure.append(caption);
   }

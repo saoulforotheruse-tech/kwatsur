@@ -906,3 +906,8 @@ a.property-source { color: var(--accent); }
 @keyframes orb-ring { from { transform: scale(1); opacity: 0.35; } to { transform: scale(1.45); opacity: 0; } }
 @keyframes orb-think { to { transform: rotate(360deg); } }
 @keyframes orb-speak { from { transform: scale(0.9, 0.95); } to { transform: scale(1.04, 0.98); } }
+
+/* Photo d'exemple sous licence libre : ni photo du logement, ni image IA. */
+.image-badge.sample { background: rgba(20, 61, 140, 0.88); color: #fff; }
+.image-figure.sample { border-style: dotted; }
+.image-figure figcaption a { font-size: 0.75rem; color: var(--accent); }

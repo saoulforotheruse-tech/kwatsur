@@ -292,8 +292,13 @@ class AgentService:
             )
             return self._answer_with_results(session_id, criteria, reply, selected, data_source)
         sources = "de la description de l'annonce"
-        if illustration.reference_photo_count:
+        if illustration.reference_photo_kind == "owner_photo":
             sources += f" et de {illustration.reference_photo_count} vraie(s) photo(s) du propriétaire"
+        elif illustration.reference_photo_kind == "sample_photo":
+            sources += (
+                f" et de {illustration.reference_photo_count} photo(s) d'exemple de maisons "
+                "camerounaises (pas de ce logement)"
+            )
         reply = (
             f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
             f"Voici une image illustrative générée par IA à partir {sources} : elle ne représente "

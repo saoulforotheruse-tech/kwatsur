@@ -34,6 +34,43 @@ ROOM_PROMPTS = {
     "autre": "view",
 }
 
+# Contexte régional : sans lui, le modèle dessine une maison européenne ou américaine.
+# Ce sont des traits courants de l'habitat urbain camerounais, pas des faits sur l'annonce :
+# la description réelle passe avant (elle est placée plus tôt dans le prompt).
+CAMEROON_STYLE = {
+    "exterior": (
+        "Typical contemporary home of urban Cameroon (Central Africa, Douala or Yaoundé): "
+        "rendered concrete-block walls painted in a light or bright colour, corrugated metal "
+        "sheet or clay tile roof with overhanging eaves, louvered or barred windows, a perimeter "
+        "wall with a painted metal gate, red laterite ground or paved courtyard, tropical plants "
+        "such as banana trees and palms, humid tropical light."
+    ),
+    "interior": (
+        "Typical interior of a home in urban Cameroon (Central Africa): plastered walls painted "
+        "in light colours, glazed ceramic floor tiles, louvered or barred windows with simple "
+        "curtains, ceiling fan, modest locally made furniture, tropical daylight."
+    ),
+}
+CITY_SETTINGS = {
+    "Douala": "Douala, a humid coastal port city in Cameroon",
+    "Yaoundé": "Yaoundé, the hilly capital of Cameroon",
+}
+# Types de logement des annonces (français) → anglais, compris par le modèle d'image.
+PROPERTY_TYPES_EN = {
+    "maison": "house",
+    "appartement": "apartment",
+    "studio": "studio apartment",
+    "chambre": "rented room",
+    "villa": "villa",
+    "duplex": "duplex house",
+}
+# Introduction de ce que montrent les photos décrites, selon leur origine.
+REFERENCE_INTROS = {
+    "owner_photo": "Visible on the owner's real photos of this home:",
+    "sample_photo": "Inspired by reference photos of similar homes in Cameroon:",
+}
+NEGATIVE_STYLE = "Not a European or North American house, no snow, no fireplace, no suburban lawn."
+
 
 # Question posée au modèle de vision pour chaque vraie photo (réponse courte, factuelle).
 PHOTO_QUESTION = (
@@ -52,9 +89,12 @@ def build_illustration_prompt(
     description: str,
     listing: PropertyRead | None,
     photo_details: list[str] | None = None,
+    reference_kind: str | None = None,
 ) -> str:
     """Prompt envoyé au modèle : uniquement des faits connus, jamais d'information inventée."""
-    subject = f"a {listing.property_type} in {listing.city}, Cameroon" if listing else "a home in Cameroon"
+    place = CITY_SETTINGS.get(listing.city, f"{listing.city}, Cameroon") if listing else "Cameroon"
+    kind = PROPERTY_TYPES_EN.get(listing.property_type, listing.property_type) if listing else "home"
+    subject = f"a {kind} in {place}" if listing else "a home in Cameroon"
     features = []
     if listing is not None and listing.bedrooms:
         features.append(f"{listing.bedrooms} bedroom(s)")
@@ -68,14 +108,35 @@ def build_illustration_prompt(
     ]
     if photo_details:
         # Ce que montrent les vraies photos du propriétaire : à respecter (couleurs, matériaux).
-        sentences.append("Visible on the owner's real photos: " + " ".join(photo_details))
-    sentences.append("Natural daylight, simple and realistic, no text, no watermark, no people.")
+        intro = REFERENCE_INTROS.get(reference_kind, REFERENCE_INTROS["owner_photo"])
+        sentences.append(f"{intro} " + " ".join(photo_details))
+    sentences.append(CAMEROON_STYLE["exterior" if room == "facade" else "interior"])
+    sentences.append(NEGATIVE_STYLE)
+    sentences.append("Photorealistic, natural light, no text, no watermark, no people.")
     return " ".join(sentences)
 
 
+# Types d'image produits par l'IA (jamais présentés comme des photos).
+AI_IMAGE_KINDS = ("ai_generated_illustration", "ai_edited_photo")
+# Photos réelles utilisables comme référence par la vision, par ordre de préférence.
+REFERENCE_PHOTO_KINDS = ("owner_photo", "sample_photo")
+
+
+def photo_credit(image: PropertyImage) -> str | None:
+    """« Auteur, licence, Wikimedia Commons » : crédit exigé par les licences CC BY-SA."""
+    if image.kind != "sample_photo":
+        return None
+    parts = [part for part in (image.author, image.license) if part]
+    return " · ".join([*parts, "Wikimedia Commons"]) if parts else "Wikimedia Commons"
+
+
 def to_image_read(image: PropertyImage) -> ImageRead:
-    is_ai = image.kind != "owner_photo"
+    is_ai = image.kind in AI_IMAGE_KINDS
     room_label = ROOM_LABELS.get(image.room, image.room)
+    credit = photo_credit(image)
+    caption = AI_DISCLAIMER if is_ai else None
+    if image.kind == "sample_photo":
+        caption = f"Photo d'exemple d'un logement au Cameroun, elle ne montre pas ce logement. Crédit : {credit}."
     return ImageRead(
         id=image.id,
         url=f"/api/images/{image.id}",
@@ -83,8 +144,10 @@ def to_image_read(image: PropertyImage) -> ImageRead:
         room=image.room,
         label=f"{KIND_LABELS[image.kind]} · {room_label}",
         is_ai_generated=is_ai,
-        caption=AI_DISCLAIMER if is_ai else None,
+        caption=caption,
         property_id=image.property_id,
+        credit=credit,
+        source_url=image.source_url,
         created_at=image.created_at,
     )
 
@@ -132,8 +195,10 @@ class ImageService:
                 "Réessayez demain (renouvellement à minuit UTC)."
             )
 
-        photo_details = self._describe_owner_photos(listing.id) if listing is not None else []
-        prompt = build_illustration_prompt(room, description, listing, photo_details)
+        photo_details, reference_kind = (
+            self._describe_reference_photos(listing.id) if listing is not None else ([], None)
+        )
+        prompt = build_illustration_prompt(room, description, listing, photo_details, reference_kind)
         generated = self.provider.generate_image(prompt)
         file_name, content_type = self.store.save(generated.data)
         image = self.repository.add(
@@ -157,6 +222,7 @@ class ImageService:
         )
         illustration = to_image_read(image)
         illustration.reference_photo_count = len(photo_details)
+        illustration.reference_photo_kind = reference_kind if photo_details else None
         return illustration
 
     def existing_illustration(self, property_id: int, room: str) -> ImageRead | None:
@@ -168,15 +234,25 @@ class ImageService:
         ]
         return to_image_read(illustrations[-1]) if illustrations else None
 
-    def _describe_owner_photos(self, property_id: int) -> list[str]:
-        """Fait décrire quelques vraies photos du logement ; un échec n'empêche pas l'illustration."""
+    def _describe_reference_photos(self, property_id: int) -> tuple[list[str], str | None]:
+        """Fait décrire quelques photos réelles : celles du propriétaire, sinon les photos d'exemple.
+
+        Jamais une illustration IA. Un échec de la vision n'empêche pas l'illustration.
+        """
         if not self.describer.is_configured or self.max_reference_photos == 0:
-            return []
-        photos = [
-            image
-            for image in self.repository.for_properties([property_id])
-            if image.kind == "owner_photo" and image.size_bytes <= self.max_reference_photo_bytes
-        ][: self.max_reference_photos]
+            return [], None
+        images = self.repository.for_properties([property_id])
+        for reference_kind in REFERENCE_PHOTO_KINDS:
+            photos = [
+                image
+                for image in images
+                if image.kind == reference_kind and image.size_bytes <= self.max_reference_photo_bytes
+            ][: self.max_reference_photos]
+            if photos:
+                return self._describe(photos), reference_kind
+        return [], None
+
+    def _describe(self, photos: list[PropertyImage]) -> list[str]:
         details: list[str] = []
         for photo in photos:
             path = self.store.path_for(photo.file_name)
@@ -205,6 +281,28 @@ class ImageService:
         self.repository.commit()
         return to_image_read(image)
 
+    def add_sample_photo(
+        self, property_id: int, image_bytes: bytes, room: str, author: str, license_name: str, source_url: str
+    ) -> ImageRead:
+        """Rattache une photo d'exemple sous licence libre à une annonce de démonstration."""
+        file_name, content_type = self.store.save(image_bytes)
+        image = self.repository.add(
+            PropertyImage(
+                property_id=property_id,
+                kind="sample_photo",
+                room=room,
+                file_name=file_name,
+                content_type=content_type,
+                size_bytes=len(image_bytes),
+                author=author,
+                license=license_name,
+                source_url=source_url,
+                created_at=self.now(),
+            )
+        )
+        self.repository.commit()
+        return to_image_read(image)
+
     def owner_photos(self, property_id: int, room: str | None = None) -> list[ImageRead]:
         images = [
             image
@@ -217,10 +315,11 @@ class ImageService:
         return [to_image_read(image) for image in self.repository.for_submission(submission_id)]
 
     def attach_photos(self, results: list[PropertySearchResult]) -> list[PropertySearchResult]:
-        """Ajoute aux résultats leurs images (photos d'abord, puis illustrations IA)."""
+        """Ajoute aux résultats leurs images : photos du propriétaire, d'exemple, puis illustrations IA."""
         images = self.repository.for_properties([result.property.id for result in results])
+        display_order = {"owner_photo": 0, "sample_photo": 1}
         by_property: dict[int, list[ImageRead]] = {}
-        for image in sorted(images, key=lambda item: (item.kind != "owner_photo", item.id)):
+        for image in sorted(images, key=lambda item: (display_order.get(item.kind, 2), item.id)):
             by_property.setdefault(image.property_id, []).append(to_image_read(image))
         for result in results:
             result.images = by_property.get(result.property.id, [])
