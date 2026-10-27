@@ -33,14 +33,31 @@ Scout Intent (listing.visualize) → contrat signé : images.show, images.genera
    │
    ├─ une photo du propriétaire existe pour cette pièce ? → elle est affichée
    │
+   ├─ une illustration existe déjà pour ce logement et cette pièce ? → réutilisée (sans quota)
+   │
    └─ sinon ImageService.generate_illustration
         1. le fournisseur est-il configuré ?           (sinon : message explicite)
         2. limite quotidienne de Kwatsur atteinte ?     (IMAGE_GENERATION_DAILY_LIMIT)
-        3. prompt construit avec les seuls faits de l'annonce
-        4. ImageGenerationProvider.generate_image()     (Cloudflare aujourd'hui)
-        5. octets vérifiés (JPEG, PNG ou WebP), fichier écrit dans MEDIA_DIRECTORY
-        6. métadonnées en base : property_images, kind = ai_generated_illustration
-        7. image servie par GET /api/images/{id}
+        3. vraies photos du propriétaire (autres pièces) décrites par un modèle de vision
+           (couleurs, matériaux, toit, style), 2 photos au plus
+        4. prompt = faits de l'annonce + sa description en base + ce que montrent les photos
+        5. ImageGenerationProvider.generate_image()     (Cloudflare aujourd'hui)
+        6. octets vérifiés (JPEG, PNG ou WebP), fichier écrit dans MEDIA_DIRECTORY
+        7. métadonnées en base : property_images, kind = ai_generated_illustration
+        8. image servie par GET /api/images/{id}
+```
+
+### Pourquoi passer par une description des photos
+
+FLUX.1 schnell ne lit que du texte : il ne peut pas « regarder » une photo. Pour qu'une illustration ressemble à la vraie maison, Kwatsur fait d'abord décrire les **vraies photos du propriétaire** par un modèle de vision, `@cf/llava-hf/llava-1.5-7b-hf` (bêta, sans licence à accepter). Il ajoute ensuite cette description au texte envoyé au générateur. La réponse du chat le précise : « à partir de la description de l'annonce et de 2 vraie(s) photo(s) du propriétaire ».
+
+- Seules les photos de type `owner_photo` servent de référence, jamais une illustration IA : partir d'une image inventée ne ferait qu'empiler de l'invention.
+- Les annonces de démonstration n'ont aucune vraie photo : leurs illustrations reposent sur le texte seul.
+- Un échec de la vision n'empêche pas l'illustration : elle est alors faite à partir du texte.
+- Code : `app/integrations/image_description/` (contrat `ImageDescriber`, `CloudflareImageDescriber`, choix du fournisseur), appelé par `ImageService._describe_owner_photos`.
+- Vérifié en réel le 27/10/2026 : environ 15 s pour une image de 1 Mo.
+
+```text
 ```
 
 ## Code
@@ -74,6 +91,9 @@ Rien d'autre ne change : ni les routes, ni le service, ni le stockage, ni le fro
 | `CLOUDFLARE_API_TOKEN` | Jeton API Workers AI (secret) |
 | `CLOUDFLARE_IMAGE_MODEL` | `@cf/black-forest-labs/flux-1-schnell` |
 | `CLOUDFLARE_IMAGE_STEPS` | Étapes de diffusion, 1 à 8 (défaut 4) |
+| `IMAGE_DESCRIPTION_ENABLED` | Décrire les vraies photos pour guider l'illustration (`true`) |
+| `CLOUDFLARE_VISION_MODEL` | `@cf/llava-hf/llava-1.5-7b-hf` |
+| `VISION_MAX_REFERENCE_PHOTOS`, `VISION_MAX_PHOTO_BYTES` | 2 photos au plus, 1,5 Mo au plus chacune (les octets sont envoyés en JSON) |
 | `MEDIA_DIRECTORY` | Dossier des fichiers (`/app/media` dans Docker, volume `kwatsur_media`) |
 | `IMAGE_UPLOAD_MAX_BYTES` | Taille maximale d'une photo (5 Mo) |
 

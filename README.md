@@ -33,6 +33,7 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 - Recherche manuelle par filtres, utilisable même sans IA.
 - **Les propriétaires proposent leur logement dans le chat** (« je loue mon appartement… ») : l'agent pose les questions qui manquent, accepte des photos, puis envoie l'annonce à un administrateur, qui la valide sur `/admin.html` avant toute publication.
 - **Images d'une pièce** (« montre-moi la douche du n°2 ») : la vraie photo du propriétaire si elle existe, sinon une illustration générée par Cloudflare Workers AI, toujours étiquetée « Image illustrative générée par IA ». Voir [`docs/image-generation.md`](./docs/image-generation.md).
+- **Conversation vocale** (bouton micro, Chrome ou Edge) : on parle, le texte s'écrit et part au silence, la réponse est lue à voix haute, puis l'écoute reprend. Web Speech du navigateur, sans clé.
 - **Meterless Scout Intent** avant chaque action : intention (recherche, comparaison, brouillon de contact), blocage des injections de prompt et des demandes de paiement, contrat signé qui autorise chaque outil. Évaluation : `python -m scripts.run_scout_evals`.
 
 ## Démarrage rapide (Docker)
