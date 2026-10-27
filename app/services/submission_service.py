@@ -103,6 +103,9 @@ class SubmissionService:
 
         for name, value in extraction.updates.model_dump(exclude_none=True).items():
             setattr(submission, name, value)
+        # Un studio n'a pas de chambre séparée : inutile de poser la question.
+        if submission.property_type == "studio" and submission.bedrooms is None:
+            submission.bedrooms = 0
 
         missing = missing_fields(submission)
         if missing:

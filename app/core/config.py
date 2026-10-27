@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     app_name: str = "Kwatsur"
     database_url: str = "postgresql+psycopg://kwatsur:kwatsur_dev@localhost:5432/kwatsur"
     cors_origins: str = "http://localhost:8080"
+
+    # Repli complet si Zetaris, Nightshift ou Cloudflare sont indisponibles (voir apply_sample_mode).
+    sample_mode: bool = False
 
     # Source des annonces : « zetaris » interroge Zetaris, « postgres » lit la base locale.
     listing_source: Literal["postgres", "zetaris"] = "postgres"
@@ -85,6 +88,19 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return cls.model_fields[info.field_name].default
         return value
+
+    @model_validator(mode="after")
+    def apply_sample_mode(self) -> "Settings":
+        """SAMPLE_MODE=true : tout fonctionne sans Zetaris, Nightshift ni Cloudflare.
+
+        Annonces fictives de PostgreSQL, critères compris par des règles, pas de génération
+        d'images ; Scout Intent reste actif. Chaque réponse l'annonce (« Mode démo sans IA »).
+        """
+        if self.sample_mode:
+            self.listing_source = "postgres"
+            self.llm_provider = "rules"
+            self.image_generation_enabled = False
+        return self
 
     @property
     def allowed_origins(self) -> list[str]:

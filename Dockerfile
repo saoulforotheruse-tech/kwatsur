@@ -11,6 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY db ./db
 COPY scripts ./scripts
+# Jeu d'évaluation de Scout Intent : python -m scripts.run_scout_evals dans le conteneur.
+COPY evals ./evals
 COPY alembic.ini .
 RUN chmod +x scripts/docker-entrypoint.sh
 

@@ -171,3 +171,13 @@ def test_vision_describer_sends_image_bytes_as_documented() -> None:
     assert captured["url"].endswith("/accounts/acc123/ai/run/@cf/llava-hf/llava-1.5-7b-hf")
     assert captured["body"]["image"] == list(TINY_PNG)
     assert captured["body"]["prompt"] == "Décris"
+
+
+def test_sample_mode_switches_every_external_service_off() -> None:
+    settings = Settings(
+        _env_file=None, sample_mode=True, listing_source="zetaris", llm_provider="meterless",
+        cloudflare_account_id="acc", cloudflare_api_token="tok",
+    )
+
+    assert (settings.listing_source, settings.llm_provider) == ("postgres", "rules")
+    assert isinstance(build_image_provider(settings), DisabledImageProvider)

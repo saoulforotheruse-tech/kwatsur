@@ -68,6 +68,15 @@ def test_owner_describes_listing_then_admin_approves_it(client: TestClient, mock
     assert client.get(listing["images"][0]["url"]).content == TINY_PNG
 
 
+def test_studio_does_not_ask_for_bedrooms(client: TestClient, mock_llm: MockLLMProvider) -> None:
+    mock_llm.listing_rule = parse_listing
+
+    first = chat(client, "Je loue mon studio meublé à Yaoundé, quartier Bastos, 90 000 FCFA, joignable au 690 00 00 00")
+
+    assert first["submission"]["fields"]["bedrooms"] == 0
+    assert first["submission"]["missing_fields"] == []
+
+
 def test_owner_can_cancel_and_nothing_is_published(client: TestClient, mock_llm: MockLLMProvider) -> None:
     summary = describe_listing(client, mock_llm)
 
