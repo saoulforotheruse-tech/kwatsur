@@ -58,6 +58,11 @@ async def handle_database_error(
     )
 
 
+# Interface autonome (hackathon) : http://127.0.0.1:8000/static/
+static_directory = Path(__file__).resolve().parent / "static"
+if static_directory.is_dir():
+    app.mount("/static", StaticFiles(directory=static_directory, html=True), name="static")
+
 # Hors Docker (développement, tests), l'API sert aussi l'interface. L'image Docker ne la contient
 # pas : l'interface tourne dans son propre conteneur nginx (frontend/docker-compose.yml).
 frontend_directory = Path(__file__).resolve().parents[1] / "frontend" / "public"

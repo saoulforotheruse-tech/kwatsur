@@ -24,9 +24,9 @@ Le modèle ne filtre pas, ne calcule pas de budget et ne classe pas. Il ne reço
 ```env
 LLM_PROVIDER=nemotron
 NEMOTRON_API_KEY=...
-NEMOTRON_MODEL=nvidia/llama-3.3-nemotron-super-49b-v1.5
+NEMOTRON_MODEL=nvidia/nemotron-3.5-bolt-e4b
 ```
-Modèles Nemotron listés dans la documentation NVIDIA : `nvidia/llama-3.3-nemotron-super-49b-v1.5`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-nano-30b-a3b`, `nvidia/nvidia-nemotron-nano-9b-v2`, etc. Choisissez-en un selon les crédits fournis.
+Modèles Nemotron listés dans la documentation NVIDIA : `nvidia/nemotron-3.5-bolt-e4b`, `nvidia/nemotron-3.5-lightning-30b-a3b`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-nano-30b-a3b`, etc. Choisissez-en un selon les crédits fournis.
 
 **Données transmises.** Pour comprendre la demande : les critères courants et les 8 derniers messages. Pour rédiger la réponse : le message, les 8 derniers messages (pour comprendre « elle », « le premier »…) et les 5 meilleurs résultats (titre, quartier, loyer, texte de l'annonce, raisons, points à vérifier). Aucune coordonnée personnelle.
 

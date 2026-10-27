@@ -13,3 +13,7 @@ token.txt
 # Plateforme Zetaris locale (contient ses propres secrets)
 zetaris-platform/
 zetaris-platform.zip
+
+# Environnements Python locaux
+*.whl
+venv/
