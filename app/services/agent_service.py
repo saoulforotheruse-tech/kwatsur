@@ -156,6 +156,7 @@ class AgentService:
             message,
             has_active_search=current.city is not None,
             active_workflow="submission" if draft else None,
+            search_in_progress=not current.is_empty(),
         )
         if not decision.proceeds:
             response = self._answer_without_contract(session_id, current, decision)

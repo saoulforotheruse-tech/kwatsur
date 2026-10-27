@@ -94,12 +94,18 @@ class ScoutEngine:
         user: str = "anonymous",
         has_active_search: bool = False,
         active_workflow: str | None = None,
+        search_in_progress: bool = False,
     ) -> ScoutDecision:
-        """`active_workflow` : « submission » quand un propriétaire est en train de décrire son logement."""
+        """`active_workflow` : « submission » quand un propriétaire est en train de décrire son logement.
+
+        `has_active_search` : des résultats existent (comparer, visualiser…).
+        `search_in_progress` : une recherche est commencée mais incomplète (ville encore demandée) ;
+        une réponse sans mot-clé (« je suis à Bastos ») en est alors la suite.
+        """
         started = time.perf_counter()
         trace_id = uuid.uuid4().hex
 
-        candidates = classify(self.registry, prompt, has_active_search)               # Sense
+        candidates = classify(self.registry, prompt, has_active_search or search_in_progress)  # Sense
         workflow = active_workflow or detect_workflow_start(self.registry, prompt)
         candidates = continue_workflow(candidates, workflow)
         interpretation = interpret(self.registry, prompt, candidates, has_active_search)  # Interpret

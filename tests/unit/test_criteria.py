@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.criteria import CriteriaExtraction, SearchCriteria
-from app.services.criteria_service import merge_criteria, relaxation_suggestions
+from app.services.criteria_service import locate_neighborhood, merge_criteria, relaxation_suggestions
 
 
 def extraction(updates: dict | None = None, remove: list[str] | None = None) -> CriteriaExtraction:
@@ -89,3 +89,16 @@ def test_relaxation_suggestions_cover_active_constraints() -> None:
 
     assert any("budget" in item for item in suggestions)
     assert any("chambres" in item for item in suggestions)
+
+
+def test_locate_neighborhood_completes_or_corrects_the_city() -> None:
+    completed, notice = locate_neighborhood(SearchCriteria(neighborhood="biyem assi"))
+    assert completed.city == "Yaoundé"
+    assert notice is not None
+    corrected, _ = locate_neighborhood(SearchCriteria(city="Bastos"))
+    assert (corrected.city, corrected.neighborhood) == ("Yaoundé", "Bastos")
+    # Une ville donnée n'est jamais remplacée, même si le quartier est d'une autre ville.
+    kept, notice = locate_neighborhood(SearchCriteria(city="Douala", neighborhood="Bastos"))
+    assert kept.city == "Douala" and notice is None
+    unknown, notice = locate_neighborhood(SearchCriteria(neighborhood="Quartier inconnu"))
+    assert unknown.city is None and notice is None

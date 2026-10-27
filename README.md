@@ -199,7 +199,7 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 - **Zetaris** (local, 2.4.3) : annonces lues en SQL via l'API REST, base Kwatsur fédérée (`kwatsur_pg`).
 - **Meterless Nightshift** + **NVIDIA Nemotron 3 Ultra** : extraction des critères et des annonces, explications, réponses aux questions.
 - **Meterless Scout Intent** : intention, garde des risques, contrat signé avant chaque action ; évaluation au-dessus des seuils officiels.
-- Recherche : filtres obligatoires, classement explicable, signaux à vérifier, mémoire de conversation, comparaison, brouillon de contact.
+- Recherche : filtres obligatoires, classement explicable, signaux à vérifier, mémoire de conversation, comparaison, brouillon de contact ; la ville est déduite d'un quartier connu (« Bastos » → Yaoundé) et la réponse à la question « dans quelle ville ? » poursuit la recherche.
 - Dépôt d'annonces par les propriétaires dans le chat, avec photos et validation par un administrateur.
 - Images : vraies photos, photos d'exemple créditées, illustrations Cloudflare FLUX.1 guidées par la vision et le contexte camerounais.
 - Interface : chat, cartes illustrées, comparaison, panneaux « Mon annonce » et « Visualiser », page d'administration, conversation vocale.

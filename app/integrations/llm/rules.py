@@ -11,7 +11,13 @@ import re
 from app.core.exceptions import IntegrationNotConfiguredError
 from app.integrations.llm.base import ChatTurn, ReplyContext
 from app.schemas.chat import ReplyAuthor
-from app.schemas.criteria import CANONICAL_CITIES, CriteriaExtraction, SearchCriteria, normalize_text
+from app.schemas.criteria import (
+    CANONICAL_CITIES,
+    KNOWN_NEIGHBORHOODS,
+    CriteriaExtraction,
+    SearchCriteria,
+    normalize_text,
+)
 from app.schemas.submission import ListingExtraction, ListingFields
 
 NUMBER_WORDS = {"un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6}
@@ -58,6 +64,13 @@ def parse_criteria(message: str, current: SearchCriteria) -> CriteriaExtraction:
         if normalize_text(candidate) not in CANONICAL_CITIES and normalize_text(candidate) not in NOT_NEIGHBORHOODS:
             updates["neighborhood"] = candidate
             break
+    if "neighborhood" not in updates:
+        # Quartier connu écrit sans majuscule (« un appart à bastos »).
+        spaced = text.replace("-", " ")
+        for key, (name, _city) in KNOWN_NEIGHBORHOODS.items():
+            if re.search(rf"\b{re.escape(key)}\b", spaced):
+                updates["neighborhood"] = name
+                break
 
     for property_type, pattern in PROPERTY_TYPES:
         if re.search(pattern, text):

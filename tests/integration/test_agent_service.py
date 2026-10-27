@@ -44,6 +44,40 @@ def test_missing_city_triggers_a_question_without_search(session: Session) -> No
     assert response.criteria.bedrooms == 2
 
 
+def test_known_neighborhood_gives_the_city(session: Session) -> None:
+    llm = MockLLMProvider(scripted_extractions(
+        {"intent": "search", "updates": {"neighborhood": "Bastos"}}
+    ))
+
+    response = make_agent(session, llm).handle_message(
+        "Bonjour comment ça va, je cherche un appart à Bastos pas très cher", None
+    )
+
+    assert response.searched is True
+    assert response.criteria.city == "Yaoundé"
+    assert response.criteria.neighborhood == "Bastos"
+
+
+def test_answer_to_the_city_question_continues_the_search(session: Session) -> None:
+    llm = MockLLMProvider(scripted_extractions(
+        {"intent": "search", "updates": {"property_type": "appartement"},
+         "clarification_question": "Dans quelle ville cherchez-vous ?"},
+        # Le modèle prend le quartier pour une ville : le code corrige.
+        {"intent": "refine", "updates": {"city": "Bastos"}},
+    ))
+    agent = make_agent(session, llm)
+
+    first = agent.handle_message("Je cherche un appartement pas trop cher", None)
+    second = agent.handle_message("Je suis dans la ville de Bastos", first.conversation_id)
+
+    assert first.needs_clarification is True
+    assert second.scout.intent == "housing.search"
+    assert second.criteria.city == "Yaoundé"
+    assert second.criteria.neighborhood == "Bastos"
+    assert second.criteria.property_type == "appartement"
+    assert second.searched is True
+
+
 def test_conversation_keeps_criteria_and_history(session: Session) -> None:
     llm = MockLLMProvider(scripted_extractions(
         {"intent": "search", "updates": {"city": "Douala", "neighborhood": "Bonamoussadi",

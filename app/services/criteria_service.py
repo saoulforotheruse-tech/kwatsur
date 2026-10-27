@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.schemas.criteria import CriteriaExtraction, SearchCriteria
+from app.schemas.criteria import CriteriaExtraction, SearchCriteria, known_neighborhood
 
 FIELD_LABELS = {
     "city": "ville",
@@ -30,6 +30,36 @@ def _drop_blank_strings(updates: dict[str, Any]) -> dict[str, Any]:
 
 
 def merge_criteria(
+    current: SearchCriteria, extraction: CriteriaExtraction
+) -> tuple[SearchCriteria, list[str]]:
+    """Fusionne, puis déduit la ville d'un quartier connu (« Bastos » → Yaoundé)."""
+    criteria, notices = _apply_updates(current, extraction)
+    located, notice = locate_neighborhood(criteria)
+    return located, notices + ([notice] if notice else [])
+
+
+def locate_neighborhood(criteria: SearchCriteria) -> tuple[SearchCriteria, str | None]:
+    """Corrige un quartier donné comme ville et complète la ville d'un quartier connu.
+
+    Seuls les quartiers sans ambiguïté sont utilisés ; une ville déjà donnée n'est jamais remplacée
+    par une autre ville.
+    """
+    if criteria.city is not None:
+        found = known_neighborhood(criteria.city)
+        if found is None:
+            return criteria, None
+        name, city = found
+        updated = criteria.model_copy(update={"city": city, "neighborhood": criteria.neighborhood or name})
+        return updated, f"{name} est un quartier de {city} : recherche à {city}."
+    if criteria.neighborhood is not None:
+        found = known_neighborhood(criteria.neighborhood)
+        if found is not None:
+            name, city = found
+            return criteria.model_copy(update={"city": city}), f"{name} est un quartier de {city} : recherche à {city}."
+    return criteria, None
+
+
+def _apply_updates(
     current: SearchCriteria, extraction: CriteriaExtraction
 ) -> tuple[SearchCriteria, list[str]]:
     """Applique retraits puis mises à jour ; une valeur invalide est ignorée et signalée."""
