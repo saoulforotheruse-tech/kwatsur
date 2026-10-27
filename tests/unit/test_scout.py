@@ -134,3 +134,18 @@ def test_contract_from_another_deployment_is_refused() -> None:
 
 def test_stage1_self_test_stays_under_budget() -> None:
     assert self_test(load_registry()) < STAGE1_BUDGET_MS
+
+
+def test_greeting_does_not_compete_with_a_real_request() -> None:
+    decision = make_engine().decide(
+        "bonjour jespere que tu vas bien je veux une grande maison avec un toit de couleur verte "
+        "esceque vous avez ca en stock"
+    )
+
+    assert decision.intent_id == "housing.search"
+    assert decision.band == "high"
+    assert decision.clarification is None
+
+
+def test_greeting_alone_is_still_general_help() -> None:
+    assert make_engine().decide("Bonjour !").intent_id == "general.help"

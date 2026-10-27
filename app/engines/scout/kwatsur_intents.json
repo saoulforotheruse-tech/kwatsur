@@ -1,5 +1,5 @@
 {
-  "registryVersion": 1,
+  "registryVersion": 2,
   "intents": [
     {
       "id": "housing.search",
@@ -44,20 +44,17 @@
         {"pattern": "\\beau\\b|\\belectricite\\b|\\bcourant\\b", "weight": 1},
         {"pattern": "\\bfinalement\\b|\\bplutot\\b|\\bpeu importe\\b", "weight": 2},
         {"pattern": "\\bproche\\b|\\bpres de\\b|\\ba cote\\b|\\bvers\\b", "weight": 1},
-        {"pattern": "\\bsalles? de bain\\b|\\bparking\\b|\\bsecuris\\w*", "weight": 1}
+        {"pattern": "\\bsalles? de bain\\b|\\bparking\\b|\\bsecuris\\w*", "weight": 1},
+        {"pattern": "\\ben stock\\b|\\bdisponibles?\\b|\\bvous avez\\b|\\bavez[- ]vous\\b", "weight": 1}
       ],
-      "version": 1
+      "version": 2
     },
     {
       "id": "housing.compare",
       "category": "housing",
       "label": "comparer des logements déjà trouvés",
       "description": "Comparer côte à côte des logements de la dernière recherche, désignés par leur rang.",
-      "parameters": {
-        "type": "object",
-        "properties": {"ranks": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 10}}},
-        "required": []
-      },
+      "parameters": {"type": "object", "properties": {"ranks": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 10}}}, "required": []},
       "capabilities": ["listings.search", "listings.compare"],
       "riskClass": "low",
       "surfaces": ["chat"],
@@ -82,11 +79,7 @@
       "category": "contact",
       "label": "préparer un message pour un logement",
       "description": "Préparer un brouillon de message pour contacter la source d'un logement trouvé. Kwatsur n'envoie jamais rien.",
-      "parameters": {
-        "type": "object",
-        "properties": {"rank": {"type": "integer", "minimum": 1, "maximum": 10}},
-        "required": ["rank"]
-      },
+      "parameters": {"type": "object", "properties": {"rank": {"type": "integer", "minimum": 1, "maximum": 10}}, "required": ["rank"]},
       "capabilities": ["listings.search", "contact.draft"],
       "riskClass": "medium",
       "surfaces": ["chat"],
@@ -145,15 +138,20 @@
       "surfaces": ["chat"],
       "roles": ["visitor"],
       "requiresActiveSearch": false,
-      "examples": ["Bonjour", "Que sais-tu faire ?", "Merci beaucoup"],
+      "examples": [
+        "Bonjour",
+        "Que sais-tu faire ?",
+        "Merci beaucoup"
+      ],
       "triggers": [
-        {"pattern": "\\bbonjour\\b|\\bbonsoir\\b|\\bsalut\\b|\\bhello\\b", "weight": 2},
-        {"pattern": "\\bmerci\\b|\\bau revoir\\b", "weight": 2},
+        {"pattern": "\\bbonjour\\b|\\bbonsoir\\b|\\bsalut\\b|\\bhello\\b|\\bcoucou\\b", "weight": 2, "courtesy": true},
+        {"pattern": "\\bmerci\\b|\\bau revoir\\b|\\bbonne journee\\b", "weight": 2, "courtesy": true},
+        {"pattern": "\\bj.?espere que (tu vas|vous allez) bien\\b|\\bcomment (vas[- ]tu|allez[- ]vous|ca va)\\b|\\bca va\\b", "weight": 2, "courtesy": true},
         {"pattern": "\\bqui es[- ]tu\\b|\\bque (sais|peux)[- ]tu faire\\b|\\bcomment (ca|tu) marche", "weight": 3},
         {"pattern": "\\baide\\b|\\baider\\b", "weight": 1},
         {"pattern": "\\bmeteo\\b|\\bfoot\\w*|\\bblague\\b|\\brecette\\b", "weight": 3}
       ],
-      "version": 1
+      "version": 2
     }
   ]
 }

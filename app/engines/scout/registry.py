@@ -30,6 +30,8 @@ def normalize_prompt(text: str) -> str:
 class Trigger:
     pattern: re.Pattern[str]
     weight: float
+    # Formule de politesse (« bonjour », « merci »…) : ne compte que si rien d'autre n'est reconnu.
+    courtesy: bool = False
 
 
 @dataclass(frozen=True)
@@ -85,7 +87,11 @@ def parse_registry(payload: dict) -> IntentRegistry:
                 requires_active_search=bool(item.get("requiresActiveSearch", False)),
                 examples=tuple(item["examples"]),
                 triggers=tuple(
-                    Trigger(re.compile(trigger["pattern"]), float(trigger["weight"]))
+                    Trigger(
+                        re.compile(trigger["pattern"]),
+                        float(trigger["weight"]),
+                        bool(trigger.get("courtesy", False)),
+                    )
                     for trigger in item["triggers"]
                 ),
                 version=int(item["version"]),

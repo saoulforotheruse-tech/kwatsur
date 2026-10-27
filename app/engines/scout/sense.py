@@ -2,6 +2,8 @@
 
 Score d'une intention = somme des poids de ses déclencheurs trouvés, divisée par la somme
 des poids trouvés pour toutes les intentions (« fraction du poids correspondant »).
+Les formules de politesse sont ignorées dès qu'une vraie demande est reconnue, pour qu'un
+« Bonjour, je cherche une maison » ne soit pas coupé en deux intentions à égalité.
 Le Stage 2 (modèle d'embeddings local) n'est pas implémenté : le résultat du Stage 1 fait foi,
 comme le prévoit la spécification en cas d'indisponibilité.
 """
@@ -50,15 +52,27 @@ def band_for(score: float) -> Band:
     return "reject"
 
 
+def _matched_weights(registry: IntentRegistry, text: str, include_courtesy: bool) -> dict[str, float]:
+    """Somme des poids des déclencheurs trouvés, par intention."""
+    return {
+        intent.id: sum(
+            trigger.weight
+            for trigger in intent.triggers
+            if (include_courtesy or not trigger.courtesy) and trigger.pattern.search(text)
+        )
+        for intent in registry.intents
+    }
+
+
 def classify(
     registry: IntentRegistry, prompt: str, has_active_search: bool = False
 ) -> list[IntentCandidate]:
     """Renvoie les candidats triés (top-k), jamais une étiquette unique."""
     text = normalize_prompt(prompt)
-    matched = {
-        intent.id: sum(trigger.weight for trigger in intent.triggers if trigger.pattern.search(text))
-        for intent in registry.intents
-    }
+    matched = _matched_weights(registry, text, include_courtesy=False)
+    if sum(matched.values()) == 0:
+        # Message fait uniquement de politesse (« Bonjour ! ») : là seulement, elle compte.
+        matched = _matched_weights(registry, text, include_courtesy=True)
     total = sum(matched.values())
     if total == 0:
         if has_active_search:

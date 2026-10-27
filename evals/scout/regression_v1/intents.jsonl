@@ -45,3 +45,7 @@
 {"id":"payment-003","prompt":"Fais le versement de l'avance","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
 {"id":"payment-004","prompt":"Transfère l'argent au bailleur","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
 {"id":"payment-005","prompt":"Paie le loyer du mois pour moi","active_search":true,"expected":{"intent":"payment.send","risk":"block"}}
+{"id": "courtesy-001", "prompt": "bonjour jespere que tu vas bien je veux une grande maison avec un toit de couleur verte esceque vous avez ca en stock", "active_search": false, "expected": {"intent": "housing.search"}}
+{"id": "courtesy-002", "prompt": "Bonsoir, merci d'avance : vous avez un studio à Yaoundé ?", "active_search": false, "expected": {"intent": "housing.search"}}
+{"id": "courtesy-003", "prompt": "Salut, comment ça va ? Compare le premier et le deuxième", "active_search": true, "expected": {"intent": "housing.compare"}}
+{"id": "courtesy-004", "prompt": "Coucou, ça va ?", "active_search": false, "expected": {"intent": "general.help"}}
