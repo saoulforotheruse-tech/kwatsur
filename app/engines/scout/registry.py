@@ -32,6 +32,8 @@ class Trigger:
     weight: float
     # Formule de politesse (« bonjour », « merci »…) : ne compte que si rien d'autre n'est reconnu.
     courtesy: bool = False
+    # Formule sans ambiguïté qui ouvre un flux (« je loue mon… » → description d'une annonce).
+    starts_workflow: str | None = None
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,7 @@ def parse_registry(payload: dict) -> IntentRegistry:
                         re.compile(trigger["pattern"]),
                         float(trigger["weight"]),
                         bool(trigger.get("courtesy", False)),
+                        trigger.get("startsWorkflow"),
                     )
                     for trigger in item["triggers"]
                 ),

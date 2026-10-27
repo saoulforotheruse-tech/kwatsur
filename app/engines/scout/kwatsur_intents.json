@@ -1,5 +1,5 @@
 {
-  "registryVersion": 2,
+  "registryVersion": 4,
   "intents": [
     {
       "id": "housing.search",
@@ -124,6 +124,55 @@
         {"pattern": "\\benvo(ie|yer|yez)\\b.{0,20}\\b(argent|\\d)", "weight": 3},
         {"pattern": "\\btransf(e|ere)r\\w*", "weight": 3},
         {"pattern": "\\bcaution\\b|\\bavance\\b", "weight": 1}
+      ],
+      "version": 1
+    },
+    {
+      "id": "listing.submit",
+      "category": "listing",
+      "label": "proposer un logement à louer",
+      "description": "Un propriétaire décrit le logement qu'il met en location ; l'annonce est proposée à la validation d'un administrateur avant toute publication.",
+      "parameters": {"type": "object", "properties": {}, "required": []},
+      "capabilities": ["submission.collect"],
+      "riskClass": "medium",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": false,
+      "examples": [
+        "Je loue mon appartement à Bastos",
+        "Je veux mettre ma maison en location",
+        "Je suis propriétaire, je veux publier une annonce"
+      ],
+      "triggers": [
+        {"pattern": "\\bje (loue|mets|propose)\\b.{0,25}\\bmon\\b|\\bje (loue|mets|propose) (ma|mon|mes)\\b", "weight": 5, "startsWorkflow": "submission"},
+        {"pattern": "\\bmettre (ma|mon|mes|une|un)?\\s?\\w*\\s?en location\\b|\\bmise en location\\b", "weight": 5, "startsWorkflow": "submission"},
+        {"pattern": "\\b(publier|poster|deposer|ajouter) (une|mon|ma) annonce\\b|\\bproposer (un|mon|ma) (logement|appart\\w*|maison|studio)\\b", "weight": 5, "startsWorkflow": "submission"},
+        {"pattern": "\\bje suis (le |la )?(proprietaire|bailleur|bailleresse)\\b", "weight": 4, "startsWorkflow": "submission"},
+        {"pattern": "\\b(mon|ma) (appart\\w*|studio|logement|maison|chambre|villa|duplex|propriete)\\b", "weight": 3}
+      ],
+      "version": 2
+    },
+    {
+      "id": "listing.visualize",
+      "category": "listing",
+      "label": "voir une pièce ou la façade d'un logement",
+      "description": "Montrer les photos d'une pièce d'un logement trouvé, ou en générer une illustration IA clairement étiquetée si aucune photo n'existe.",
+      "parameters": {"type": "object", "properties": {"rank": {"type": "integer", "minimum": 1, "maximum": 10}, "room": {"type": "string", "enum": ["facade", "salon", "chambre", "cuisine", "salle_de_bain", "autre"]}}, "required": []},
+      "capabilities": ["listings.search", "images.show", "images.generate"],
+      "riskClass": "low",
+      "surfaces": ["chat"],
+      "roles": ["visitor"],
+      "requiresActiveSearch": true,
+      "examples": [
+        "Montre-moi le salon du premier",
+        "À quoi ressemble la douche du n°2 ?",
+        "Je veux voir la maison de l'extérieur"
+      ],
+      "triggers": [
+        {"pattern": "\\bmontre[rz]?(-| )?(moi|nous)?\\b|\\bfai(s|tes)[- ]moi voir\\b|\\bje (veux|voudrais|peux) voir\\b", "weight": 3},
+        {"pattern": "\\bphotos?\\b|\\bimages?\\b|\\billustration\\b|\\bvisualis\\w*|\\breconstitu\\w*|\\bimagine\\w*", "weight": 3},
+        {"pattern": "\\ba quoi (ressemble|ressemblent)\\b|\\bde quoi a l.air\\b", "weight": 4},
+        {"pattern": "\\bsalon\\b|\\bdouche\\b|\\bsalle de (bain|bains|sejour)\\b|\\bcuisine\\b|\\btoilettes?\\b|\\bfacade\\b|\\bexterieur\\b|\\bde dehors\\b", "weight": 2}
       ],
       "version": 1
     },

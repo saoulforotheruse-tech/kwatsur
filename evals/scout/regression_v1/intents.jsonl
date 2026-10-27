@@ -49,3 +49,11 @@
 {"id": "courtesy-002", "prompt": "Bonsoir, merci d'avance : vous avez un studio à Yaoundé ?", "active_search": false, "expected": {"intent": "housing.search"}}
 {"id": "courtesy-003", "prompt": "Salut, comment ça va ? Compare le premier et le deuxième", "active_search": true, "expected": {"intent": "housing.compare"}}
 {"id": "courtesy-004", "prompt": "Coucou, ça va ?", "active_search": false, "expected": {"intent": "general.help"}}
+{"id": "submit-001", "prompt": "Bonjour, je loue mon appartement de 2 chambres à Douala vers Bonapriso, 130 000 FCFA", "active_search": false, "expected": {"intent": "listing.submit"}}
+{"id": "submit-002", "prompt": "Je veux mettre ma maison en location à Yaoundé", "active_search": false, "expected": {"intent": "listing.submit"}}
+{"id": "submit-003", "prompt": "Je suis propriétaire d'un studio meublé, je veux publier une annonce", "active_search": false, "expected": {"intent": "listing.submit"}}
+{"id": "submit-004", "prompt": "Comment déposer une annonce pour mon duplex ?", "active_search": false, "expected": {"intent": "listing.submit"}}
+{"id": "visualize-001", "prompt": "Montre-moi le salon du n°2", "active_search": true, "expected": {"intent": "listing.visualize"}}
+{"id": "visualize-002", "prompt": "À quoi ressemble la douche du premier ?", "active_search": true, "expected": {"intent": "listing.visualize"}}
+{"id": "visualize-003", "prompt": "Je voudrais voir la maison de l'extérieur", "active_search": true, "expected": {"intent": "listing.visualize"}}
+{"id": "visualize-004", "prompt": "Il y a des photos de la cuisine du troisième ?", "active_search": true, "expected": {"intent": "listing.visualize"}}

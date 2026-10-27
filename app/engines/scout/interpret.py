@@ -32,6 +32,25 @@ NUMBERED_PATTERN = re.compile(
 )
 
 
+# Pièce demandée → valeur de `room` (ordre important : « salle de bain » avant « chambre »).
+ROOM_PATTERNS = (
+    ("salle_de_bain", re.compile(r"\b(salle de bains?|douche|toilettes?|wc)\b")),
+    ("cuisine", re.compile(r"\bcuisine\b")),
+    ("salon", re.compile(r"\b(salon|salle de sejour|sejour)\b")),
+    ("chambre", re.compile(r"\bchambres?\b")),
+    ("facade", re.compile(r"\b(facade|exterieur|dehors|de l.exterieur|toit|maison vue)\b")),
+)
+
+
+def bind_room(prompt: str) -> str:
+    """Pièce citée dans le message ; la façade par défaut (« à quoi ressemble la maison ? »)."""
+    text = normalize_prompt(prompt)
+    for room, pattern in ROOM_PATTERNS:
+        if pattern.search(text):
+            return room
+    return "facade"
+
+
 @dataclass(frozen=True)
 class Clarification:
     trigger: ClarificationTrigger
@@ -96,6 +115,10 @@ def interpret(
     elif intent.id == "housing.compare":
         # Choix d'implémentation : sans rang cité, on compare les trois premiers résultats.
         parameters["ranks"] = (bind_ranks(prompt) or [1, 2, 3])[:3]
+    elif intent.id == "listing.visualize":
+        # Sans rang cité, il s'agit du premier résultat ; la réponse le précise.
+        parameters["rank"] = (bind_ranks(prompt) or [1])[0]
+        parameters["room"] = bind_room(prompt)
 
     clarification = None
     if band == "low":

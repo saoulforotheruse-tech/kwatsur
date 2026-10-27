@@ -18,7 +18,13 @@ from app.engines.scout.contract import ContractVerifier, issue_contract
 from app.engines.scout.guard import POLICY_PACK_VERSION, GuardResult, run_guard
 from app.engines.scout.interpret import Clarification, Interpretation, interpret
 from app.engines.scout.registry import IntentRegistry, load_registry
-from app.engines.scout.sense import LOW_BAND, IntentCandidate, classify
+from app.engines.scout.sense import (
+    LOW_BAND,
+    IntentCandidate,
+    classify,
+    continue_workflow,
+    detect_workflow_start,
+)
 
 logger = logging.getLogger("kwatsur.scout")
 
@@ -30,6 +36,9 @@ CAPABILITY_GRAPH: dict[str, str] = {
     "listings.compare": "comparison.build",
     "contact.draft": "contact_service.build_contact_draft",
     "reply.redirect": "template.redirect",
+    "submission.collect": "submission_service.apply",
+    "images.show": "image_service.owner_photos",
+    "images.generate": "image_service.generate_illustration",
 }
 OFFLINE_FALLBACKS = {"llm.write_reply": "template.explain"}
 
@@ -84,11 +93,15 @@ class ScoutEngine:
         role: str = "visitor",
         user: str = "anonymous",
         has_active_search: bool = False,
+        active_workflow: str | None = None,
     ) -> ScoutDecision:
+        """`active_workflow` : « submission » quand un propriétaire est en train de décrire son logement."""
         started = time.perf_counter()
         trace_id = uuid.uuid4().hex
 
         candidates = classify(self.registry, prompt, has_active_search)               # Sense
+        workflow = active_workflow or detect_workflow_start(self.registry, prompt)
+        candidates = continue_workflow(candidates, workflow)
         interpretation = interpret(self.registry, prompt, candidates, has_active_search)  # Interpret
         competing = tuple(item.intent_id for item in candidates if item.score >= LOW_BAND)
         risk = run_guard(prompt, interpretation.intent, surface, role, competing)      # Guard

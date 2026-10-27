@@ -88,6 +88,41 @@ def classify(
     return candidates[:TOP_K]
 
 
+# Pendant qu'un propriétaire décrit son logement, ces intentions sont en réalité la suite de
+# sa description (« 150 000 FCFA, 2 chambres », « j'ai des photos du salon »,
+# « vous pouvez me joindre au 699… » : ses propres coordonnées, pas un contact à préparer).
+SUBMISSION_ABSORBED_INTENTS = {"housing.search", "listing.visualize", "listing.submit", "contact.draft"}
+
+
+def detect_workflow_start(registry: IntentRegistry, prompt: str) -> str | None:
+    """Flux ouvert par le message lui-même (« je loue mon appartement… »), s'il y en a un."""
+    text = normalize_prompt(prompt)
+    for intent in registry.intents:
+        for trigger in intent.triggers:
+            if trigger.starts_workflow and trigger.pattern.search(text):
+                return trigger.starts_workflow
+    return None
+
+
+def continue_workflow(candidates: list[IntentCandidate], workflow: str | None) -> list[IntentCandidate]:
+    """Terme « contextual » : rattache les messages au flux en cours (choix d'implémentation)."""
+    if workflow != "submission":
+        return candidates
+    absorbed = [item for item in candidates if item.intent_id in SUBMISSION_ABSORBED_INTENTS]
+    others = [item for item in candidates if item.intent_id not in SUBMISSION_ABSORBED_INTENTS]
+    if not candidates or (absorbed and not others):
+        return [IntentCandidate("listing.submit", 1.0 if absorbed else MEDIUM_BAND, 0.0)]
+    if not absorbed:
+        # Rien de reconnu comme description : paiement, aide… gardent leur sens propre.
+        return candidates
+    merged = IntentCandidate(
+        "listing.submit",
+        round(sum(item.score for item in absorbed), 4),
+        sum(item.matched_weight for item in absorbed),
+    )
+    return sorted([merged, *others], key=lambda item: (-item.score, -item.matched_weight, item.intent_id))
+
+
 def self_test(registry: IntentRegistry) -> float:
     """Autotest de démarrage : un passage complet doit tenir sous 16 ms, sinon on échoue bruyamment."""
     started = time.perf_counter()

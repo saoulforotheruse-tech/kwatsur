@@ -149,3 +149,22 @@ def test_greeting_does_not_compete_with_a_real_request() -> None:
 
 def test_greeting_alone_is_still_general_help() -> None:
     assert make_engine().decide("Bonjour !").intent_id == "general.help"
+
+
+def test_owner_contact_details_continue_the_listing_description() -> None:
+    decision = make_engine().decide(
+        "Il y a l'eau et l'électricité. Vous pouvez me joindre au 699 11 22 33",
+        active_workflow="submission",
+    )
+
+    assert decision.intent_id == "listing.submit"
+    assert decision.contract is not None
+    assert decision.risk.level == "medium"
+
+
+def test_long_owner_description_opens_the_listing_workflow() -> None:
+    decision = make_engine().decide(
+        "Bonjour, je loue ma maison de 3 chambres à Yaoundé, quartier Mendong, 180 000 FCFA"
+    )
+
+    assert decision.intent_id == "listing.submit"
