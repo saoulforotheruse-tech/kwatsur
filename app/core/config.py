@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,9 +46,31 @@ class Settings(BaseSettings):
     # Nombre maximal de messages /api/chat par client et par minute.
     chat_rate_limit_per_minute: int = 20
 
+    # Images : fichiers sur disque (volume Docker), métadonnées dans PostgreSQL.
+    media_directory: str = "media"
+    image_upload_max_bytes: int = 5_000_000
+
+    # Génération d'images illustratives. Le fournisseur se choisit ici et nulle part ailleurs.
+    image_generation_enabled: bool = True
+    image_generation_provider: str = "cloudflare"
+    # Limite propre à Kwatsur (images générées avec succès par jour UTC), distincte du quota
+    # du fournisseur. Valeur prudente par défaut pour éviter les dépenses accidentelles.
+    image_generation_daily_limit: int = 2
+    image_generation_timeout_seconds: float = 60.0
+
+    # Cloudflare Workers AI (https://developers.cloudflare.com/workers-ai/get-started/rest-api/).
+    cloudflare_account_id: str = ""
+    cloudflare_api_token: str = ""
+    cloudflare_image_model: str = "@cf/black-forest-labs/flux-1-schnell"
+    # Étapes de diffusion de FLUX.1 schnell : 4 par défaut, 8 au maximum (schéma du modèle).
+    cloudflare_image_steps: int = Field(default=4, ge=1, le=8)
+
+    # Validation des annonces proposées : jeton à saisir sur /admin.html (vide = administration fermée).
+    admin_token: str = ""
+
     @field_validator(
         "nemotron_base_url", "nemotron_model", "meterless_base_url", "meterless_model",
-        "meterless_app_id", mode="before",
+        "meterless_app_id", "image_generation_provider", "cloudflare_image_model", mode="before",
     )
     @classmethod
     def use_default_when_blank(cls, value: object, info: ValidationInfo) -> object:

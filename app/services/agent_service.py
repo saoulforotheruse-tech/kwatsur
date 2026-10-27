@@ -4,8 +4,9 @@ Flux d'un message :
   1. charger la conversation et ses critères ;
   2. Scout Intent (moteur Meterless) classe l'intention, contrôle les risques et signe un
      contrat d'exécution ; sans contrat (blocage ou clarification), aucun outil n'agit ;
-  3. selon l'intention : recherche, comparaison, brouillon de contact ou redirection,
-     chaque outil vérifiant le contrat avant d'agir ;
+  3. selon l'intention : recherche, comparaison, brouillon de contact, proposition d'annonce
+     par un propriétaire, images d'une pièce ou redirection, chaque outil vérifiant le
+     contrat avant d'agir ;
   4. pour une recherche : extraction des critères par le modèle, fusion et validation,
      question si la ville manque, sinon recherche, filtres, classement, risques, puis
      explication rédigée par le modèle à partir des seuls faits calculés ;
@@ -20,13 +21,16 @@ from app.integrations.llm.base import ChatTurn, LLMProvider, ReplyContext
 from app.models.conversation import Conversation
 from app.schemas.chat import ChatResponse, ReplyAuthor, ScoutTrace
 from app.schemas.criteria import SearchCriteria
-from app.schemas.property import DataSourceName, PropertySearchResult
+from app.schemas.image import ROOM_LABELS
+from app.schemas.property import DataSourceName, PropertyRead, PropertySearchResult
 from app.services.comparison_service import build_comparison
 from app.services.contact_service import build_contact_draft
 from app.services.conversation_service import ConversationService
 from app.services.criteria_service import merge_criteria, relaxation_suggestions
+from app.services.image_service import ImageService
 from app.services.ranking_service import format_fcfa
 from app.services.search_service import SearchOutcome, SearchService
+from app.services.submission_service import SubmissionService, fields_of
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +46,8 @@ PAYMENT_REFUSAL = (
     "avant d'avoir visité le logement et vérifié l'identité du bailleur."
 )
 DEMO_MODE_NOTICE = "Mode démo sans IA : critères compris par des règles, explication générée par le code."
+FEATURE_UNAVAILABLE_REPLY = "Cette fonctionnalité n'est pas disponible sur ce serveur."
+DEMO_TAG = "[DÉMO — annonce fictive]"
 BLOCKED_REPLY = "Je ne peux pas traiter cette demande. Décrivez simplement le logement que vous cherchez."
 
 
@@ -96,6 +102,12 @@ def summarize_for_model(result: PropertySearchResult) -> dict:
     }
 
 
+def illustration_brief(listing: PropertyRead) -> str:
+    """Description transmise au générateur d'images : seulement le texte réel de l'annonce."""
+    description = (listing.description or "").replace(DEMO_TAG, "").strip()
+    return description or listing.title
+
+
 def build_template_reply(context: ReplyContext) -> str:
     """Réponse de secours rédigée par le code quand le modèle ne peut pas l'écrire."""
     if context.total_results == 0:
@@ -124,20 +136,33 @@ class AgentService:
         search_service: SearchService,
         conversation_service: ConversationService,
         scout: ScoutEngine,
+        submissions: SubmissionService | None = None,
+        images: ImageService | None = None,
     ) -> None:
         self.llm = llm_provider
         self.search_service = search_service
         self.conversations = conversation_service
         self.scout = scout
+        self.submissions = submissions
+        self.images = images
 
     def handle_message(self, message: str, conversation_id: str | None) -> ChatResponse:
         conversation = self.conversations.get_or_create(conversation_id)
         current = self.conversations.current_criteria(conversation)
         session_id = conversation.session_id
 
-        decision = self.scout.decide(message, has_active_search=current.city is not None)
+        draft = self.submissions.open_draft(session_id) if self.submissions else None
+        decision = self.scout.decide(
+            message,
+            has_active_search=current.city is not None,
+            active_workflow="submission" if draft else None,
+        )
         if not decision.proceeds:
             response = self._answer_without_contract(session_id, current, decision)
+        elif decision.intent_id == "listing.submit":
+            response = self._handle_submission(session_id, message, current, conversation, decision)
+        elif decision.intent_id == "listing.visualize":
+            response = self._visualize(session_id, current, decision)
         elif decision.intent_id == "housing.search":
             response = self._handle_search(session_id, message, current, conversation, decision)
         elif decision.intent_id == "housing.compare":
@@ -195,7 +220,73 @@ class AgentService:
         """Relance la recherche courante pour retrouver les logements par leur rang."""
         self.scout.verifier.require(decision.contract, "listings.search")
         outcome = self.search_service.search(criteria, limit=RESULTS_RETURNED)
-        return outcome.results, outcome.data_source
+        return self._with_images(outcome.results), outcome.data_source
+
+    def _with_images(self, results: list[PropertySearchResult]) -> list[PropertySearchResult]:
+        return self.images.attach_photos(results) if self.images else results
+
+    # --- Proposition d'annonce par un propriétaire --------------------------------------
+
+    def _handle_submission(
+        self,
+        session_id: str,
+        message: str,
+        current: SearchCriteria,
+        conversation: Conversation,
+        decision: ScoutDecision,
+    ) -> ChatResponse:
+        if self.submissions is None:
+            return self._answer_without_search(session_id, current, FEATURE_UNAVAILABLE_REPLY, "template", [])
+        self.scout.verifier.require(decision.contract, "submission.collect")
+        draft = self.submissions.open_draft(session_id) or self.submissions.start_draft(session_id)
+        history = self.conversations.recent_history(conversation)
+        extraction = self.llm.extract_listing(message, history, fields_of(draft))
+        reply = self.submissions.apply(draft, extraction)
+        response = self._answer_without_search(session_id, current, reply, "template", [])
+        response.needs_clarification = draft.status == "draft"
+        response.submission = self.submissions.to_read(draft)
+        return response
+
+    # --- Images d'une pièce : vraie photo d'abord, illustration IA sinon -----------------
+
+    def _visualize(self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision) -> ChatResponse:
+        results, data_source = self._ranked_results(criteria, decision)
+        rank, room = decision.parameters["rank"], decision.parameters["room"]
+        selected = [result for result in results if result.rank == rank]
+        if not selected:
+            reply = f"Il n'y a pas de logement n°{rank} dans la recherche actuelle ({len(results)} résultat(s))."
+            return self._answer_with_results(session_id, criteria, reply, [], data_source)
+        if self.images is None:
+            return self._answer_with_results(session_id, criteria, FEATURE_UNAVAILABLE_REPLY, selected, data_source)
+
+        listing = selected[0].property
+        room_label = ROOM_LABELS[room]
+        self.scout.verifier.require(decision.contract, "images.show")
+        photos = self.images.owner_photos(listing.id, room)
+        if photos:
+            reply = f"Voici la photo ({room_label}) fournie par le propriétaire du logement n°{rank}, « {listing.title} »."
+            response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
+            response.images = photos
+            return response
+
+        self.scout.verifier.require(decision.contract, "images.generate")
+        try:
+            illustration = self.images.generate_illustration(illustration_brief(listing), room, listing)
+        except KwatsurError as error:
+            # Pas de photo et pas d'illustration possible : on le dit, sans rien inventer.
+            reply = (
+                f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}), "
+                f"et aucune illustration n'a pu être générée : {error.public_message}"
+            )
+            return self._answer_with_results(session_id, criteria, reply, selected, data_source)
+        reply = (
+            f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
+            "Voici une image illustrative générée par IA à partir de l'annonce : elle ne représente "
+            "pas le logement réel et peut s'en écarter."
+        )
+        response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
+        response.images = [illustration]
+        return response
 
     def _compare(
         self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision
@@ -277,6 +368,7 @@ class AgentService:
     ) -> ChatResponse:
         self.scout.verifier.require(decision.contract, "listings.search")
         outcome = self.search_service.search(criteria, limit=RESULTS_RETURNED)
+        outcome.results = self._with_images(outcome.results)
         notices = notices + outcome.notices
         context = ReplyContext(
             user_message=message,

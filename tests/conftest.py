@@ -9,7 +9,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.api.dependencies import get_llm_provider, get_scout_engine, get_settings
+from app.api.dependencies import (
+    get_image_provider,
+    get_image_store,
+    get_llm_provider,
+    get_scout_engine,
+    get_settings,
+)
 from app.core.config import Settings
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.db.base import Base
@@ -18,7 +24,8 @@ from app.engines.scout import ModelProfile, ScoutEngine
 from app.main import app
 from app.models.property import PropertySource
 from db.seed.seed_demo import DEMO_SOURCE_NAME, demo_properties
-from tests.fakes import MockLLMProvider, scripted_extractions
+from app.services.image_storage import LocalImageStore
+from tests.fakes import FakeImageProvider, MockLLMProvider, scripted_extractions
 
 
 def make_test_settings(**overrides: object) -> Settings:
@@ -51,12 +58,23 @@ def mock_llm() -> MockLLMProvider:
 
 
 @pytest.fixture
-def client(session: Session, mock_llm: MockLLMProvider) -> Generator[TestClient, None, None]:
+def image_provider() -> FakeImageProvider:
+    """Fournisseur d'images simulé : jamais d'appel à Cloudflare dans les tests."""
+    return FakeImageProvider()
+
+
+@pytest.fixture
+def client(
+    session: Session, mock_llm: MockLLMProvider, image_provider: FakeImageProvider, tmp_path
+) -> Generator[TestClient, None, None]:
     def override_session() -> Generator[Session, None, None]:
         yield session
 
     app.dependency_overrides[get_session] = override_session
-    app.dependency_overrides[get_settings] = lambda: make_test_settings()
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(admin_token="admin-de-test")
+    app.dependency_overrides[get_image_provider] = lambda: image_provider
+    # Les fichiers des tests vont dans un dossier temporaire, jamais dans le projet.
+    app.dependency_overrides[get_image_store] = lambda: LocalImageStore(tmp_path, max_bytes=1_000)
     app.dependency_overrides[get_llm_provider] = lambda: mock_llm
     # Le modèle simulé est « disponible » : Scout oriente l'explication vers lui, pas vers le gabarit.
     app.dependency_overrides[get_scout_engine] = lambda: ScoutEngine(

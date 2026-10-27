@@ -6,7 +6,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.criteria import SearchCriteria
+from app.schemas.image import ImageRead
 from app.schemas.property import DataSourceName, PropertySearchResult
+from app.schemas.submission import SubmissionRead
 
 ReplyAuthor = Literal["nemotron", "meterless", "rules", "template"]
 
@@ -46,6 +48,10 @@ class ChatResponse(BaseModel):
     notices: list[str] = Field(default_factory=list)
     results: list[PropertySearchResult] = Field(default_factory=list)
     scout: ScoutTrace | None = None
+    # Photos du propriétaire ou illustrations IA demandées dans ce message (toujours étiquetées).
+    images: list[ImageRead] = Field(default_factory=list)
+    # Proposition d'annonce en cours, quand l'utilisateur décrit son propre logement.
+    submission: SubmissionRead | None = None
 
 
 class MessageRead(BaseModel):

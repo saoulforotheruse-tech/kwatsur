@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.api.dependencies import SearchServiceDependency
+from app.api.dependencies import ImageServiceDependency, SearchServiceDependency
 from app.schemas.criteria import SearchCriteria
 from app.schemas.property import (
     ContactDraftResponse,
@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/properties", tags=["logements"])
 @router.get("", response_model=PropertySearchResponse, summary="Recherche par filtres")
 def search_properties(
     search_service: SearchServiceDependency,
+    image_service: ImageServiceDependency,
     filters: Annotated[PropertySearch, Query()],
 ) -> PropertySearchResponse:
     criteria = SearchCriteria.model_validate(filters.model_dump(exclude={"limit"}))
@@ -28,7 +29,7 @@ def search_properties(
         total=outcome.total,
         data_source=outcome.data_source,
         notices=outcome.notices,
-        results=outcome.results,
+        results=image_service.attach_photos(outcome.results),
     )
 
 

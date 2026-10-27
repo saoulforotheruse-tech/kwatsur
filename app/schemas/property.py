@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from app.schemas.image import ImageRead
+
 DataSourceName = Literal["postgres", "zetaris"]
 
 
@@ -76,6 +78,8 @@ class PropertySearchResult(BaseModel):
     to_verify: list[str]
     missing_information: list[str]
     risk_signals: list[str]
+    # Photos du propriétaire puis illustrations IA (chacune étiquetée), si le logement en a.
+    images: list[ImageRead] = Field(default_factory=list)
 
 
 class PropertySearchResponse(BaseModel):

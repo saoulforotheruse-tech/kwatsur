@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.routes import chat, health, properties
+from app.api.routes import chat, health, images, properties, submissions
 from app.core.config import settings
 from app.core.exceptions import KwatsurError
 from app.core.logging import configure_logging
@@ -38,6 +38,8 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(chat.router)
 app.include_router(properties.router)
+app.include_router(images.router)
+app.include_router(submissions.router)
 
 
 @app.exception_handler(KwatsurError)
