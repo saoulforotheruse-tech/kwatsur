@@ -269,6 +269,18 @@ class AgentService:
             response.images = photos
             return response
 
+        existing = self.images.existing_illustration(listing.id, room)
+        if existing is not None:
+            # Déjà générée pour ce logement et cette pièce : réutilisée, sans consommer de quota.
+            reply = (
+                f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
+                "Voici l'image illustrative déjà générée par IA pour cette pièce : elle ne représente "
+                "pas le logement réel."
+            )
+            response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
+            response.images = [existing]
+            return response
+
         self.scout.verifier.require(decision.contract, "images.generate")
         try:
             illustration = self.images.generate_illustration(illustration_brief(listing), room, listing)
@@ -279,9 +291,12 @@ class AgentService:
                 f"et aucune illustration n'a pu être générée : {error.public_message}"
             )
             return self._answer_with_results(session_id, criteria, reply, selected, data_source)
+        sources = "de la description de l'annonce"
+        if illustration.reference_photo_count:
+            sources += f" et de {illustration.reference_photo_count} vraie(s) photo(s) du propriétaire"
         reply = (
             f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
-            "Voici une image illustrative générée par IA à partir de l'annonce : elle ne représente "
+            f"Voici une image illustrative générée par IA à partir {sources} : elle ne représente "
             "pas le logement réel et peut s'en écarter."
         )
         response = self._answer_with_results(session_id, criteria, reply, selected, data_source)

@@ -153,3 +153,21 @@ def test_unknown_provider_is_an_explicit_error() -> None:
 
     with pytest.raises(UnknownImageProviderError, match="inconnu"):
         build_image_provider(settings)
+
+
+def test_vision_describer_sends_image_bytes_as_documented() -> None:
+    from app.integrations.image_description.cloudflare_describer import CloudflareImageDescriber
+
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"success": True, "result": {"description": " Murs blancs. "}})
+
+    describer = CloudflareImageDescriber("acc123", "jeton", "@cf/llava-hf/llava-1.5-7b-hf", transport=httpx.MockTransport(handler))
+
+    assert describer.describe(TINY_PNG, "Décris") == "Murs blancs."
+    assert captured["url"].endswith("/accounts/acc123/ai/run/@cf/llava-hf/llava-1.5-7b-hf")
+    assert captured["body"]["image"] == list(TINY_PNG)
+    assert captured["body"]["prompt"] == "Décris"

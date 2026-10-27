@@ -13,6 +13,8 @@ from app.engines.scout import ModelProfile, ScoutEngine
 from app.integrations.data.postgres import PostgresListingSource
 from app.core.exceptions import KwatsurError
 from app.integrations.data.zetaris import ZetarisClient, ZetarisListingSource
+from app.integrations.image_description.base import ImageDescriber
+from app.integrations.image_description.factory import build_image_describer
 from app.integrations.image_generation.base import ImageGenerationProvider
 from app.integrations.image_generation.factory import build_image_provider
 from app.integrations.llm.base import LLMProvider
@@ -99,13 +101,26 @@ def get_image_store(app_settings: AppSettings) -> LocalImageStore:
     return LocalImageStore(Path(app_settings.media_directory), app_settings.image_upload_max_bytes)
 
 
+def get_image_describer(app_settings: AppSettings) -> ImageDescriber:
+    return build_image_describer(app_settings)
+
+
 def get_image_service(
     session: DatabaseSession,
     app_settings: AppSettings,
     provider: Annotated[ImageGenerationProvider, Depends(get_image_provider)],
     store: Annotated[LocalImageStore, Depends(get_image_store)],
+    describer: Annotated[ImageDescriber, Depends(get_image_describer)],
 ) -> ImageService:
-    return ImageService(provider, store, ImageRepository(session), app_settings.image_generation_daily_limit)
+    return ImageService(
+        provider,
+        store,
+        ImageRepository(session),
+        app_settings.image_generation_daily_limit,
+        describer=describer,
+        max_reference_photos=app_settings.vision_max_reference_photos,
+        max_reference_photo_bytes=app_settings.vision_max_photo_bytes,
+    )
 
 
 ImageServiceDependency = Annotated[ImageService, Depends(get_image_service)]

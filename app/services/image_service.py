@@ -1,9 +1,11 @@
 """Logique métier des images de Kwatsur : photos des propriétaires et illustrations IA.
 
 Parcours d'une illustration :
-  description + pièce → contrôle de la limite quotidienne de Kwatsur → prompt
-  → fournisseur (interface ImageGenerationProvider) → vérification et écriture du fichier
-  → métadonnées en base avec kind="ai_generated_illustration".
+  description + pièce → contrôle de la limite quotidienne de Kwatsur
+  → description des VRAIES photos du propriétaire par un modèle de vision (si disponibles)
+  → prompt fait des seuls faits connus → fournisseur (interface ImageGenerationProvider)
+  → vérification et écriture du fichier → métadonnées avec kind="ai_generated_illustration".
+Une illustration déjà générée pour le même logement et la même pièce est réutilisée.
 Ce service ne connaît aucun fournisseur précis : Cloudflare n'est qu'une implémentation.
 """
 
@@ -12,6 +14,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 
 from app.core.exceptions import KwatsurError
+from app.integrations.image_description.base import DisabledImageDescriber, ImageDescriber
 from app.integrations.image_generation.base import ImageGenerationProvider
 from app.models.image import PropertyImage
 from app.repositories.image_repository import ImageRepository
@@ -32,25 +35,42 @@ ROOM_PROMPTS = {
 }
 
 
+# Question posée au modèle de vision pour chaque vraie photo (réponse courte, factuelle).
+PHOTO_QUESTION = (
+    "Describe only what is visible in this photo of a home: wall and floor colors, materials, "
+    "roof, furniture and overall style. One or two short sentences, no guesses."
+)
+
+
 class DailyImageLimitReachedError(KwatsurError):
     status_code = 429
     public_message = "La limite quotidienne d'images de Kwatsur est atteinte. Réessayez demain."
 
 
-def build_illustration_prompt(room: str, description: str, listing: PropertyRead | None) -> str:
+def build_illustration_prompt(
+    room: str,
+    description: str,
+    listing: PropertyRead | None,
+    photo_details: list[str] | None = None,
+) -> str:
     """Prompt envoyé au modèle : uniquement des faits connus, jamais d'information inventée."""
-    parts = [f"Realistic architectural illustration, {ROOM_PROMPTS[room]}"]
-    if listing is not None:
-        parts.append(f"of a {listing.property_type} in {listing.city}, Cameroon")
-        if listing.bedrooms:
-            parts.append(f"with {listing.bedrooms} bedroom(s)")
-        if listing.furnished is True:
-            parts.append("furnished")
-    else:
-        parts.append("of a home in Cameroon")
-    parts.append(f"Description: {description.strip()}")
-    parts.append("Natural daylight, simple and realistic, no text, no watermark, no people.")
-    return ". ".join(parts)
+    subject = f"a {listing.property_type} in {listing.city}, Cameroon" if listing else "a home in Cameroon"
+    features = []
+    if listing is not None and listing.bedrooms:
+        features.append(f"{listing.bedrooms} bedroom(s)")
+    if listing is not None and listing.furnished is True:
+        features.append("furnished")
+    sentences = [
+        f"Realistic architectural illustration of the {ROOM_PROMPTS[room]} of {subject}"
+        + (f" ({', '.join(features)})" if features else "")
+        + ".",
+        f"Listing description: {description.strip()}",
+    ]
+    if photo_details:
+        # Ce que montrent les vraies photos du propriétaire : à respecter (couleurs, matériaux).
+        sentences.append("Visible on the owner's real photos: " + " ".join(photo_details))
+    sentences.append("Natural daylight, simple and realistic, no text, no watermark, no people.")
+    return " ".join(sentences)
 
 
 def to_image_read(image: PropertyImage) -> ImageRead:
@@ -77,12 +97,18 @@ class ImageService:
         repository: ImageRepository,
         daily_limit: int,
         now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+        describer: ImageDescriber | None = None,
+        max_reference_photos: int = 2,
+        max_reference_photo_bytes: int = 1_500_000,
     ) -> None:
         self.provider = provider
         self.store = store
         self.repository = repository
         self.daily_limit = daily_limit
         self.now = now
+        self.describer = describer or DisabledImageDescriber()
+        self.max_reference_photos = max_reference_photos
+        self.max_reference_photo_bytes = max_reference_photo_bytes
 
     @property
     def generation_available(self) -> bool:
@@ -106,7 +132,8 @@ class ImageService:
                 "Réessayez demain (renouvellement à minuit UTC)."
             )
 
-        prompt = build_illustration_prompt(room, description, listing)
+        photo_details = self._describe_owner_photos(listing.id) if listing is not None else []
+        prompt = build_illustration_prompt(room, description, listing, photo_details)
         generated = self.provider.generate_image(prompt)
         file_name, content_type = self.store.save(generated.data)
         image = self.repository.add(
@@ -124,8 +151,42 @@ class ImageService:
             )
         )
         self.repository.commit()
-        logger.info("Illustration générée (%s, %s) pour le logement %s", generated.provider, room, image.property_id)
-        return to_image_read(image)
+        logger.info(
+            "Illustration générée (%s, %s) pour le logement %s, %s photo(s) réelle(s) décrite(s)",
+            generated.provider, room, image.property_id, len(photo_details),
+        )
+        illustration = to_image_read(image)
+        illustration.reference_photo_count = len(photo_details)
+        return illustration
+
+    def existing_illustration(self, property_id: int, room: str) -> ImageRead | None:
+        """Illustration déjà générée pour ce logement et cette pièce : réutilisée sans quota."""
+        illustrations = [
+            image
+            for image in self.repository.for_properties([property_id])
+            if image.kind == "ai_generated_illustration" and image.room == room
+        ]
+        return to_image_read(illustrations[-1]) if illustrations else None
+
+    def _describe_owner_photos(self, property_id: int) -> list[str]:
+        """Fait décrire quelques vraies photos du logement ; un échec n'empêche pas l'illustration."""
+        if not self.describer.is_configured or self.max_reference_photos == 0:
+            return []
+        photos = [
+            image
+            for image in self.repository.for_properties([property_id])
+            if image.kind == "owner_photo" and image.size_bytes <= self.max_reference_photo_bytes
+        ][: self.max_reference_photos]
+        details: list[str] = []
+        for photo in photos:
+            path = self.store.path_for(photo.file_name)
+            if path is None:
+                continue
+            try:
+                details.append(self.describer.describe(path.read_bytes(), PHOTO_QUESTION))
+            except (KwatsurError, OSError) as error:
+                logger.warning("Photo %s non décrite : %s", photo.id, getattr(error, "public_message", error))
+        return details
 
     def add_owner_photo(self, submission_id: int, image_bytes: bytes, room: str) -> ImageRead:
         """Enregistre une vraie photo envoyée par le propriétaire pour sa proposition."""

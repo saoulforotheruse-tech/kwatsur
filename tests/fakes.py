@@ -94,3 +94,22 @@ class FakeImageProvider:
             raise self.error
         self.prompts.append(prompt)
         return GeneratedImage(data=TINY_PNG, content_type="image/png", provider=self.name, model=self.model)
+
+
+class FakeImageDescriber:
+    """Modèle de vision simulé (MOCK) : renvoie une description fixe, sans réseau."""
+
+    name = "fake-vision"
+    model = "fake-vision-model"
+
+    def __init__(self, description: str = "Murs jaunes, sol carrelé blanc.") -> None:
+        self.description = description
+        self.received_sizes: list[int] = []
+
+    @property
+    def is_configured(self) -> bool:
+        return True
+
+    def describe(self, image_bytes: bytes, question: str) -> str:
+        self.received_sizes.append(len(image_bytes))
+        return self.description

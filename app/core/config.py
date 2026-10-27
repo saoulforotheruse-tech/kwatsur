@@ -65,12 +65,19 @@ class Settings(BaseSettings):
     # Étapes de diffusion de FLUX.1 schnell : 4 par défaut, 8 au maximum (schéma du modèle).
     cloudflare_image_steps: int = Field(default=4, ge=1, le=8)
 
+    # Vision : décrire les vraies photos du propriétaire pour enrichir une illustration.
+    image_description_enabled: bool = True
+    cloudflare_vision_model: str = "@cf/llava-hf/llava-1.5-7b-hf"
+    # Photos décrites au plus par illustration, et taille maximale envoyée (octets en JSON).
+    vision_max_reference_photos: int = Field(default=2, ge=0, le=4)
+    vision_max_photo_bytes: int = 1_500_000
+
     # Validation des annonces proposées : jeton à saisir sur /admin.html (vide = administration fermée).
     admin_token: str = ""
 
     @field_validator(
         "nemotron_base_url", "nemotron_model", "meterless_base_url", "meterless_model",
-        "meterless_app_id", "image_generation_provider", "cloudflare_image_model", mode="before",
+        "meterless_app_id", "image_generation_provider", "cloudflare_image_model", "cloudflare_vision_model", mode="before",
     )
     @classmethod
     def use_default_when_blank(cls, value: object, info: ValidationInfo) -> object:

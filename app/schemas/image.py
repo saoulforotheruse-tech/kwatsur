@@ -38,6 +38,8 @@ class ImageRead(BaseModel):
     is_ai_generated: bool
     caption: str | None = None
     property_id: int | None = None
+    # Vraies photos du propriétaire décrites pour guider cette illustration (0 si aucune).
+    reference_photo_count: int = 0
     created_at: datetime
 
 

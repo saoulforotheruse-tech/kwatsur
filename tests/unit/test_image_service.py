@@ -96,3 +96,46 @@ def test_store_never_reads_outside_its_directory(tmp_path: Path) -> None:
     assert store.path_for(file_name) is not None
     assert store.path_for("../../etc/passwd") is None
     assert store.path_for("../" + file_name) is None
+
+
+def test_owner_photos_are_described_and_guide_the_illustration(session: Session, tmp_path: Path) -> None:
+    from app.models.image import PropertyImage
+    from app.schemas.property import PropertyRead
+    from tests.fakes import FakeImageDescriber
+
+    provider, describer = FakeImageProvider(), FakeImageDescriber("Murs jaunes, sol carrelé blanc.")
+    store = LocalImageStore(tmp_path, max_bytes=1_000)
+    service = ImageService(
+        provider, store, ImageRepository(session), daily_limit=2, now=lambda: NOW, describer=describer
+    )
+    file_name, _ = store.save(TINY_PNG)
+    session.add(PropertyImage(property_id=1, kind="owner_photo", room="salon", file_name=file_name,
+                              content_type="image/png", size_bytes=len(TINY_PNG), created_at=NOW))
+    session.flush()
+    listing = PropertyRead.model_validate({
+        "id": 1, "title": "Villa", "description": "Villa avec jardin", "city": "Douala",
+        "neighborhood": "Bonapriso", "property_type": "villa", "monthly_rent": 300000, "currency": "XAF",
+        "bedrooms": 4, "bathrooms": None, "furnished": None, "water_available": None,
+        "electricity_available": None, "location_description": None, "latitude": None, "longitude": None,
+        "source_name": "Test", "source_url": None, "contact_information": None, "listing_status": "unconfirmed",
+        "verification_status": "unverified", "source_is_demo": True, "last_seen_at": None,
+    })
+
+    illustration = service.generate_illustration("Villa avec jardin", "facade", listing)
+
+    assert illustration.reference_photo_count == 1
+    assert describer.received_sizes == [len(TINY_PNG)]
+    assert "Visible on the owner's real photos: Murs jaunes, sol carrelé blanc." in provider.prompts[0]
+    assert "Listing description: Villa avec jardin" in provider.prompts[0]
+    # Deuxième demande pour la même pièce : l'illustration existante est réutilisée.
+    assert service.existing_illustration(1, "facade").id == illustration.id
+    assert service.existing_illustration(1, "salon") is None
+
+
+def test_without_vision_the_illustration_uses_text_only(session: Session, tmp_path: Path) -> None:
+    provider = FakeImageProvider()
+
+    image = make_service(session, tmp_path, provider).generate_illustration("Salon", "salon")
+
+    assert image.reference_photo_count == 0
+    assert "Visible on the owner's real photos" not in provider.prompts[0]
