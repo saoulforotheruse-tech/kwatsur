@@ -20,3 +20,6 @@ zetaris-platform.zip
 # Environnements Python locaux
 *.whl
 venv/
+
+# Captures des consignes de soumission (photos de téléphone)
+docs/doc_a_soumetre_pour_hackathon/WhatsApp Image *

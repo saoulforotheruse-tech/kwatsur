@@ -79,6 +79,52 @@ Arrêter sans effacer la base : `docker compose down` (et `docker compose down` 
 
 Diagnostic : `docker compose logs -f api` ; les erreurs des services externes y sont journalisées sans secret.
 
+## Dépendances
+
+| Dépendance | Obligatoire ? | Rôle |
+| --- | --- | --- |
+| Docker + Docker Compose v2.24+ | Oui | Fait tourner PostgreSQL, l'API et le frontend (sous Windows : dans WSL 2, réseau `mirrored`) |
+| **Zetaris** (plateforme locale du hackathon, Docker) | Pour le mode complet | Couche de données : les annonces sont lues en SQL via son API REST |
+| **Meterless Nightshift** (application) + clé NVIDIA dans ses Providers | Pour le mode complet | Fournisseur IA principal, sert **NVIDIA Nemotron 3 Ultra** |
+| Cloudflare Workers AI (compte gratuit) | Non | Illustrations d'une pièce et description des photos |
+| Chrome ou Edge | Non | Conversation vocale (Web Speech) |
+| Python 3.12 et `requirements.txt` (FastAPI, SQLAlchemy, Alembic, Pydantic, httpx, pytest) | Installé dans l'image Docker | Backend et tests |
+
+Sans Zetaris, Nightshift ni Cloudflare, `SAMPLE_MODE=true` fait tourner tout le parcours (voir ci-dessous).
+
+## Utilisation
+
+Ouvrir <http://localhost:8080> et écrire, ou dicter avec le bouton micro :
+
+| Exemple d'entrée | Ce que fait l'agent |
+| --- | --- |
+| « Je cherche un appartement de deux chambres à Douala vers Bonamoussadi, 150 000 FCFA max, avec eau et électricité » | Extrait les critères, interroge Zetaris, classe et explique les annonces |
+| « Finalement peu importe le quartier, mais pas plus de 110 000 FCFA » | Garde la ville et les chambres, change le budget, relance la recherche |
+| « Compare le premier et le deuxième » | Tableau comparatif ; une valeur inconnue reste « non renseignée » |
+| « Est-ce que le premier a un compteur individuel ? » | Répond à partir du texte de l'annonce, ou dit que l'information manque |
+| « Montre-moi le salon du premier » | Vraie photo si elle existe, sinon illustration IA étiquetée |
+| « Je loue mon studio meublé à Yaoundé, quartier Bastos, 90 000 FCFA » | Ouvre le dépôt d'annonce : questions, photos, validation sur `/admin.html` |
+| « Envoie la caution par Orange Money » | Refusé par Scout Intent (aucun paiement), avec un conseil de prudence |
+
+Les sorties réelles de ces exemples, avec leurs traces (intention, contrat, modèle utilisé), sont dans [`docs/doc_a_soumetre_pour_hackathon/05_exemples_entrees_sorties.md`](./docs/doc_a_soumetre_pour_hackathon/05_exemples_entrees_sorties.md). Chaque réponse de l'API contient `scout.model` (le modèle qui a traité la requête), `data_source` et `reply_generated_by` ; les journaux (`docker compose logs api`) montrent `scout.decision`, `contract.issued` et `contract.verified`.
+
+API directe :
+```sh
+curl -X POST http://localhost:8080/api/chat -H "Content-Type: application/json" \
+  -d '{"message": "Un studio meublé à Yaoundé, 100 000 FCFA max"}'
+```
+
+## Mode échantillon (`SAMPLE_MODE=true`)
+
+Si Zetaris, Nightshift ou Cloudflare sont indisponibles, mettre `SAMPLE_MODE=true` dans `.env` puis relancer le backend :
+- annonces fictives de PostgreSQL ;
+- critères compris par des règles ;
+- explications générées par le code ;
+- pas de génération d'images ;
+- **Scout Intent reste actif**.
+
+Chaque réponse l'annonce (« Mode démo sans IA »). Sans clé, `.env.example` fonctionne déjà de cette façon (`LLM_PROVIDER=rules`, `LISTING_SOURCE=postgres`).
+
 ## Démarrage local (sans Docker pour l'API)
 
 Prérequis : Python 3.12, PostgreSQL 16 (par exemple `docker compose up -d db`).
@@ -98,6 +144,7 @@ Toutes les valeurs viennent de l'environnement (`.env`, jamais commité). Les se
 
 | Variable | Rôle |
 | --- | --- |
+| `SAMPLE_MODE` | `true` : repli complet sans Zetaris, Nightshift ni Cloudflare |
 | `DATABASE_URL` | Connexion PostgreSQL (surchargée automatiquement dans Docker) |
 | `LISTING_SOURCE` | `postgres` (défaut) ou `zetaris` |
 | `ZETARIS_FALLBACK_TO_POSTGRES` | Bascule visible vers PostgreSQL si Zetaris échoue |
@@ -146,22 +193,24 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 - [`docs/demo-script.md`](./docs/demo-script.md) : scénario de démonstration (3 à 4 minutes).
 - [`AGENTS.md`](./AGENTS.md) : règles de code du projet (utilisées aussi par Cursor).
 
-## État d'avancement
+## État d'avancement (27/10/2026)
 
-**Terminé et testé**
-- API FastAPI, PostgreSQL, migrations Alembic, Docker Compose avec contrôles de santé.
-- Recherche : filtres obligatoires, classement explicable et configurable, signaux à vérifier, données manquantes.
-- Agent : extraction des critères, fusion validée, clarification, mémoire de conversation, explication, réponse de secours étiquetée si le modèle échoue.
-- Interface responsive : chat, critères retenus, cartes, comparaison, brouillon de contact, recherche manuelle.
-- Client Nemotron (API NVIDIA compatible OpenAI), adaptateur Meterless, adaptateur Zetaris (API SQL REST), tous testés avec des réponses simulées.
-
-**Implémenté mais pas encore vérifié avec un vrai service** (en attente des accès du hackathon)
-- Appel réel à Nemotron : il faut `NEMOTRON_API_KEY`. Vérifier ensuite que le modèle choisi suit le format JSON demandé.
-- Appel réel à Zetaris : il faut une instance, un jeton API, l'identifiant d'organisation, et la table d'annonces importée (voir `docs/sponsor-tech.md`).
-- Meterless : le runtime local doit être installé et son jeton renseigné. La route qui mène à Nemotron (`METERLESS_MODEL`) doit être confirmée avec `GET /v1/models`.
+**Terminé, testé et vérifié avec les vrais services**
+- **Zetaris** (local, 2.4.3) : annonces lues en SQL via l'API REST, base Kwatsur fédérée (`kwatsur_pg`).
+- **Meterless Nightshift** + **NVIDIA Nemotron 3 Ultra** : extraction des critères et des annonces, explications, réponses aux questions.
+- **Meterless Scout Intent** : intention, garde des risques, contrat signé avant chaque action ; évaluation au-dessus des seuils officiels.
+- Recherche : filtres obligatoires, classement explicable, signaux à vérifier, mémoire de conversation, comparaison, brouillon de contact.
+- Dépôt d'annonces par les propriétaires dans le chat, avec photos et validation par un administrateur.
+- Images : vraies photos, photos d'exemple créditées, illustrations Cloudflare FLUX.1 guidées par la vision et le contexte camerounais.
+- Interface : chat, cartes illustrées, comparaison, panneaux « Mon annonce » et « Visualiser », page d'administration, conversation vocale.
+- 143 tests sans réseau ; `SAMPLE_MODE` de repli.
 
 **Limites connues**
-- Aucune source d'annonces réelle autorisée n'est connectée : la démo repose sur des données fictives.
-- La limitation de débit est stockée en mémoire, donc valable pour un seul processus.
-- Il n'y a pas de comptes utilisateurs : on accède à une conversation par son identifiant aléatoire (UUID).
-- La détection de préférences dans les descriptions est une simple recherche de mots-clés.
+- Aucune source d'annonces réelle autorisée n'est encore connectée : la démo repose sur 20 annonces fictives.
+- Pas de comptes utilisateurs : une conversation est accessible par son identifiant aléatoire (UUID) ; l'administration est protégée par un jeton unique.
+- La limite de débit du chat est en mémoire (un seul processus) ; la limite quotidienne d'images est globale au serveur.
+- La conversation vocale dépend du navigateur (Chrome ou Edge ; pas Firefox).
+
+## Soumission au hackathon
+
+Tout le dossier (formulaire, explication des sponsors, script vidéo, présentation, exemples) est dans [`docs/doc_a_soumetre_pour_hackathon/`](./docs/doc_a_soumetre_pour_hackathon/README.md).
