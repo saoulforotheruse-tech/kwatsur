@@ -135,6 +135,7 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 ## Documentation
 
 - [`docs/vue-ensemble.md`](./docs/vue-ensemble.md) : **à lire en premier**, le projet en 5 minutes.
+- [`docs/outils.md`](./docs/outils.md) : chaque outil (Zetaris, Nightshift, Nemotron, Scout, Cloudflare, PostgreSQL, Docker…), son rôle et comment y accéder.
 - [`docs/exigences.md`](./docs/exigences.md) : exigences du hackathon et du produit, état de conformité, actions restantes.
 - [`docs/architecture.md`](./docs/architecture.md) : couches, patterns, parcours complet d'une requête.
 - [`docs/api.md`](./docs/api.md) : endpoints et contrats.

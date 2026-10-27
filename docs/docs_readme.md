@@ -1,6 +1,6 @@
 # docs — rôle du dossier
 
-Documentation destinée aux personnes qui découvrent ou contribuent à Kwatsur. Commencer par `vue-ensemble.md` (le projet en 5 minutes). `exigences.md` suit la conformité aux exigences du hackathon ; `architecture.md` explique le parcours des données ; `api.md` décrit les routes disponibles.
+Documentation destinée aux personnes qui découvrent ou contribuent à Kwatsur. Commencer par `vue-ensemble.md` (le projet en 5 minutes), puis `outils.md` (rôle et accès de chaque outil). `exigences.md` suit la conformité aux exigences du hackathon ; `architecture.md` explique le parcours des données ; `api.md` décrit les routes disponibles.
 
 ## Règles de contribution
 
