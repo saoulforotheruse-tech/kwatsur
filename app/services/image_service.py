@@ -101,10 +101,13 @@ def build_illustration_prompt(
     if listing is not None and listing.furnished is True:
         features.append("furnished")
     sentences = [
+        # Le pays d'abord : c'est la consigne principale du modèle d'image.
+        "Create an image representing a real home located in Cameroon, Central Africa, "
+        "as it would look in a Cameroonian city today.",
         f"Realistic architectural illustration of the {ROOM_PROMPTS[room]} of {subject}"
         + (f" ({', '.join(features)})" if features else "")
         + ".",
-        f"Listing description: {description.strip()}",
+        f"Listing description (follow it faithfully): {description.strip()}",
     ]
     if photo_details:
         # Ce que montrent les vraies photos du propriétaire : à respecter (couleurs, matériaux).

@@ -51,6 +51,25 @@ def test_sends_openai_compatible_request_and_strips_reasoning() -> None:
     assert captured["body"]["model"] == "nvidia/test-model"
 
 
+def test_thinking_can_be_disabled_for_faster_answers() -> None:
+    bodies: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        return completion("Bonjour !")
+
+    make_client(handler).complete([{"role": "user", "content": "Salut"}])
+    fast = ChatCompletionClient(
+        base_url="https://llm.test/v1", api_key="test-key", model="nvidia/test-model",
+        timeout_seconds=5, provider_label="Nemotron", transport=httpx.MockTransport(handler),
+        thinking_enabled=False,
+    )
+    fast.complete([{"role": "user", "content": "Salut"}])
+
+    assert "chat_template_kwargs" not in bodies[0]
+    assert bodies[1]["chat_template_kwargs"] == {"enable_thinking": False}
+
+
 def test_strips_reasoning_when_opening_tag_is_missing() -> None:
     # Forme observée via Meterless avec Nemotron 3 Ultra : pas de <think> ouvrant.
     client = make_client(lambda _request: completion("L'utilisateur veut une phrase.</think>Bonjour !"))

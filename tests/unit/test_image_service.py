@@ -76,6 +76,7 @@ def test_prompt_only_uses_known_facts() -> None:
     assert "bathroom" in prompt
     assert "Douche carrelée" in prompt
     assert "no text" in prompt
+    assert prompt.startswith("Create an image representing a real home located in Cameroon")
 
 
 def test_store_refuses_non_images_and_oversized_files(tmp_path: Path) -> None:
@@ -127,7 +128,7 @@ def test_owner_photos_are_described_and_guide_the_illustration(session: Session,
     assert describer.received_sizes == [len(TINY_PNG)]
     assert "Visible on the owner's real photos of this home: Murs jaunes, sol carrelé blanc." in provider.prompts[0]
     assert "a villa in Douala" in provider.prompts[0]
-    assert "Listing description: Villa avec jardin" in provider.prompts[0]
+    assert "Listing description (follow it faithfully): Villa avec jardin" in provider.prompts[0]
     # Deuxième demande pour la même pièce : l'illustration existante est réutilisée.
     assert service.existing_illustration(1, "facade").id == illustration.id
     assert service.existing_illustration(1, "salon") is None

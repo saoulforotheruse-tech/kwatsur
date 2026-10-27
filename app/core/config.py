@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # « rules » (mode démo sans IA ni clé) ou « none » (chat désactivé).
     llm_provider: Literal["nemotron", "meterless", "rules", "none"] = "rules"
     llm_timeout_seconds: float = 60.0
+    # Raisonnement caché de Nemotron : désactivé, la réponse arrive environ 4 fois plus vite.
+    llm_thinking_enabled: bool = False
 
     nemotron_base_url: str = "https://integrate.api.nvidia.com/v1"
     nemotron_api_key: str = ""

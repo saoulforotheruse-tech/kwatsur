@@ -43,6 +43,7 @@ class ChatCompletionClient:
         provider_label: str,
         extra_headers: dict[str, str] | None = None,
         transport: httpx.BaseTransport | None = None,
+        thinking_enabled: bool = True,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
@@ -51,6 +52,7 @@ class ChatCompletionClient:
         self.provider_label = provider_label
         self.extra_headers = extra_headers or {}
         self.transport = transport
+        self.thinking_enabled = thinking_enabled
 
     @property
     def is_configured(self) -> bool:
@@ -74,6 +76,9 @@ class ChatCompletionClient:
             "max_tokens": max_tokens,
             "stream": False,
         }
+        if not self.thinking_enabled:
+            # Option du gabarit de conversation de Nemotron : répond sans bloc de raisonnement.
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
         headers = {"Authorization": f"Bearer {self.api_key}", **self.extra_headers}
         try:
             with httpx.Client(timeout=self.timeout_seconds, transport=self.transport) as http:
