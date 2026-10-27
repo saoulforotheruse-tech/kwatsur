@@ -12,6 +12,7 @@ from app.core.exceptions import IntegrationNotConfiguredError
 from app.integrations.llm.base import ChatTurn, ReplyContext
 from app.schemas.chat import ReplyAuthor
 from app.schemas.criteria import CANONICAL_CITIES, CriteriaExtraction, SearchCriteria, normalize_text
+from app.schemas.submission import ListingExtraction, ListingFields
 
 NUMBER_WORDS = {"un": 1, "une": 1, "deux": 2, "trois": 3, "quatre": 4, "cinq": 5, "six": 6}
 PROPERTY_TYPES = (
@@ -97,6 +98,39 @@ def parse_criteria(message: str, current: SearchCriteria) -> CriteriaExtraction:
     return CriteriaExtraction(intent=intent, updates=updates, remove_fields=removed)
 
 
+PHONE_PATTERN = re.compile(r"(\+?237[\s.-]?)?\b6\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b")
+EMAIL_PATTERN = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
+CONFIRM_PATTERN = re.compile(r"^\s*(oui|ok|d.accord|je confirme|c.est bon|valide[rz]?|envoie[rz]?)\b")
+CANCEL_PATTERN = re.compile(r"\b(annule[rz]?|laisse tomber|abandonne[rz]?)\b")
+
+
+def parse_listing(message: str, current: ListingFields) -> ListingExtraction:
+    """Mode démo : mêmes règles que la recherche, appliquées à la description d'un propriétaire."""
+    criteria = parse_criteria(message, SearchCriteria()).updates
+    text = normalize_text(message)
+    updates: dict = {
+        "city": criteria.city,
+        "neighborhood": criteria.neighborhood,
+        "property_type": criteria.property_type,
+        "monthly_rent": criteria.max_rent or criteria.min_rent,
+        "bedrooms": criteria.bedrooms,
+        "furnished": criteria.furnished,
+        "water_available": criteria.water_available,
+        "electricity_available": criteria.electricity_available,
+    }
+    # Une réponse courte à la question « combien de chambres ? » est un simple nombre.
+    if updates["bedrooms"] is None and current.bedrooms is None and re.fullmatch(r"\s*\d{1,2}\s*", text):
+        updates["bedrooms"] = int(text)
+    contact = PHONE_PATTERN.search(message) or EMAIL_PATTERN.search(message)
+    if contact:
+        updates["contact_information"] = contact.group(0).strip()
+    return ListingExtraction(
+        updates=ListingFields.model_validate(updates),
+        confirms=bool(CONFIRM_PATTERN.search(text)),
+        cancels=bool(CANCEL_PATTERN.search(text)),
+    )
+
+
 class RuleBasedProvider:
     """Fournisseur sans IA : extraction par règles ; l'explication vient du gabarit du backend."""
 
@@ -106,6 +140,11 @@ class RuleBasedProvider:
         self, message: str, _history: list[ChatTurn], current: SearchCriteria
     ) -> CriteriaExtraction:
         return parse_criteria(message, current)
+
+    def extract_listing(
+        self, message: str, _history: list[ChatTurn], current: ListingFields
+    ) -> ListingExtraction:
+        return parse_listing(message, current)
 
     def write_reply(self, _context: ReplyContext) -> str:
         # Scout oriente « reply.explain » vers le gabarit quand aucun modèle n'est disponible.

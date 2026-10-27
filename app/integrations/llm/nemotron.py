@@ -17,6 +17,7 @@ from app.integrations.llm.base import ChatTurn, ReplyContext
 from app.integrations.llm.openai_compatible import ChatCompletionClient
 from app.schemas.chat import ReplyAuthor
 from app.schemas.criteria import CriteriaExtraction, SearchCriteria
+from app.schemas.submission import ListingExtraction, ListingFields
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,26 @@ class NemotronProvider:
                     "Le modèle IA n'a pas renvoyé de critères exploitables."
                 ) from error
 
+    def extract_listing(
+        self, message: str, history: list[ChatTurn], current: ListingFields
+    ) -> ListingExtraction:
+        request = {
+            "annonce_actuelle": current.model_dump(),
+            "conversation_recente": [asdict(turn) for turn in history],
+            "nouveau_message": message,
+        }
+        messages = [
+            {"role": "system", "content": load_prompt("listing_extraction.md")},
+            {"role": "user", "content": json.dumps(request, ensure_ascii=False)},
+        ]
+        raw_answer = self.chat_client.complete(messages, temperature=0.0, max_tokens=4096)
+        try:
+            return ListingExtraction.model_validate(parse_json_object(raw_answer))
+        except (ValueError, ValidationError) as error:
+            raise InvalidIntegrationResponseError(
+                "Le modèle IA n'a pas renvoyé d'informations d'annonce exploitables."
+            ) from error
+
     def write_reply(self, context: ReplyContext) -> str:
         facts = asdict(context)
         facts["criteria"] = context.criteria.model_dump()
@@ -92,4 +113,7 @@ class DisabledLLMProvider:
         raise IntegrationNotConfiguredError("L'agent IA est désactivé (LLM_PROVIDER=none).")
 
     def write_reply(self, *_args: object) -> str:
+        raise IntegrationNotConfiguredError("L'agent IA est désactivé (LLM_PROVIDER=none).")
+
+    def extract_listing(self, *_args: object) -> ListingExtraction:
         raise IntegrationNotConfiguredError("L'agent IA est désactivé (LLM_PROVIDER=none).")

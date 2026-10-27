@@ -5,6 +5,7 @@ from typing import Any, Protocol
 
 from app.schemas.chat import ReplyAuthor
 from app.schemas.criteria import CriteriaExtraction, SearchCriteria
+from app.schemas.submission import ListingExtraction, ListingFields
 
 
 @dataclass(frozen=True)
@@ -36,3 +37,9 @@ class LLMProvider(Protocol):
     ) -> CriteriaExtraction: ...
 
     def write_reply(self, context: ReplyContext) -> str: ...
+
+    def extract_listing(
+        self, message: str, history: list[ChatTurn], current: ListingFields
+    ) -> ListingExtraction:
+        """Informations d'annonce données par un propriétaire dans son message."""
+        ...
