@@ -32,6 +32,7 @@ const elements = {
   criteria: document.querySelector("#criteria"),
   filterForm: document.querySelector("#search-form"),
   results: document.querySelector("#property-results"),
+  resultsDisclosure: document.querySelector("#results-disclosure"),
   resultCount: document.querySelector("#result-count"),
   statusMessage: document.querySelector("#status-message"),
   statusText: document.querySelector("#status-text"),
@@ -127,13 +128,14 @@ function setStatus(message, isError = false) {
 
 function showResults(results, total) {
   state.results = results;
-  elements.resultCount.textContent = total ? t("results.count", { count: total }) : "";
+  elements.resultCount.textContent = t("results.count", { count: total });
   setStatus(total ? "" : t("results.empty"));
   refreshResults();
 }
 
 function showResultsError(message) {
   setStatus(message, true);
+  elements.resultsDisclosure.open = true;
 }
 
 // --- Bandeau d'état : source des annonces et fournisseur IA réellement configurés ---
@@ -371,6 +373,8 @@ elements.newConversationButton.addEventListener("click", () => {
   state.selected.clear();
   showResults([], 0);
   setStatus(t("results.idle"));
+  elements.resultCount.textContent = "";
+  elements.resultsDisclosure.open = false;
 });
 
 elements.filterForm.addEventListener("submit", submitFilterSearch);
@@ -380,6 +384,7 @@ elements.clearComparisonButton.addEventListener("click", () => {
 });
 elements.copyContactButton.addEventListener("click", copyContactMessage);
 elements.compareTrayButton.addEventListener("click", () => {
+  elements.resultsDisclosure.open = true;
   elements.comparisonSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 

@@ -536,6 +536,30 @@ button { cursor: pointer; }
 
 .results-heading h2 { font-family: var(--font-display); font-size: clamp(1.4rem, 2.6vw, 1.9rem); letter-spacing: -0.035em; }
 
+.results-disclosure {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.results-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.results-summary::-webkit-details-marker { display: none; }
+.results-summary h2 { flex: 1; min-width: 0; margin: 0; font-size: 1rem; }
+.results-summary .result-count { flex-shrink: 0; }
+.results-summary::after { content: "+"; color: var(--accent); font-size: 1.25rem; }
+.results-disclosure[open] > .results-summary::after { content: "−"; }
+.results-disclosure[open] > .results-summary { border-bottom: 1px solid var(--line-strong); }
+.results-content { display: grid; gap: 1rem; padding: 1rem; }
+.results-content .comparison-section { width: 100%; margin: 0; }
+
 .result-count {
   margin: 0;
   padding: 0.35rem 0.8rem;

@@ -17,6 +17,24 @@ def make_engine(now: datetime | None = None) -> ScoutEngine:
     return ScoutEngine(ModelProfile("meterless", "nvidia/test-model", True), SECRET, now=clock)
 
 
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("Génère une image de la façade du premier", True),
+        ("Montre-moi les photos du logement", True),
+        ("Je veux voir le salon du n°2", True),
+        ("À quoi ressemble la maison ?", True),
+        ("Donne-moi une représentation du lieu", True),
+        ("Je cherche un appartement avec des photos", False),
+        ("Deux chambres et un salon", False),
+        ("Est-ce qu'il y a des photos ?", False),
+        ("Douala, 95 000 FCFA maximum", False),
+    ],
+)
+def test_explicit_visual_requests_do_not_capture_search_fragments(message: str, expected: bool) -> None:
+    assert make_engine().requests_visualization(message) is expected
+
+
 def test_regression_set_clears_every_meterless_threshold() -> None:
     report = run_evals(make_engine())
 

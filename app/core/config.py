@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Meterless Scout Intent : secret HMAC des contrats d'exécution (éphémère s'il est vide).
     scout_signing_secret: str = ""
-    # false : Scout ne classe plus l'intention (politesses en dur, tout le reste va à la recherche) ;
+    # false : sans classification, sauf demandes explicites d'images et annonces propriétaires ;
     # la garde anti-injection et anti-paiement et le contrat signé restent actifs.
     scout_routing_enabled: bool = False
 

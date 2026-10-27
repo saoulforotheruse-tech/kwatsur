@@ -4,6 +4,8 @@
 
 `sample_photos.json` associe des photos Wikimedia Commons aux logements de démonstration. Ces photos sont des exemples libres de droit, pas des photos des annonces ; l'interface les étiquette et affiche leur crédit.
 
+L'appartement de Logpom (`demo-dla-logpom-01`, Douala, 2 chambres, 95 000 FCFA/mois) n'a volontairement pas de photo d'exemple dans ce manifeste : il sert à tester « Génère une image de la façade du premier à partir de sa description ». Une illustration générée est conservée et réutilisée pour cette pièce ; réexécuter le seeder ne supprime pas les images déjà en base.
+
 ## Règles de contribution
 
 - Exécute-le après `alembic upgrade head` avec `python -m db.seed.seed_demo`.

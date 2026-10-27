@@ -150,8 +150,32 @@ def test_prompt_is_anchored_in_cameroonian_housing() -> None:
     assert "urban Cameroon" in exterior and "corrugated metal" in exterior
     assert "Not a European or North American house" in exterior
     assert "ceramic floor tiles" in interior and "corrugated metal" not in interior
-    # La description réelle de l'annonce passe avant le contexte régional.
-    assert exterior.index("Maison avec cour") < exterior.index("urban Cameroon")
+    assert "listing facts and owner photo details take priority" in exterior
+
+
+@pytest.mark.parametrize("city", ["Douala", "Yaoundé"])
+@pytest.mark.parametrize("room", ["facade", "salon", "chambre", "cuisine", "salle_de_bain", "autre"])
+def test_long_descriptions_keep_local_context_within_provider_limit(
+    session: Session, city: str, room: str,
+) -> None:
+    from app.repositories.property_repository import PropertyRepository
+    from app.integrations.data.postgres import property_to_read
+    from app.schemas.criteria import SearchCriteria
+
+    listing = property_to_read(PropertyRepository(session).find_candidates(SearchCriteria(city=city))[0])
+    listing = listing.model_copy(update={"furnished": False})
+    prompt = build_illustration_prompt(
+        room, "Description de test. " * 500, listing,
+        ["Murs jaunes. " * 300], "owner_photo",
+    )
+
+    assert len(prompt) <= 2048
+    assert city in prompt and "Cameroon" in prompt
+    assert "Not a European or North American house" in prompt
+    assert "not a glossy real-estate render" in prompt
+    assert "Listing description (follow it faithfully): Description de test." in prompt
+    assert "unfurnished, no furniture" in prompt
+    assert "Keep the room empty of furniture" in prompt
 
 
 def test_sample_photo_is_credited_and_guides_illustrations_when_no_owner_photo(

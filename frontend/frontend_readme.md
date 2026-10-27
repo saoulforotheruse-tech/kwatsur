@@ -20,6 +20,8 @@ docker compose up --build -d   # interface sur http://localhost:8080
 
 Le backend (racine du dépôt) doit tourner. Les appels de l'interface restent relatifs (`/api/...`) : nginx les relaie, le navigateur ne voit qu'une seule origine.
 
+Les cartes d'annonces et leur tableau de comparaison sont regroupés sous le chat dans « Logements correspondants », un panneau natif `details` fermé par défaut et accessible au clavier. Le nombre de résultats reste visible dans son en-tête, même avec zéro résultat. Les nouvelles recherches respectent son état ouvert/fermé ; une nouvelle conversation le replie. Le bouton « Voir la comparaison » le déplie avant de rejoindre le tableau, et une erreur de recherche manuelle l'ouvre pour rester visible.
+
 ## Règles de contribution
 
 - N’y mets ni secrets ni accès direct à PostgreSQL.

@@ -70,6 +70,7 @@ REFERENCE_INTROS = {
     "sample_photo": "Inspired by reference photos of similar homes in Cameroon:",
 }
 NEGATIVE_STYLE = "Not a European or North American house, no snow, no fireplace, no suburban lawn."
+ILLUSTRATION_PROMPT_LIMIT = 2048
 
 
 # Question posée au modèle de vision pour chaque vraie photo (réponse courte, factuelle).
@@ -91,7 +92,7 @@ def build_illustration_prompt(
     photo_details: list[str] | None = None,
     reference_kind: str | None = None,
 ) -> str:
-    """Prompt envoyé au modèle : uniquement des faits connus, jamais d'information inventée."""
+    """Garde les faits et le contexte régional dans la limite du modèle texte-image."""
     place = CITY_SETTINGS.get(listing.city, f"{listing.city}, Cameroon") if listing else "Cameroon"
     kind = PROPERTY_TYPES_EN.get(listing.property_type, listing.property_type) if listing else "home"
     subject = f"a {kind} in {place}" if listing else "a home in Cameroon"
@@ -100,23 +101,43 @@ def build_illustration_prompt(
         features.append(f"{listing.bedrooms} bedroom(s)")
     if listing is not None and listing.furnished is True:
         features.append("furnished")
+    elif listing is not None and listing.furnished is False:
+        features.append("unfurnished, no furniture")
     sentences = [
-        # Le pays d'abord : c'est la consigne principale du modèle d'image.
         "Create an image representing a real home located in Cameroon, Central Africa, "
-        "as it would look in a Cameroonian city today.",
-        f"Realistic architectural illustration of the {ROOM_PROMPTS[room]} of {subject}"
+        "as a plausible AI illustration, not a reconstruction of the actual property.",
+        f"Documentary housing photograph style, eye-level view of the {ROOM_PROMPTS[room]} of {subject}"
         + (f" ({', '.join(features)})" if features else "")
         + ".",
-        f"Listing description (follow it faithfully): {description.strip()}",
+        "Natural lived-in materials, ordinary rental housing, realistic proportions and slight wear; "
+        "not a glossy real-estate render, CGI, resort or luxury showroom unless the listing says so.",
     ]
-    if photo_details:
-        # Ce que montrent les vraies photos du propriétaire : à respecter (couleurs, matériaux).
-        intro = REFERENCE_INTROS.get(reference_kind, REFERENCE_INTROS["owner_photo"])
-        sentences.append(f"{intro} " + " ".join(photo_details))
+    if room == "facade" and listing and listing.property_type in ("appartement", "studio", "chambre"):
+        sentences.append(
+            "Show a unit in a Cameroonian urban residential building, shared access and neighbouring "
+            "buildings, not a detached Western suburban villa."
+        )
+    sentences.append(
+        "Regional cues below are illustrative possibilities, not known property features; "
+        "listing facts and owner photo details take priority. Do not add unspecified amenities."
+    )
     sentences.append(CAMEROON_STYLE["exterior" if room == "facade" else "interior"])
     sentences.append(NEGATIVE_STYLE)
     sentences.append("Photorealistic, natural light, no text, no watermark, no people.")
-    return " ".join(sentences)
+    if listing is not None and listing.furnished is False:
+        sentences.append("Keep the room empty of furniture even if regional cues mention it.")
+    description_prefix = "Listing description (follow it faithfully): "
+    reference_prefix = REFERENCE_INTROS.get(reference_kind, REFERENCE_INTROS["owner_photo"])
+    fixed = " ".join(sentences)
+    budget = ILLUSTRATION_PROMPT_LIMIT - len(fixed) - len(description_prefix) - 2
+    details = " ".join(photo_details or [])
+    reference = ""
+    if details:
+        reference_budget = max(0, min(350, budget - min(len(description.strip()), 400)))
+        if reference_budget > len(reference_prefix) + 2:
+            reference = f" {reference_prefix} {details[:reference_budget - len(reference_prefix) - 2]}"
+    description_text = description.strip()[:max(0, budget - len(reference))]
+    return f"{fixed} {description_prefix}{description_text}{reference}"
 
 
 # Types d'image produits par l'IA (jamais présentés comme des photos).

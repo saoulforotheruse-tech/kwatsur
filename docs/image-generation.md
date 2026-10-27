@@ -3,7 +3,7 @@
 ## Ce que fait Kwatsur
 
 - **Photos réelles** : un propriétaire qui propose son logement dans le chat peut joindre des photos (salon, chambre, cuisine, salle de bain, façade). Elles sont publiées avec l'annonce une fois validée par un administrateur.
-- **Recherche dans le chat** : les images des cinq premières annonces sont jointes à la réponse et affichées dans la conversation, avec le rang et le titre du logement, leur nature, leurs avertissements et leurs crédits. Elles restent aussi associées aux cartes de résultats.
+- **Recherche dans le chat** : aucune image n'est envoyée spontanément dans la conversation, même si les annonces en possèdent ou si une illustration a déjà été générée. Les métadonnées restent accessibles au modèle et les photos restent associées aux cartes du panneau repliable. Seule une demande visuelle explicite déclenche l'affichage ou la génération ; « avec photos » ou « y a-t-il des images ? » ne déclenchent pas de génération.
 - **Informations transmises à Nemotron** : chaque annonce du contexte contient `images` (identifiant, lien, type, pièce, libellé, avertissement et crédit). Le modèle sait ainsi quelles images existent, même si la description de l'annonce n'en parle pas. Les faits actuels priment sur les anciennes réponses de la conversation. Ce transfert est textuel : Nemotron ne reçoit pas les pixels et ne doit pas prétendre avoir analysé visuellement les photos.
 - **Illustrations IA** : quand quelqu'un demande « montre-moi la douche du n°2 » et qu'aucune photo de cette pièce n'existe, Kwatsur peut générer une **image illustrative** à partir du texte de l'annonce. On peut aussi en générer une depuis le panneau « Visualiser un logement ».
 
@@ -61,6 +61,14 @@ Sans indication, le modèle dessine une maison européenne ou américaine. Le te
 
 Il précise aussi ce qu'il faut éviter (« pas une maison européenne, pas de neige, pas de cheminée »), indique la ville (Douala, port côtier et humide ; Yaoundé, capitale vallonnée) et traduit le type de logement en anglais.
 
+Le prompt est construit dans `app/services/image_service.py` (`build_illustration_prompt`), pas par le modèle de conversation. Il privilégie un rendu documentaire à hauteur des yeux, des matériaux naturels et des proportions plausibles, plutôt qu'un rendu 3D de villa de luxe. Pour un appartement, la façade représente un logement dans un immeuble urbain, pas une villa individuelle occidentale. Les éléments régionaux sont des possibilités illustratives, pas des caractéristiques connues du logement ; les faits de l'annonce priment (notamment « non meublé »).
+
+La limite de 2048 caractères est appliquée dès la construction : le contexte camerounais est réservé avant d'ajouter la description et les éventuels détails visuels. Une longue description ne peut donc plus faire disparaître les consignes locales lors de l'envoi à Cloudflare. Cela améliore l'orientation du modèle sans garantir une architecture exacte ou une localisation réelle de l'image.
+
+Les demandes explicites d'images fonctionnent aussi avec `SCOUT_ROUTING_ENABLED=false`, sans réactiver la classification des critères fragmentés. Exemple : chercher un appartement à Logpom, Douala, puis « Génère une image de la façade du premier à partir de sa description ». Sans photo de la pièce, le chat annonce l'absence de photo du propriétaire et affiche une représentation IA clairement étiquetée ; une illustration existante est réutilisée.
+
+Un titre ou quartier nommé dans une demande visuelle prime sur le premier résultat par défaut : « montre les images de celui de Logpom » cible Logpom, pas le n°1 d'un autre quartier. Si plusieurs résultats correspondent, si aucun ne correspond ou si le nom contredit le rang demandé, le chat demande de préciser sans envoyer d'image ni appeler le générateur. Les critères de recherche conservés ne sont pas modifiés.
+
 ### Photos d'exemple pour la démonstration
 
 `python -m scripts.seed_sample_photos`, à lancer dans le conteneur API, télécharge les photos listées dans `db/seed/sample_photos.json`. Ce sont des photos de Wikimedia Commons sous licence CC BY-SA. Le script vérifie que ce sont de vraies images, puis les rattache aux annonces de démo, avec auteur, licence et page source. Il ne retélécharge pas une photo déjà présente.
@@ -72,10 +80,10 @@ Il précise aussi ce qu'il faut éviter (« pas une maison européenne, pas de n
 
 FLUX.1 schnell ne lit que du texte : il ne peut pas « regarder » une photo. Pour qu'une illustration ressemble à la vraie maison, Kwatsur fait d'abord décrire les **vraies photos du propriétaire** par un modèle de vision, `@cf/llava-hf/llava-1.5-7b-hf` (bêta, sans licence à accepter). Il ajoute ensuite cette description au texte envoyé au générateur. La réponse du chat le précise : « à partir de la description de l'annonce et de 2 vraie(s) photo(s) du propriétaire ».
 
-- Seules les photos de type `owner_photo` servent de référence, jamais une illustration IA : partir d'une image inventée ne ferait qu'empiler de l'invention.
-- Les annonces de démonstration n'ont aucune vraie photo : leurs illustrations reposent sur le texte seul.
+- Les photos de type `owner_photo` sont prioritaires ; à défaut, les `sample_photo` associées peuvent guider le style. Une illustration IA n'est jamais utilisée comme référence : partir d'une image inventée ne ferait qu'empiler de l'invention.
+- Sans photo de référence associée (par exemple l'appartement de Logpom réservé à ce test), l'illustration repose sur le texte et les consignes régionales, sans appel au modèle de vision.
 - Un échec de la vision n'empêche pas l'illustration : elle est alors faite à partir du texte.
-- Code : `app/integrations/image_description/` (contrat `ImageDescriber`, `CloudflareImageDescriber`, choix du fournisseur), appelé par `ImageService._describe_owner_photos`.
+- Code : `app/integrations/image_description/` (contrat `ImageDescriber`, `CloudflareImageDescriber`, choix du fournisseur), appelé par `ImageService._describe_reference_photos`.
 - Vérifié en réel le 27/10/2026 : environ 15 s pour une image de 1 Mo.
 
 ```text

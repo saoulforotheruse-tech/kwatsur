@@ -177,29 +177,30 @@
       </div>
 
       <section class="results-section" aria-labelledby="results-title">
-        <div class="results-heading">
-          <div>
-            <p class="eyebrow">Annonces</p>
+        <details id="results-disclosure" class="results-disclosure">
+          <summary class="results-summary">
             <h2 id="results-title">Logements correspondants</h2>
-          </div>
-          <p id="result-count" class="result-count" aria-live="polite"></p>
-        </div>
-        <div id="status-message" class="empty-state" role="status" aria-live="polite">
-          <span class="empty-illustration" aria-hidden="true">🏠</span>
-          <p id="status-text">Les logements trouvés par l'agent s'afficheront ici.</p>
-        </div>
-        <div id="property-results" class="property-grid"></div>
-      </section>
+            <span id="result-count" class="result-count" aria-live="polite"></span>
+          </summary>
+          <div class="results-content">
+            <div id="status-message" class="empty-state" role="status" aria-live="polite">
+              <span class="empty-illustration" aria-hidden="true">🏠</span>
+              <p id="status-text">Les logements trouvés par l'agent s'afficheront ici.</p>
+            </div>
+            <div id="property-results" class="property-grid"></div>
 
-      <section id="comparison" class="panel comparison-section" aria-labelledby="comparison-title" hidden>
-        <div class="results-heading">
-          <div>
-            <p class="eyebrow">Vue côte à côte</p>
-            <h2 id="comparison-title">Comparer les logements</h2>
+            <section id="comparison" class="panel comparison-section" aria-labelledby="comparison-title" hidden>
+              <div class="results-heading">
+                <div>
+                  <p class="eyebrow">Vue côte à côte</p>
+                  <h2 id="comparison-title">Comparer les logements</h2>
+                </div>
+                <button id="clear-comparison" class="ghost-button" type="button">Effacer la sélection</button>
+              </div>
+              <div id="comparison-table" class="comparison-scroll"></div>
+            </section>
           </div>
-          <button id="clear-comparison" class="ghost-button" type="button">Effacer la sélection</button>
-        </div>
-        <div id="comparison-table" class="comparison-scroll"></div>
+        </details>
       </section>
     </main>
 

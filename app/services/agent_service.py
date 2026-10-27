@@ -14,14 +14,16 @@ Flux d'un message :
 """
 
 import logging
+import re
 
 from app.core.exceptions import KwatsurError
 from app.engines.scout import ScoutDecision, ScoutEngine
+from app.engines.scout.interpret import bind_ranks
 from app.integrations.llm.base import ChatTurn, LLMProvider, ReplyContext
 from app.models.conversation import Conversation
 from app.schemas.chat import ChatResponse, ReplyAuthor, ScoutTrace
-from app.schemas.criteria import SearchCriteria
-from app.schemas.image import ROOM_LABELS, ImageRead
+from app.schemas.criteria import KNOWN_NEIGHBORHOODS, SearchCriteria, normalize_text
+from app.schemas.image import ROOM_LABELS
 from app.schemas.property import DataSourceName, PropertyRead, PropertySearchResult
 from app.services.comparison_service import build_comparison
 from app.services.contact_service import build_contact_draft
@@ -110,14 +112,30 @@ def summarize_for_model(result: PropertySearchResult) -> dict:
     }
 
 
-def conversation_images(results: list[PropertySearchResult]) -> list[ImageRead]:
-    """Identifie les images affichées dans le chat sans perdre leurs avertissements ni crédits."""
+def named_visualization_results(
+    message: str, results: list[PropertySearchResult],
+) -> list[PropertySearchResult] | None:
+    """Un nom explicite prime sur le premier résultat ; aucune substitution silencieuse."""
+    def normalized(value: str) -> str:
+        return " ".join(re.sub(r"[^\w\s]", " ", normalize_text(value)).split())
+
+    text = normalized(message)
+    names = {normalized(name) for name, _city in KNOWN_NEIGHBORHOODS.values()}
+    names.update(normalized(result.property.title) for result in results)
+    names.update(normalized(result.property.neighborhood) for result in results if result.property.neighborhood)
+    mentioned = {name for name in names if f" {name} " in f" {text} "}
+    if not mentioned:
+        # Une référence nommée inconnue doit être clarifiée, pas remplacée par le n°1.
+        if re.search(r"\b(?:celui|celle)\s+(?:de|du|a)\s+\w+", text):
+            return []
+        return None
     return [
-        image.model_copy(update={
-            "label": f"Logement n°{result.rank} — {result.property.title} : {image.label}",
-        })
-        for result in results[:RESULTS_EXPLAINED]
-        for image in result.images
+        result for result in results
+        if any(
+            f" {name} " in f" {normalized(result.property.title)} "
+            or name == normalized(result.property.neighborhood or "")
+            for name in mentioned
+        )
     ]
 
 
@@ -165,7 +183,7 @@ class AgentService:
         self.scout = scout
         self.submissions = submissions
         self.images = images
-        # Désactivé : Scout ne classe plus l'intention ; politesses en dur, le reste va à la recherche.
+        # Sans classification : seules les demandes explicites ouvrent les outils spécialisés.
         self.scout_routing = scout_routing
 
     def handle_message(self, message: str, conversation_id: str | None) -> ChatResponse:
@@ -182,7 +200,10 @@ class AgentService:
                 return response
             # Seul le début explicite d'une annonce (« je mets mon appartement en location ») est détecté.
             owner_flow = draft is not None or self.scout.starts_submission(message)
-            decision = self.scout.authorize(message, "listing.submit" if owner_flow else "housing.search")
+            intent = "listing.submit" if owner_flow else "housing.search"
+            if not owner_flow and self.scout.requests_visualization(message):
+                intent = "listing.visualize"
+            decision = self.scout.authorize(message, intent, has_active_search=current.city is not None)
         else:
             decision = self.scout.decide(
                 message,
@@ -190,12 +211,22 @@ class AgentService:
                 active_workflow="submission" if draft else None,
                 search_in_progress=not current.is_empty(),
             )
+        if not decision.risk.blocked and decision.intent_id != "listing.submit" and draft is None:
+            visual_request = self.scout.requests_visualization(message)
+            if visual_request and decision.intent_id != "listing.visualize":
+                decision = self.scout.authorize(
+                    message, "listing.visualize", has_active_search=current.city is not None
+                )
+            elif not visual_request and decision.intent_id == "listing.visualize":
+                decision = self.scout.authorize(
+                    message, "housing.search", has_active_search=current.city is not None
+                )
         if not decision.proceeds:
             response = self._answer_without_contract(session_id, current, decision)
         elif decision.intent_id == "listing.submit":
             response = self._handle_submission(session_id, message, current, conversation, decision)
         elif decision.intent_id == "listing.visualize":
-            response = self._visualize(session_id, current, decision)
+            response = self._visualize(session_id, current, decision, message)
         elif decision.intent_id == "housing.search":
             response = self._handle_search(session_id, message, current, conversation, decision)
         elif decision.intent_id == "housing.compare":
@@ -282,10 +313,31 @@ class AgentService:
 
     # --- Images d'une pièce : vraie photo d'abord, illustration IA sinon -----------------
 
-    def _visualize(self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision) -> ChatResponse:
+    def _visualize(
+        self, session_id: str, criteria: SearchCriteria, decision: ScoutDecision, message: str,
+    ) -> ChatResponse:
         results, data_source = self._ranked_results(criteria, decision)
         rank, room = decision.parameters["rank"], decision.parameters["room"]
-        selected = [result for result in results if result.rank == rank]
+        named = named_visualization_results(message, results)
+        if named is not None:
+            explicit_ranks = bind_ranks(message)
+            if explicit_ranks:
+                named = [result for result in named if result.rank == explicit_ranks[0]]
+            if len(named) != 1:
+                options = " ; ".join(f"n°{result.rank} : {result.property.title}" for result in named)
+                reply = (
+                    "Plusieurs logements correspondent au nom indiqué. Précisez le numéro : " + options + "."
+                    if named else
+                    "Je ne trouve pas de logement correspondant à ce nom et à ce numéro éventuel "
+                    "dans les résultats actuels. Précisez son numéro ou affinez la recherche."
+                )
+                response = self._answer_with_results(session_id, criteria, reply, named, data_source)
+                response.needs_clarification = True
+                return response
+            selected = named
+            rank = selected[0].rank
+        else:
+            selected = [result for result in results if result.rank == rank]
         if not selected:
             reply = f"Il n'y a pas de logement n°{rank} dans la recherche actuelle ({len(results)} résultat(s))."
             return self._answer_with_results(session_id, criteria, reply, [], data_source)
@@ -319,7 +371,7 @@ class AgentService:
         if existing is not None:
             # Déjà générée pour ce logement et cette pièce : réutilisée, sans consommer de quota.
             reply = (
-                f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
+                f"Le propriétaire du logement n°{rank}, « {listing.title} », n'a pas fourni de photo ({room_label}). "
                 "Voici l'image illustrative déjà générée par IA pour cette pièce : elle ne représente "
                 "pas le logement réel."
             )
@@ -346,9 +398,11 @@ class AgentService:
                 "camerounaises (pas de ce logement)"
             )
         reply = (
-            f"Le propriétaire du logement n°{rank} n'a pas fourni de photo ({room_label}). "
-            f"Voici une image illustrative générée par IA à partir {sources} : elle ne représente "
-            "pas le logement réel et peut s'en écarter."
+            f"Aucune photo du propriétaire n'est disponible pour cette pièce ({room_label}) "
+            f"du logement n°{rank}, « {listing.title} ». "
+            f"Voici une représentation illustrative générée par IA à partir {sources}, "
+            "avec un contexte visuel camerounais. Elle ne représente pas le logement réel "
+            "et peut s'en écarter."
         )
         response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
         response.images = [illustration]
@@ -487,5 +541,4 @@ class AgentService:
             data_source=outcome.data_source,
             notices=notices,
             results=outcome.results,
-            images=conversation_images(outcome.results),
         )

@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 from app.engines.scout.contract import ContractVerifier, issue_contract
 from app.engines.scout.guard import POLICY_PACK_VERSION, GuardResult, run_guard
-from app.engines.scout.interpret import Clarification, Interpretation, interpret
+from app.engines.scout.interpret import Clarification, Interpretation, interpret, is_visualization_request
 from app.engines.scout.registry import IntentRegistry, load_registry
 from app.engines.scout.sense import (
     LOW_BAND,
@@ -149,8 +149,12 @@ class ScoutEngine:
     def starts_submission(self, prompt: str) -> bool:
         return detect_workflow_start(self.registry, prompt) == "submission"
 
+    def requests_visualization(self, prompt: str) -> bool:
+        return is_visualization_request(prompt)
+
     def authorize(
-        self, prompt: str, intent_id: str, surface: str = "chat", role: str = "visitor", user: str = "anonymous"
+        self, prompt: str, intent_id: str, surface: str = "chat", role: str = "visitor", user: str = "anonymous",
+        has_active_search: bool = False,
     ) -> ScoutDecision:
         """Intention imposée par l'agent, sans classification ni clarification.
 
@@ -160,7 +164,9 @@ class ScoutEngine:
         started = time.perf_counter()
         trace_id = uuid.uuid4().hex
         intent = self.registry.get(intent_id)
-        interpretation = Interpretation(intent=intent, confidence=1.0, band="high")
+        interpretation = interpret(
+            self.registry, prompt, [IntentCandidate(intent_id, 1.0, 0.0)], has_active_search
+        )
         risk = run_guard(prompt, intent, surface, role)
         decision_fields = {
             "trace_id": trace_id,
@@ -168,12 +174,14 @@ class ScoutEngine:
             "intent_label": intent.label,
             "confidence": 1.0,
             "band": "high",
-            "parameters": {},
+            "parameters": interpretation.parameters,
             "candidates": [IntentCandidate(intent.id, 1.0, 0.0)],
             "risk": risk,
         }
         if risk.blocked:
             decision = ScoutDecision(**decision_fields, refusal_reason=risk.reason)
+        elif interpretation.clarification:
+            decision = ScoutDecision(**decision_fields, clarification=interpretation.clarification)
         else:
             tool_plan = self._route(interpretation)
             if tool_plan is None:
