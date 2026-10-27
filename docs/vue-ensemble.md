@@ -6,6 +6,8 @@
 
 Tu écris « Un deux-chambres à Douala vers Bonamoussadi, 150 000 FCFA max, avec eau ». Kwatsur comprend la demande, cherche dans les annonces, garde celles qui respectent tes critères, les classe, puis t'explique pourquoi chaque logement est proposé et ce qu'il faut vérifier. Il n'invente jamais une information absente.
 
+Les propriétaires peuvent aussi **proposer leur logement** en le décrivant dans le chat. L'agent pose les questions qui manquent et accepte des photos. Un administrateur valide l'annonce sur `/admin.html` avant qu'elle soit visible. Enfin, on peut **voir une pièce** (« montre-moi le salon du n°1 ») : la vraie photo si elle existe, sinon une illustration IA clairement étiquetée.
+
 ## Le principe à retenir
 
 > **L'IA comprend et explique. Le code décide.**

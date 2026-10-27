@@ -31,6 +31,8 @@ Nemotron rédige l'explication à partir des seuls faits calculés → interface
 - Signaux potentiels (annonce ancienne, loyer anormalement bas, annonce peu détaillée…), jamais présentés comme une preuve d'arnaque.
 - Comparaison côte à côte (3 logements) et brouillon de message de contact (aucun envoi).
 - Recherche manuelle par filtres, utilisable même sans IA.
+- **Les propriétaires proposent leur logement dans le chat** (« je loue mon appartement… ») : l'agent pose les questions qui manquent, accepte des photos, puis envoie l'annonce à un administrateur, qui la valide sur `/admin.html` avant toute publication.
+- **Images d'une pièce** (« montre-moi la douche du n°2 ») : la vraie photo du propriétaire si elle existe, sinon une illustration générée par Cloudflare Workers AI, toujours étiquetée « Image illustrative générée par IA ». Voir [`docs/image-generation.md`](./docs/image-generation.md).
 - **Meterless Scout Intent** avant chaque action : intention (recherche, comparaison, brouillon de contact), blocage des injections de prompt et des demandes de paiement, contrat signé qui autorise chaque outil. Évaluation : `python -m scripts.run_scout_evals`.
 
 ## Démarrage rapide (Docker)
@@ -101,6 +103,9 @@ Toutes les valeurs viennent de l'environnement (`.env`, jamais commité). Les se
 | `ZETARIS_BASE_URL`, `ZETARIS_API_KEY`, `ZETARIS_ORG_ID`, `ZETARIS_LISTINGS_TABLE` | Accès Zetaris (API REST officielle) |
 | `LLM_PROVIDER` | `rules` (défaut : **mode démo sans IA ni clé**), `meterless` (Nemotron via Nightshift, utilisé pour le hackathon), `nemotron` (API NVIDIA directe) ou `none` (chat désactivé) |
 | `SCOUT_SIGNING_SECRET` | Secret HMAC des contrats Scout Intent (éphémère s'il est vide) |
+| `ADMIN_TOKEN` | Jeton de la page `/admin.html` qui valide les annonces proposées (vide = administration fermée) |
+| `IMAGE_GENERATION_*`, `CLOUDFLARE_*` | Génération d'illustrations (voir [`docs/image-generation.md`](./docs/image-generation.md)) |
+| `MEDIA_DIRECTORY`, `IMAGE_UPLOAD_MAX_BYTES` | Dossier des images (volume Docker `kwatsur_media`) et taille maximale d'une photo |
 | `NEMOTRON_BASE_URL`, `NEMOTRON_API_KEY`, `NEMOTRON_MODEL` | Nemotron sur le catalogue NVIDIA |
 | `METERLESS_BASE_URL`, `METERLESS_API_KEY`, `METERLESS_MODEL`, `METERLESS_APP_ID` | Nemotron via Meterless Runtime |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Limite de messages par client |
@@ -133,6 +138,7 @@ KWATSUR_TEST_DATABASE_URL=postgresql+psycopg://kwatsur:kwatsur_dev@localhost:543
 - [`docs/exigences.md`](./docs/exigences.md) : exigences du hackathon et du produit, état de conformité, actions restantes.
 - [`docs/architecture.md`](./docs/architecture.md) : couches, patterns, parcours complet d'une requête.
 - [`docs/api.md`](./docs/api.md) : endpoints et contrats.
+- [`docs/image-generation.md`](./docs/image-generation.md) : photos, illustrations IA, Cloudflare Workers AI.
 - [`docs/sponsor-tech.md`](./docs/sponsor-tech.md) : rôle réel de Zetaris, Nemotron, Meterless et Cursor.
 - [`docs/data-sources.md`](./docs/data-sources.md) : provenance des données et limites.
 - [`docs/demo-script.md`](./docs/demo-script.md) : scénario de démonstration (3 à 4 minutes).

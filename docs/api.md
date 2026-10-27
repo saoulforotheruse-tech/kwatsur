@@ -11,6 +11,15 @@ Documentation interactive générée par FastAPI : `/docs` (Swagger) et `/redoc`
 | GET | `/api/properties` | Recherche par filtres (sans IA) |
 | GET | `/api/properties/{id}` | Détail d'une annonce |
 | POST | `/api/properties/{id}/contact-draft` | Brouillon de message (aucun envoi) |
+| GET | `/api/images/status` | Génération d'images configurée ? Images restantes aujourd'hui |
+| POST | `/api/images/generate` | Générer une illustration IA (`description`, `room`, `property_id` facultatif) |
+| GET | `/api/images/{id}` | Fichier d'une image (photo ou illustration) |
+| GET | `/api/submissions/{id}` | Ma proposition d'annonce (en-tête `X-Conversation-Id`) |
+| POST | `/api/submissions/{id}/photos?room=salon` | Ajouter une photo : corps = image brute JPEG/PNG/WebP, 5 Mo max (en-tête `X-Conversation-Id`) |
+| GET | `/api/admin/submissions?status=pending` | Propositions à valider (en-tête `X-Admin-Token`) |
+| POST | `/api/admin/submissions/{id}/approve` ou `/reject` | Décision de l'administrateur (`{"note": "…"}`) |
+
+Chaque réponse du chat peut aussi contenir `images` (photos ou illustrations IA, chacune avec `kind`, `label`, `is_ai_generated` et `caption`) et `submission` (la proposition d'annonce en cours : `status`, `fields`, `missing_fields`, `images`). Les résultats de recherche portent leurs `images`.
 
 ## POST /api/chat
 

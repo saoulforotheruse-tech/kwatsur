@@ -59,7 +59,7 @@ METERLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b   # route Nemotron listée par
 **Moteur Meterless implémenté : Scout Intent** (règle « Build », vérifié le 26/10/2026).
 
 Scout passe avant chaque action de l'agent (`app/engines/scout/`, voir `app/engines/engines_readme.md`) :
-1. **Sense** : score déterministe des intentions du catalogue `kwatsur_intents.json` (recherche, comparaison, brouillon de contact, paiement, aide générale) ;
+1. **Sense** : score déterministe des intentions du catalogue `kwatsur_intents.json` (recherche, comparaison, brouillon de contact, proposition d'annonce par un propriétaire, images d'une pièce, paiement, aide générale). Les formules de politesse ne comptent que si le message ne contient rien d'autre, et « je loue mon… » ouvre le flux de proposition d'annonce, dont les messages suivants restent la suite ;
 2. **Interpret** : rang du logement cité (« le n°2 »), et clarification si la confiance est basse, s'il y a égalité, si un paramètre manque ou si l'action est risquée ;
 3. **Guard** : injection de prompt, politique (Kwatsur ne fait aucun paiement), portée, coordonnées personnelles ;
 4. **Route** : capacités → outils (`search_service.search`, `llm.write_reply`, `comparison.build`, `contact_service.build_contact_draft`) ;
