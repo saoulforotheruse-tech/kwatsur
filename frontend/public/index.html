@@ -61,6 +61,8 @@
             <button type="button" class="example-chip" data-example="Un studio à Yaoundé à moins de 100 000 FCFA, de préférence meublé.">🛋️ Studio meublé à Yaoundé</button>
             <button type="button" class="example-chip" data-example="Finalement, peu importe le quartier, mais pas plus de 110 000 FCFA.">🎯 Assouplir les critères</button>
             <button type="button" class="example-chip" data-example="Compare le premier et le deuxième">⚖️ Comparer les deux premiers</button>
+            <button type="button" class="example-chip" data-example="Montre-moi le salon du premier">🖼️ Voir le salon du n°1</button>
+            <button type="button" class="example-chip" data-example="Bonjour, je loue mon appartement de 2 chambres à Douala vers Bonapriso, 130 000 FCFA par mois, avec eau et électricité.">🏡 Je loue mon appartement</button>
           </div>
 
           <form id="chat-form" class="composer">
@@ -77,6 +79,53 @@
           <section class="panel criteria-panel" aria-labelledby="criteria-title">
             <h2 id="criteria-title" class="small-title">Ce que l'agent a retenu</h2>
             <div id="criteria" aria-live="polite"></div>
+          </section>
+
+          <section id="submission-panel" class="panel submission-panel" aria-labelledby="submission-title" hidden>
+            <h2 id="submission-title" class="small-title">Mon annonce proposée</h2>
+            <p id="submission-status" class="submission-status"></p>
+            <div id="submission-fields"></div>
+            <div id="submission-photos" class="photo-strip"></div>
+            <form id="photo-form" class="photo-form">
+              <label>Pièce photographiée
+                <select name="room">
+                  <option value="facade">Façade</option>
+                  <option value="salon">Salon</option>
+                  <option value="chambre">Chambre</option>
+                  <option value="cuisine">Cuisine</option>
+                  <option value="salle_de_bain">Salle de bain / douche</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </label>
+              <label class="file-label">
+                <input id="photo-input" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+                <span>＋ Ajouter une photo</span>
+              </label>
+              <p id="photo-message" class="muted-text" aria-live="polite"></p>
+            </form>
+          </section>
+
+          <section class="panel filter-panel generator-panel" aria-labelledby="generator-title">
+            <details>
+              <summary id="generator-title"><span>Visualiser un logement</span><span class="summary-hint">IA</span></summary>
+              <form id="generate-form" class="filter-form">
+                <label>Pièce ou vue
+                  <select name="room">
+                    <option value="facade">Façade (vue extérieure)</option>
+                    <option value="salon">Salon</option>
+                    <option value="chambre">Chambre</option>
+                    <option value="cuisine">Cuisine</option>
+                    <option value="salle_de_bain">Salle de bain / douche</option>
+                  </select>
+                </label>
+                <label>Description
+                  <textarea name="description" rows="3" minlength="3" maxlength="600" required placeholder="Ex. : salon spacieux et lumineux, murs clairs, sol carrelé, mobilier simple"></textarea>
+                </label>
+                <button class="primary-button" type="submit">Générer une image</button>
+                <p id="generator-status" class="muted-text" aria-live="polite"></p>
+              </form>
+              <div id="generator-result"></div>
+            </details>
           </section>
 
           <section class="panel filter-panel" aria-labelledby="filter-title">

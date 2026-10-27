@@ -8,6 +8,7 @@ import {
   formatListingStatus,
   formatRent,
 } from "../utils/format.js";
+import { createImageFigure } from "./images.js";
 
 export const MAX_COMPARISON_ITEMS = 3;
 
@@ -104,6 +105,10 @@ function createPropertyCard(result, handlers, bestPoints, index) {
   top.append(badges);
   card.append(top);
 
+  if (result.images?.length) {
+    // Première image du logement : photo du propriétaire si elle existe, sinon illustration IA.
+    card.append(createImageFigure(result.images[0], { compact: true }));
+  }
   card.append(createElement("h3", property.title));
   const location = createElement("p", null, "property-location");
   const area = [property.neighborhood, property.city].filter(Boolean).join(", ");

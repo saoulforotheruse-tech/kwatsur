@@ -5,13 +5,19 @@ import {
   renderComparison,
   renderProperties,
 } from "./components/property_cards.js";
+import { createImageFigure } from "./components/images.js";
+import { renderSubmission } from "./components/submission_panel.js";
 import { t } from "./i18n/index.js";
 import {
   createContactDraft,
   fetchConversation,
   fetchHealth,
+  fetchImageStatus,
+  fetchSubmission,
+  generateImage,
   searchProperties,
   sendChatMessage,
+  uploadSubmissionPhoto,
 } from "./services/api.js";
 
 const CONVERSATION_STORAGE_KEY = "kwatsur.conversationId";
@@ -33,6 +39,12 @@ const elements = {
   compareTray: document.querySelector("#compare-tray"),
   compareTrayText: document.querySelector("#compare-tray-text"),
   compareTrayButton: document.querySelector("#compare-tray-button"),
+  photoInput: document.querySelector("#photo-input"),
+  photoForm: document.querySelector("#photo-form"),
+  photoMessage: document.querySelector("#photo-message"),
+  generateForm: document.querySelector("#generate-form"),
+  generatorStatus: document.querySelector("#generator-status"),
+  generatorResult: document.querySelector("#generator-result"),
   comparisonSection: document.querySelector("#comparison"),
   comparisonTable: document.querySelector("#comparison-table"),
   clearComparisonButton: document.querySelector("#clear-comparison"),
@@ -47,6 +59,14 @@ const state = {
   conversationId: readStoredConversationId(),
   results: [],
   selected: new Map(),
+  submission: null,
+};
+const submissionPanel = {
+  root: document.querySelector("#submission-panel"),
+  status: document.querySelector("#submission-status"),
+  fields: document.querySelector("#submission-fields"),
+  photos: document.querySelector("#submission-photos"),
+  form: document.querySelector("#photo-form"),
 };
 const chat = new ChatThread(elements.chatMessages);
 
@@ -149,8 +169,12 @@ async function submitChatMessage(message) {
     state.conversationId = response.conversation_id;
     storeConversationId(state.conversationId);
     chat.hideLoading();
-    chat.addAssistantMessage(response.reply, describeResponse(response));
+    chat.addAssistantMessage(response.reply, describeResponse(response), response.images);
     renderCriteria(elements.criteria, response.criteria);
+    if (response.submission) {
+      state.submission = response.submission;
+      renderSubmission(submissionPanel, state.submission);
+    }
     if (response.searched) {
       showResults(response.results, response.total);
     }
@@ -170,6 +194,8 @@ async function submitChatMessage(message) {
 
 function resetConversation() {
   state.conversationId = null;
+  state.submission = null;
+  renderSubmission(submissionPanel, null);
   storeConversationId(null);
   chat.reset();
   renderCriteria(elements.criteria, null);
@@ -254,6 +280,56 @@ async function copyContactMessage() {
   }
 }
 
+// --- Photos de l'annonce proposée par le propriétaire ---
+async function uploadPhoto() {
+  const file = elements.photoInput.files[0];
+  if (!file || !state.submission || !state.conversationId) {
+    return;
+  }
+  const room = new FormData(elements.photoForm).get("room");
+  elements.photoMessage.textContent = t("submission.uploading");
+  try {
+    await uploadSubmissionPhoto(state.submission.id, state.conversationId, file, room);
+    state.submission = await fetchSubmission(state.submission.id, state.conversationId);
+    renderSubmission(submissionPanel, state.submission);
+    elements.photoMessage.textContent = t("submission.uploaded");
+  } catch (error) {
+    elements.photoMessage.textContent = error.message;
+  } finally {
+    elements.photoInput.value = "";
+  }
+}
+
+// --- Génération d'une image illustrative (jamais présentée comme une photo) ---
+async function showGeneratorStatus() {
+  try {
+    const status = await fetchImageStatus();
+    elements.generatorStatus.textContent = status.available
+      ? t("generator.remaining", { count: status.remaining_today })
+      : t("generator.unavailable");
+  } catch {
+    elements.generatorStatus.textContent = t("generator.unavailable");
+  }
+}
+
+async function submitGeneration(event) {
+  event.preventDefault();
+  const submitButton = elements.generateForm.querySelector('button[type="submit"]');
+  const formData = new FormData(elements.generateForm);
+  submitButton.disabled = true;
+  elements.generatorStatus.textContent = t("generator.loading");
+  try {
+    const image = await generateImage(formData.get("description").toString().trim(), formData.get("room"));
+    elements.generatorResult.replaceChildren(createImageFigure(image));
+    elements.generatorStatus.textContent = t("generator.done");
+    showGeneratorStatus();
+  } catch (error) {
+    elements.generatorStatus.textContent = error.message;
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
 // --- Branchement des événements ---
 elements.chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -301,5 +377,9 @@ elements.compareTrayButton.addEventListener("click", () => {
   elements.comparisonSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+elements.photoInput.addEventListener("change", uploadPhoto);
+elements.generateForm.addEventListener("submit", submitGeneration);
+
 showSystemStatus();
+showGeneratorStatus();
 restoreConversation();

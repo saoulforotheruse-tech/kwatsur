@@ -8,6 +8,8 @@ Interface du navigateur, lancée **séparément du backend** dans son propre con
 | `nginx/default.conf.template` | Sert `public/`, relaie `/api` et `/health` vers le backend, ajoute les en-têtes de sécurité (CSP…) |
 | `Dockerfile` | Image nginx avec l'interface |
 | `docker-compose.yml` | Lance l'interface sur `FRONTEND_PORT` (8080 par défaut) |
+| `public/admin.html`, `public/js/admin.js` | Page de validation des annonces proposées (jeton `ADMIN_TOKEN`) |
+| `public/js/components/images.js` | Affichage d'une image avec son libellé : photo du propriétaire ou illustration IA |
 | `.env.example` | `FRONTEND_PORT` et `KWATSUR_API_URL` (adresse du backend vue depuis le conteneur) |
 
 ```sh

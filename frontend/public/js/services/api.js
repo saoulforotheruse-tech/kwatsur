@@ -12,8 +12,8 @@ async function requestJson(url, options = {}) {
   let response;
   try {
     response = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
       ...options,
+      headers: { "Content-Type": "application/json", ...options.headers },
     });
   } catch {
     throw new ApiError(t("error.network"), 0);
@@ -48,4 +48,30 @@ export function createContactDraft(propertyId) {
 
 export function fetchHealth() {
   return requestJson("/health");
+}
+
+export function fetchImageStatus() {
+  return requestJson("/api/images/status");
+}
+
+export function generateImage(description, room, propertyId = null) {
+  return requestJson("/api/images/generate", {
+    method: "POST",
+    body: JSON.stringify({ description, room, property_id: propertyId }),
+  });
+}
+
+export function fetchSubmission(submissionId, conversationId) {
+  return requestJson(`/api/submissions/${submissionId}`, {
+    headers: { "X-Conversation-Id": conversationId },
+  });
+}
+
+// La photo est envoyée telle quelle (corps brut) ; le serveur vérifie qu'il s'agit d'une image.
+export function uploadSubmissionPhoto(submissionId, conversationId, file, room) {
+  return requestJson(`/api/submissions/${submissionId}/photos?room=${encodeURIComponent(room)}`, {
+    method: "POST",
+    headers: { "X-Conversation-Id": conversationId, "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
 }

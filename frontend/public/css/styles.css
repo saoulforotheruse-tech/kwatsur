@@ -328,7 +328,7 @@ button { cursor: pointer; }
 }
 
 .meta-pill.ai { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
-.meta-pill.scout { color: var(--user); }
+.meta-pill.scout { color: var(--ink-soft); }
 .meta-pill.notice { color: var(--warning); background: var(--warning-soft); border-color: transparent; }
 
 .typing { display: inline-flex; gap: 0.3rem; padding: 0.95rem 1.1rem; }
@@ -777,3 +777,72 @@ a.property-source { color: var(--accent); }
   .results-section, .site-footer { width: calc(100% - 2rem); margin: 1.5rem auto 0; padding: 0; }
   .compare-tray { width: calc(100% - 1.5rem); justify-content: space-between; }
 }
+
+/* --- Images : photos des propriétaires et illustrations IA (toujours étiquetées) -------- */
+.image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+
+.image-figure {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-tint);
+}
+
+.image-figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.image-figure.compact { border-radius: 14px; }
+.image-figure.compact img { aspect-ratio: 16 / 9; }
+.image-figure.ai { border-style: dashed; border-color: var(--warning); }
+
+.image-badge {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(6px);
+}
+
+.image-badge.ai { background: rgba(138, 90, 0, 0.88); color: #fff; }
+.image-badge.photo { background: rgba(15, 107, 82, 0.88); color: #fff; }
+
+.image-figure figcaption { display: grid; gap: 0.2rem; padding: 0.55rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+.image-figure figcaption small { font-weight: 500; color: var(--warning); }
+
+.message-body .image-gallery { margin-top: 0.4rem; }
+
+/* --- Annonce proposée par le propriétaire ---------------------------------------------- */
+.submission-panel { display: grid; gap: 0.7rem; padding: 1rem; border: 1px solid var(--accent); border-radius: 12px; background: var(--panel); }
+
+.submission-status { margin: 0; justify-self: start; padding: 0.25rem 0.65rem; border-radius: 999px; background: var(--panel-tint); font-size: 0.78rem; font-weight: 700; color: var(--ink-soft); }
+.submission-status[data-status="pending"] { background: var(--warning-soft); color: var(--warning); }
+.submission-status[data-status="approved"] { background: var(--accent-soft); color: var(--accent-deep); }
+.submission-status[data-status="rejected"], .submission-status[data-status="cancelled"] { background: var(--danger-soft); color: var(--danger); }
+
+.photo-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+.photo-strip:empty { display: none; }
+
+.photo-form { display: grid; gap: 0.55rem; }
+.photo-form label { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
+.photo-form select { padding: 0.5rem 0.65rem; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel-solid); }
+
+.file-label { position: relative; cursor: pointer; }
+.file-label input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.file-label span {
+  display: block;
+  padding: 0.6rem;
+  border: 1.5px dashed var(--accent);
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent);
+  transition: background 0.2s ease;
+}
+.file-label:hover span, .file-label:focus-within span { background: var(--accent-soft); }
+
+.generator-panel textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel-solid); resize: vertical; }
+#generator-result { margin-top: 0.75rem; }

@@ -1,5 +1,6 @@
 import { t } from "../i18n/index.js";
 import { createElement } from "../utils/format.js";
+import { createGallery } from "./images.js";
 
 // Le modèle met parfois du gras Markdown (**texte**) : on le rend en <strong>, sans jamais
 // interpréter de HTML (texte découpé et inséré avec textContent).
@@ -40,11 +41,15 @@ export class ChatThread {
   }
 
   // `metadata` : liste de { text, kind } (kind : ai, scout, notice ou vide).
-  addAssistantMessage(text, metadata = []) {
+  // `images` : photos ou illustrations IA jointes à la réponse (toujours étiquetées).
+  addAssistantMessage(text, metadata = [], images = []) {
     const row = createElement("div", null, "message-row assistant");
     const body = createElement("div", null, "message-body");
     // Les retours à la ligne sont préservés par le CSS (white-space: pre-wrap).
     body.append(createRichText(text));
+    if (images.length) {
+      body.append(createGallery(images));
+    }
     if (metadata.length) {
       const list = createElement("ul", null, "meta-list");
       for (const item of metadata) {
