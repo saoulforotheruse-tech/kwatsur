@@ -846,3 +846,63 @@ a.property-source { color: var(--accent); }
 
 .generator-panel textarea { width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--panel-solid); resize: vertical; }
 #generator-result { margin-top: 0.75rem; }
+
+/* --- Conversation vocale ---------------------------------------------------------------- */
+.voice-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--panel-solid);
+  color: var(--accent);
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.voice-button svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.voice-button:hover { background: var(--accent-soft); transform: translateY(-1px); }
+.composer:has(.voice-button:not([hidden])) { grid-template-columns: 1fr auto auto; }
+
+/* Pendant le vocal, l'interface de message est masquée ; la bulle prend toute la place. */
+.chat-panel.voice-active .chat-messages,
+.chat-panel.voice-active .examples,
+.chat-panel.voice-active .composer,
+.chat-panel.voice-active .composer-hint { display: none; }
+
+.voice-overlay {
+  grid-row: 2 / -1;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  animation: rise 0.35s ease both;
+}
+
+.voice-orb { position: relative; width: 9rem; height: 9rem; }
+
+.voice-orb span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #7fe0c0 0%, var(--accent) 45%, var(--accent-deep) 100%);
+}
+
+.voice-orb span:nth-child(2), .voice-orb span:nth-child(3) { opacity: 0.25; transform: scale(1.15); }
+
+.voice-overlay[data-state="listening"] .voice-orb span:first-child { animation: orb-breathe 1.6s ease-in-out infinite; }
+.voice-overlay[data-state="listening"] .voice-orb span:nth-child(2) { animation: orb-ring 1.6s ease-out infinite; }
+.voice-overlay[data-state="listening"] .voice-orb span:nth-child(3) { animation: orb-ring 1.6s ease-out 0.8s infinite; }
+.voice-overlay[data-state="thinking"] .voice-orb span:first-child { animation: orb-think 1.2s linear infinite; border-radius: 42% 58% 55% 45%; }
+.voice-overlay[data-state="speaking"] .voice-orb span:first-child { animation: orb-speak 0.5s ease-in-out infinite alternate; }
+.voice-overlay[data-state="error"] .voice-orb span:first-child { background: var(--danger); opacity: 0.7; }
+
+.voice-status { margin: 0; font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.voice-transcript { margin: 0; max-width: 34rem; min-height: 3rem; color: var(--ink-soft); font-size: 1.05rem; line-height: 1.5; }
+
+@keyframes orb-breathe { 0%, 100% { transform: scale(0.92); } 50% { transform: scale(1); } }
+@keyframes orb-ring { from { transform: scale(1); opacity: 0.35; } to { transform: scale(1.45); opacity: 0; } }
+@keyframes orb-think { to { transform: rotate(360deg); } }
+@keyframes orb-speak { from { transform: scale(0.9, 0.95); } to { transform: scale(1.04, 0.98); } }

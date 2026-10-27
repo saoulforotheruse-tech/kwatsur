@@ -7,6 +7,7 @@ import {
 } from "./components/property_cards.js";
 import { createImageFigure } from "./components/images.js";
 import { renderSubmission } from "./components/submission_panel.js";
+import { VoiceMode, voiceSupported } from "./components/voice_mode.js";
 import { t } from "./i18n/index.js";
 import {
   createContactDraft,
@@ -45,6 +46,9 @@ const elements = {
   generateForm: document.querySelector("#generate-form"),
   generatorStatus: document.querySelector("#generator-status"),
   generatorResult: document.querySelector("#generator-result"),
+  voiceButton: document.querySelector("#voice-button"),
+  voiceStop: document.querySelector("#voice-stop"),
+  chatPanel: document.querySelector(".chat-panel"),
   comparisonSection: document.querySelector("#comparison"),
   comparisonTable: document.querySelector("#comparison-table"),
   clearComparisonButton: document.querySelector("#clear-comparison"),
@@ -178,6 +182,7 @@ async function submitChatMessage(message) {
     if (response.searched) {
       showResults(response.results, response.total);
     }
+    return response.reply;
   } catch (error) {
     chat.hideLoading();
     if (error.status === 404) {
@@ -185,6 +190,7 @@ async function submitChatMessage(message) {
       resetConversation();
     }
     chat.addErrorMessage(error.message);
+    return null;
   } finally {
     submitButton.disabled = false;
     elements.chatInput.disabled = false;
@@ -376,6 +382,25 @@ elements.copyContactButton.addEventListener("click", copyContactMessage);
 elements.compareTrayButton.addEventListener("click", () => {
   elements.comparisonSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
+// --- Conversation vocale : l'interface de message est masquée pendant le vocal ---
+const voiceMode = new VoiceMode(
+  {
+    overlay: document.querySelector("#voice-overlay"),
+    status: document.querySelector("#voice-status"),
+    transcript: document.querySelector("#voice-transcript"),
+  },
+  elements.chatInput,
+  (text) => {
+    // Même chemin qu'un message tapé : il apparaît dans le fil (masqué) et la réponse aussi.
+    elements.chatInput.value = "";
+    return submitChatMessage(text);
+  },
+  (voiceActive) => elements.chatPanel.classList.toggle("voice-active", voiceActive),
+);
+elements.voiceButton.hidden = !voiceSupported;
+elements.voiceButton.addEventListener("click", () => voiceMode.start());
+elements.voiceStop.addEventListener("click", () => voiceMode.stop());
 
 elements.photoInput.addEventListener("change", uploadPhoto);
 elements.generateForm.addEventListener("submit", submitGeneration);

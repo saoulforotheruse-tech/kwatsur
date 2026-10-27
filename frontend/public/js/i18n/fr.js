@@ -95,6 +95,12 @@ export const fr = {
   "submission.field.monthly_rent": "Loyer",
   "submission.field.bedrooms": "Chambres",
   "submission.field.contact_information": "Contact",
+  "voice.listening": "Je vous écoute…",
+  "voice.noSpeech": "Je n'ai rien entendu, je vous écoute toujours…",
+  "voice.thinking": "Kwatsur réfléchit…",
+  "voice.speaking": "Kwatsur vous répond…",
+  "voice.denied": "Accès au micro refusé : autorisez le micro dans le navigateur, puis réessayez.",
+  "voice.error": "La réponse n'a pas pu être obtenue. Je vous réécoute…",
   "contact.copied": "Message copié.",
   "contact.copyFailed": "Copie impossible : sélectionnez le texte manuellement.",
 };
