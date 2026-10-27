@@ -22,5 +22,7 @@ Le backend (racine du dépôt) doit tourner. Les appels de l'interface restent r
 - N’y mets ni secrets ni accès direct à PostgreSQL.
 - `textContent` uniquement, jamais `innerHTML` avec des données ; textes dans `public/js/i18n/`.
 - Pas de script ni de style en ligne : la CSP de nginx les bloque.
+- Identité visuelle (reprise du frontend de version1.0) : polices Syne (titres) et Figtree (texte) via Google Fonts, autorisées dans la CSP ; couleurs et thème sombre définis par les variables de `public/css/styles.css`.
+- Une valeur inconnue s'affiche en pointillés avec « ? », jamais comme « non ».
 - Les annonces inconnues doivent rester présentées comme non renseignées.
 - Vérifie les appels API et l’usage mobile après tout changement d’interface.

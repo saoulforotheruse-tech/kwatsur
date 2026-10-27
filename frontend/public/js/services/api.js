@@ -45,3 +45,7 @@ export function searchProperties(queryParameters) {
 export function createContactDraft(propertyId) {
   return requestJson(`/api/properties/${propertyId}/contact-draft`, { method: "POST" });
 }
+
+export function fetchHealth() {
+  return requestJson("/health");
+}
