@@ -33,6 +33,9 @@ services:
       METERLESS_BASE_URL: ${METERLESS_DOCKER_BASE_URL:-http://host.docker.internal:8088/v1}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      # Photos des propriétaires et illustrations IA : conservées entre les redémarrages.
+      - kwatsur_media:/app/media
     depends_on:
       db:
         condition: service_healthy
@@ -41,3 +44,4 @@ services:
 
 volumes:
   kwatsur_pgdata:
+  kwatsur_media:

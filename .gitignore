@@ -14,6 +14,9 @@ token.txt
 zetaris-platform/
 zetaris-platform.zip
 
+# Images enregistrées en développement hors Docker
+/media/
+
 # Environnements Python locaux
 *.whl
 venv/
