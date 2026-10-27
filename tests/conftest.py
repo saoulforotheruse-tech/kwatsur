@@ -71,7 +71,10 @@ def client(
         yield session
 
     app.dependency_overrides[get_session] = override_session
-    app.dependency_overrides[get_settings] = lambda: make_test_settings(admin_token="admin-de-test")
+    # Routage Scout actif : ces tests couvrent comparaison, images et propositions d'annonce.
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(
+        admin_token="admin-de-test", scout_routing_enabled=True
+    )
     app.dependency_overrides[get_image_provider] = lambda: image_provider
     # Les fichiers des tests vont dans un dossier temporaire, jamais dans le projet.
     app.dependency_overrides[get_image_store] = lambda: LocalImageStore(tmp_path, max_bytes=1_000)

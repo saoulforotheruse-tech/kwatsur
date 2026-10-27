@@ -3,6 +3,8 @@
 ## Ce que fait Kwatsur
 
 - **Photos réelles** : un propriétaire qui propose son logement dans le chat peut joindre des photos (salon, chambre, cuisine, salle de bain, façade). Elles sont publiées avec l'annonce une fois validée par un administrateur.
+- **Recherche dans le chat** : les images des cinq premières annonces sont jointes à la réponse et affichées dans la conversation, avec le rang et le titre du logement, leur nature, leurs avertissements et leurs crédits. Elles restent aussi associées aux cartes de résultats.
+- **Informations transmises à Nemotron** : chaque annonce du contexte contient `images` (identifiant, lien, type, pièce, libellé, avertissement et crédit). Le modèle sait ainsi quelles images existent, même si la description de l'annonce n'en parle pas. Les faits actuels priment sur les anciennes réponses de la conversation. Ce transfert est textuel : Nemotron ne reçoit pas les pixels et ne doit pas prétendre avoir analysé visuellement les photos.
 - **Illustrations IA** : quand quelqu'un demande « montre-moi la douche du n°2 » et qu'aucune photo de cette pièce n'existe, Kwatsur peut générer une **image illustrative** à partir du texte de l'annonce. On peut aussi en générer une depuis le panneau « Visualiser un logement ».
 
 **Règle absolue : une illustration IA n'est jamais présentée comme une photo du logement.** Chaque image porte son type (`kind`) et un libellé visible :
@@ -33,6 +35,8 @@ Sources : [API REST](https://developers.cloudflare.com/workers-ai/get-started/re
 Scout Intent (listing.visualize) → contrat signé : images.show, images.generate
    │
    ├─ une photo du propriétaire existe pour cette pièce ? → elle est affichée
+   │
+   ├─ une photo d'exemple existe pour cette pièce ? → affichée comme exemple, pas comme photo du logement
    │
    ├─ une illustration existe déjà pour ce logement et cette pièce ? → réutilisée (sans quota)
    │

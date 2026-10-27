@@ -21,7 +21,7 @@ from app.integrations.llm.base import ChatTurn, LLMProvider, ReplyContext
 from app.models.conversation import Conversation
 from app.schemas.chat import ChatResponse, ReplyAuthor, ScoutTrace
 from app.schemas.criteria import SearchCriteria
-from app.schemas.image import ROOM_LABELS
+from app.schemas.image import ROOM_LABELS, ImageRead
 from app.schemas.property import DataSourceName, PropertyRead, PropertySearchResult
 from app.services.comparison_service import build_comparison
 from app.services.contact_service import build_contact_draft
@@ -30,6 +30,7 @@ from app.services.criteria_service import merge_criteria, relaxation_suggestions
 from app.services.image_service import ImageService
 from app.services.ranking_service import format_fcfa
 from app.services.search_service import SearchOutcome, SearchService
+from app.services.small_talk import small_talk_reply
 from app.services.submission_service import SubmissionService, fields_of
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,25 @@ def summarize_for_model(result: PropertySearchResult) -> dict:
         "tradeoffs": result.tradeoffs,
         "to_verify": result.to_verify,
         "risk_signals": result.risk_signals,
+        "images": [
+            image.model_dump(include={
+                "id", "url", "kind", "room", "label", "is_ai_generated",
+                "caption", "property_id", "credit", "source_url",
+            })
+            for image in result.images
+        ],
     }
+
+
+def conversation_images(results: list[PropertySearchResult]) -> list[ImageRead]:
+    """Identifie les images affichées dans le chat sans perdre leurs avertissements ni crédits."""
+    return [
+        image.model_copy(update={
+            "label": f"Logement n°{result.rank} — {result.property.title} : {image.label}",
+        })
+        for result in results[:RESULTS_EXPLAINED]
+        for image in result.images
+    ]
 
 
 def illustration_brief(listing: PropertyRead) -> str:
@@ -138,6 +157,7 @@ class AgentService:
         scout: ScoutEngine,
         submissions: SubmissionService | None = None,
         images: ImageService | None = None,
+        scout_routing: bool = True,
     ) -> None:
         self.llm = llm_provider
         self.search_service = search_service
@@ -145,6 +165,8 @@ class AgentService:
         self.scout = scout
         self.submissions = submissions
         self.images = images
+        # Désactivé : Scout ne classe plus l'intention ; politesses en dur, le reste va à la recherche.
+        self.scout_routing = scout_routing
 
     def handle_message(self, message: str, conversation_id: str | None) -> ChatResponse:
         conversation = self.conversations.get_or_create(conversation_id)
@@ -152,12 +174,22 @@ class AgentService:
         session_id = conversation.session_id
 
         draft = self.submissions.open_draft(session_id) if self.submissions else None
-        decision = self.scout.decide(
-            message,
-            has_active_search=current.city is not None,
-            active_workflow="submission" if draft else None,
-            search_in_progress=not current.is_empty(),
-        )
+        if not self.scout_routing:
+            canned = small_talk_reply(message)
+            if canned is not None:
+                response = self._answer_without_search(session_id, current, canned, "template", [])
+                self.conversations.record_exchange(conversation, message, response.reply, response.criteria)
+                return response
+            # Seul le début explicite d'une annonce (« je mets mon appartement en location ») est détecté.
+            owner_flow = draft is not None or self.scout.starts_submission(message)
+            decision = self.scout.authorize(message, "listing.submit" if owner_flow else "housing.search")
+        else:
+            decision = self.scout.decide(
+                message,
+                has_active_search=current.city is not None,
+                active_workflow="submission" if draft else None,
+                search_in_progress=not current.is_empty(),
+            )
         if not decision.proceeds:
             response = self._answer_without_contract(session_id, current, decision)
         elif decision.intent_id == "listing.submit":
@@ -268,6 +300,19 @@ class AgentService:
             reply = f"Voici la photo ({room_label}) fournie par le propriétaire du logement n°{rank}, « {listing.title} »."
             response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
             response.images = photos
+            return response
+
+        samples = [
+            image for image in selected[0].images
+            if image.kind == "sample_photo" and image.room == room
+        ]
+        if samples:
+            reply = (
+                f"Voici une photo d'exemple ({room_label}) associée au logement n°{rank}, "
+                f"« {listing.title} ». Ce n'est pas une photo de ce logement."
+            )
+            response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
+            response.images = samples
             return response
 
         existing = self.images.existing_illustration(listing.id, room)
@@ -442,4 +487,5 @@ class AgentService:
             data_source=outcome.data_source,
             notices=notices,
             results=outcome.results,
+            images=conversation_images(outcome.results),
         )

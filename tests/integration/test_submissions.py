@@ -1,11 +1,111 @@
 """Proposition d'annonce dans le chat, photos, validation admin et images d'une pièce (de bout en bout)."""
 
-from fastapi.testclient import TestClient
+from datetime import datetime, timezone
+from pathlib import Path
 
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import get_settings
+from app.core.exceptions import IntegrationUnavailableError
 from app.integrations.llm.rules import parse_listing
-from tests.fakes import TINY_PNG, FakeImageProvider, MockLLMProvider
+from app.main import app
+from app.models.image import PropertyImage
+from app.services.image_storage import LocalImageStore
+from tests.conftest import make_test_settings
+from tests.fakes import TINY_PNG, FakeImageProvider, MockLLMProvider, scripted_extractions
 
 ADMIN = {"X-Admin-Token": "admin-de-test"}
+
+
+@pytest.mark.parametrize("scout_routing", [True, False])
+@pytest.mark.parametrize("kind", [
+    "owner_photo", "sample_photo", "ai_generated_illustration", "ai_edited_photo",
+])
+def test_search_sends_image_facts_to_model_and_shows_images_in_chat(
+    client: TestClient, mock_llm: MockLLMProvider, session: Session, tmp_path: Path,
+    kind: str, scout_routing: bool,
+) -> None:
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(
+        scout_routing_enabled=scout_routing
+    )
+    store = LocalImageStore(tmp_path, max_bytes=1_000)
+    file_name, content_type = store.save(TINY_PNG)
+    image = PropertyImage(
+        property_id=9, kind=kind, room="facade", file_name=file_name,
+        content_type=content_type, size_bytes=len(TINY_PNG),
+        author="Auteur de test", license="CC BY-SA 4.0",
+        source_url="https://commons.wikimedia.org/wiki/File:Test.png",
+        created_at=datetime.now(timezone.utc),
+    )
+    session.add(image)
+    session.commit()
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"city": "Douala", "max_rent": 35000}},
+        {"intent": "refine", "updates": {}},
+    )
+
+    first = chat(client, "Un logement à Douala, 35 000 FCFA maximum")
+    follow_up = (
+        "Finalement, toujours 35 000 FCFA maximum à Douala"
+        if scout_routing else "Montre-moi des images du logement"
+    )
+    second = chat(client, follow_up, first["conversation_id"])
+
+    for response, context in zip([first, second], mock_llm.received_contexts, strict=True):
+        assert response["total"] == 1
+        image_facts = context.top_results[0]["images"]
+        assert len(image_facts) == 1
+        stored = response["results"][0]["images"][0]
+        assert image_facts[0] == {key: stored[key] for key in image_facts[0]}
+        assert image_facts[0]["id"] == image.id
+        assert image_facts[0]["kind"] == kind
+        assert image_facts[0]["url"] == f"/api/images/{image.id}"
+        shown = response["images"][0]
+        assert shown["id"] == image.id and shown["kind"] == kind
+        assert "Logement n°1" in shown["label"]
+        assert "Chambre moderne à Bonabéri" in shown["label"]
+        assert shown["caption"] == image_facts[0]["caption"]
+        assert shown["credit"] == image_facts[0]["credit"]
+        if kind == "sample_photo":
+            assert "ne montre pas ce logement" in image_facts[0]["label"]
+            assert "CC BY-SA 4.0" in shown["credit"]
+        assert client.get(shown["url"]).content == TINY_PNG
+
+
+def test_search_without_images_reports_an_empty_image_list(
+    client: TestClient, mock_llm: MockLLMProvider,
+) -> None:
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"city": "Douala"}}
+    )
+    response = chat(client, "Un logement à Douala")
+    assert response["images"] == []
+    assert all(result["images"] == [] for result in response["results"])
+    assert all(result["images"] == [] for result in mock_llm.received_contexts[0].top_results)
+
+
+def test_search_keeps_images_when_model_reply_fails(
+    client: TestClient, mock_llm: MockLLMProvider, session: Session, tmp_path: Path,
+) -> None:
+    store = LocalImageStore(tmp_path, max_bytes=1_000)
+    file_name, content_type = store.save(TINY_PNG)
+    session.add(PropertyImage(
+        property_id=9, kind="sample_photo", room="facade", file_name=file_name,
+        content_type=content_type, size_bytes=len(TINY_PNG), created_at=datetime.now(timezone.utc),
+    ))
+    session.commit()
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"city": "Douala", "max_rent": 35000}}
+    )
+    mock_llm.reply_error = IntegrationUnavailableError("Modèle indisponible.")
+
+    response = chat(client, "Un logement à Douala, 35 000 FCFA maximum")
+
+    assert response["reply_generated_by"] == "template"
+    assert response["images"][0]["kind"] == "sample_photo"
+    assert "ne montre pas ce logement" in response["images"][0]["label"]
 
 
 def chat(client: TestClient, message: str, conversation_id: str | None = None) -> dict:
@@ -138,6 +238,32 @@ def test_visualize_without_configuration_says_so(
     assert "n'est pas configurée" in shown["reply"]
 
 
+def test_visualize_uses_sample_photo_without_generating_an_illustration(
+    client: TestClient, mock_llm: MockLLMProvider, image_provider: FakeImageProvider,
+    session: Session, tmp_path: Path,
+) -> None:
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"city": "Douala", "max_rent": 35000}}
+    )
+    first = chat(client, "Un logement à Douala, 35 000 FCFA maximum")
+    file_name, content_type = LocalImageStore(tmp_path, max_bytes=1_000).save(TINY_PNG)
+    session.add(PropertyImage(
+        property_id=first["results"][0]["property"]["id"],
+        kind="sample_photo", room="facade", file_name=file_name,
+        content_type=content_type, size_bytes=len(TINY_PNG),
+        created_at=datetime.now(timezone.utc),
+    ))
+    session.commit()
+
+    shown = chat(client, "Montre-moi la façade du premier", first["conversation_id"])
+
+    assert shown["scout"]["intent"] == "listing.visualize"
+    assert [image["kind"] for image in shown["images"]] == ["sample_photo"]
+    assert "Ce n'est pas une photo de ce logement" in shown["reply"]
+    assert image_provider.prompts == []
+    assert client.get(shown["images"][0]["url"]).content == TINY_PNG
+
+
 def test_generate_endpoint_and_status(client: TestClient) -> None:
     status_before = client.get("/api/images/status").json()
 
@@ -147,3 +273,16 @@ def test_generate_endpoint_and_status(client: TestClient) -> None:
     assert generated.status_code == 200
     assert generated.json()["is_ai_generated"] is True
     assert client.get("/api/images/status").json()["remaining_today"] == 1
+
+
+def test_owner_flow_still_works_without_scout_routing(client: TestClient, mock_llm: MockLLMProvider) -> None:
+    from app.api.dependencies import get_settings
+    from app.main import app
+    from tests.conftest import make_test_settings
+
+    app.dependency_overrides[get_settings] = lambda: make_test_settings(
+        admin_token="admin-de-test", scout_routing_enabled=False
+    )
+    summary = describe_listing(client, mock_llm)
+
+    assert summary["scout"]["intent"] == "listing.submit"

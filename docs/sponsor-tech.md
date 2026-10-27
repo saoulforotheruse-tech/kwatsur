@@ -67,6 +67,8 @@ Scout passe avant chaque action de l'agent (`app/engines/scout/`, voir `app/engi
 
 Chaque outil vérifie le contrat avant d'agir (`ContractVerifier.require`). Un contrat absent, altéré, expiré ou hors périmètre est refusé et journalisé (`contract.refused`). Sans contrat, ni le modèle ni la recherche ne sont appelés.
 
+**Routage désactivable** (`SCOUT_ROUTING_ENABLED`, `false` par défaut depuis le 27/10/2026). Les étapes Sense et Interpret coupaient les demandes fractionnées (« 2 chambres », puis « Douala ») par des clarifications ou des redirections. Désactivé, l'agent répond en dur aux politesses seules (`app/services/small_talk.py`), impose l'intention `housing.search` (ou `listing.submit` pour un propriétaire) et appelle `ScoutEngine.authorize` : Guard, Route et Recommend s'appliquent toujours, avec contrat signé. Comparaison, brouillon de contact et images d'une pièce demandent `true`.
+
 **Preuve.**
 - `python -m scripts.run_scout_evals` : jeu de régression (47 intentions, 22 cas d'injection dont les 10 officiels de Meterless, 6 cas limites) comparé aux seuils officiels de `thresholds.yaml`. Résultat du 26/10/2026 : top-1 0,98 (plancher 0,85), top-3 1,00, précision et rappel des injections 1,00, précision des outils 1,00, taux de clarification 0,00 (plafond 0,25).
 - `tests/unit/test_scout.py` et `tests/integration/test_agent_service.py` (`test_scout_*`).

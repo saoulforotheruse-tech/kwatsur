@@ -142,10 +142,12 @@ def get_agent_service(
     scout: Annotated[ScoutEngine, Depends(get_scout_engine)],
     submission_service: SubmissionServiceDependency,
     image_service: ImageServiceDependency,
+    app_settings: AppSettings,
 ) -> AgentService:
     return AgentService(
         llm_provider, search_service, conversation_service, scout,
         submissions=submission_service, images=image_service,
+        scout_routing=app_settings.scout_routing_enabled,
     )
 
 

@@ -1,5 +1,5 @@
 {
-  "_source": "Photos de Wikimedia Commons sous licence CC BY-SA, choisies le 27/10/2026. Elles ne montrent PAS les annonces fictives : ce sont des exemples de logements au Cameroun, affichés avec leur crédit. Quatre photos rurales (case en chaume, maison en terre, foyer traditionnel, cuisine rurale) ont été écartées après vérification visuelle : elles ne correspondaient pas aux annonces urbaines.",
+  "_source": "Photos de Wikimedia Commons sous licence CC BY-SA, choisies le 27/10/2026. Elles ne montrent PAS les annonces fictives : ce sont des exemples de logements au Cameroun, affichés avec leur crédit. Les mêmes photos peuvent illustrer plusieurs annonces de test, toujours avec l'étiquette « Photo d'exemple ». Quatre photos rurales (case en chaume, maison en terre, foyer traditionnel, cuisine rurale) ont été écartées après vérification visuelle : elles ne correspondaient pas aux annonces urbaines.",
   "photos": [
     {
       "listing": "demo-dla-denver-01",
@@ -35,6 +35,96 @@
       "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Chambre_%C3%A0_louer_%28Cameroun%29.jpg/1280px-Chambre_%C3%A0_louer_%28Cameroun%29.jpg",
       "source_url": "https://commons.wikimedia.org/wiki/File:Chambre_%C3%A0_louer_(Cameroun).jpg",
       "author": "Eric Freyssinge",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-bonamoussadi-01",
+      "room": "facade",
+      "title": "File:WIKI Loves Africa 2022 KHOMBISA PHOTO House in Douala Cameroon.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "author": "Khombisa",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-bonamoussadi-02",
+      "room": "facade",
+      "title": "File:Maison habitée mais non achevée au quartier Akwa à Douala.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "author": "OlivierMoukodi",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-bonamoussadi-03",
+      "room": "facade",
+      "title": "File:WIKI Loves Africa 2022 KHOMBISA PHOTO House in Douala Cameroon.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "author": "Khombisa",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-kotto-01",
+      "room": "facade",
+      "title": "File:Maison habitée mais non achevée au quartier Akwa à Douala.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "author": "OlivierMoukodi",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-logpom-01",
+      "room": "facade",
+      "title": "File:WIKI Loves Africa 2022 KHOMBISA PHOTO House in Douala Cameroon.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "author": "Khombisa",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-makepe-01",
+      "room": "facade",
+      "title": "File:Maison habitée mais non achevée au quartier Akwa à Douala.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Maison_habit%C3%A9e_mais_non_achev%C3%A9e_au_quartier_Akwa_%C3%A0_Douala.jpg",
+      "author": "OlivierMoukodi",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-dla-pk14-01",
+      "room": "facade",
+      "title": "File:WIKI Loves Africa 2022 KHOMBISA PHOTO House in Douala Cameroon.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:WIKI_Loves_Africa_2022_KHOMBISA_PHOTO_House_in_Douala_Cameroon.jpg",
+      "author": "Khombisa",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-yde-essos-01",
+      "room": "facade",
+      "title": "File:Biyem assi maison blanche.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Biyem_assi_maison_blanche.jpg/1280px-Biyem_assi_maison_blanche.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Biyem_assi_maison_blanche.jpg",
+      "author": "lexy_tchuileu, Gtankam (Wikimedians of Cameroon User Group)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-yde-bastos-01",
+      "room": "facade",
+      "title": "File:Biyem assi maison blanche.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Biyem_assi_maison_blanche.jpg/1280px-Biyem_assi_maison_blanche.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Biyem_assi_maison_blanche.jpg",
+      "author": "lexy_tchuileu, Gtankam (Wikimedians of Cameroon User Group)",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "listing": "demo-yde-mvan-01",
+      "room": "facade",
+      "title": "File:Biyem assi maison blanche.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Biyem_assi_maison_blanche.jpg/1280px-Biyem_assi_maison_blanche.jpg",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Biyem_assi_maison_blanche.jpg",
+      "author": "lexy_tchuileu, Gtankam (Wikimedians of Cameroon User Group)",
       "license": "CC BY-SA 4.0"
     }
   ]

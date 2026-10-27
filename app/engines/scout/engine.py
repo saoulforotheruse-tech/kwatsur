@@ -146,6 +146,49 @@ class ScoutEngine:
         )
         return ScoutDecision(**{**decision.__dict__, "latency_ms": latency_ms})
 
+    def starts_submission(self, prompt: str) -> bool:
+        return detect_workflow_start(self.registry, prompt) == "submission"
+
+    def authorize(
+        self, prompt: str, intent_id: str, surface: str = "chat", role: str = "visitor", user: str = "anonymous"
+    ) -> ScoutDecision:
+        """Intention imposée par l'agent, sans classification ni clarification.
+
+        Utilisé quand le routage Scout est désactivé : seule la garde (injection, paiement,
+        portée) s'applique, puis le contrat est signé comme d'habitude.
+        """
+        started = time.perf_counter()
+        trace_id = uuid.uuid4().hex
+        intent = self.registry.get(intent_id)
+        interpretation = Interpretation(intent=intent, confidence=1.0, band="high")
+        risk = run_guard(prompt, intent, surface, role)
+        decision_fields = {
+            "trace_id": trace_id,
+            "intent_id": intent.id,
+            "intent_label": intent.label,
+            "confidence": 1.0,
+            "band": "high",
+            "parameters": {},
+            "candidates": [IntentCandidate(intent.id, 1.0, 0.0)],
+            "risk": risk,
+        }
+        if risk.blocked:
+            decision = ScoutDecision(**decision_fields, refusal_reason=risk.reason)
+        else:
+            tool_plan = self._route(interpretation)
+            if tool_plan is None:
+                decision = ScoutDecision(
+                    **decision_fields, refusal_reason="Aucun outil autorisé ne permet cette action."
+                )
+            else:
+                contract = self._recommend(interpretation, risk, tool_plan, trace_id, surface, user)
+                decision = ScoutDecision(**decision_fields, tool_plan=tool_plan, contract=contract)
+        latency_ms = round((time.perf_counter() - started) * 1000, 3)
+        logger.info(
+            "scout.authorize traceId=%s intent=%s risk=%s latencyMs=%s", trace_id, intent.id, risk.level, latency_ms
+        )
+        return ScoutDecision(**{**decision.__dict__, "latency_ms": latency_ms})
+
     def _route(self, interpretation: Interpretation) -> list[dict] | None:
         plan = []
         for capability in interpretation.intent.capabilities:
