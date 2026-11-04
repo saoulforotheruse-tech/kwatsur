@@ -5,7 +5,9 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-ImageKind = Literal["owner_photo", "sample_photo", "ai_generated_illustration", "ai_edited_photo"]
+ImageKind = Literal[
+    "owner_photo", "sample_photo", "ai_generated_illustration", "ai_edited_photo", "source_photo",
+]
 RoomType = Literal["facade", "salon", "chambre", "cuisine", "salle_de_bain", "autre"]
 
 ROOM_LABELS: dict[str, str] = {
@@ -23,7 +25,12 @@ KIND_LABELS: dict[str, str] = {
     "sample_photo": "Photo d'exemple (ne montre pas ce logement)",
     "ai_generated_illustration": "Image illustrative générée par IA",
     "ai_edited_photo": "Photo réelle retouchée par IA",
+    "source_photo": "Photo publiée par l'annonce d'origine",
 }
+SOURCE_PHOTO_CAPTION = (
+    "Photo fournie par la source de l'annonce, sans vérification par Kwatsur ; "
+    "elle n'est pas classée par pièce."
+)
 AI_DISCLAIMER = (
     "Image illustrative générée par IA à partir d'une description : elle ne représente "
     "pas le logement réel."
@@ -31,14 +38,15 @@ AI_DISCLAIMER = (
 
 
 class ImageRead(BaseModel):
-    id: int
+    # None : photo d'une source externe, non stockée par Kwatsur (lien direct dans `url`).
+    id: int | None
     url: str
     kind: ImageKind
     room: RoomType
     label: str
     is_ai_generated: bool
     caption: str | None = None
-    property_id: int | None = None
+    property_id: int | str | None = None
     # Photos réelles décrites pour guider cette illustration (0 si aucune) et leur type.
     reference_photo_count: int = 0
     reference_photo_kind: ImageKind | None = None

@@ -34,7 +34,7 @@ def search_properties(
 
 
 @router.get("/{property_id}", response_model=PropertyRead, summary="Détail d'un logement")
-def get_property(property_id: int, search_service: SearchServiceDependency) -> PropertyRead:
+def get_property(property_id: str, search_service: SearchServiceDependency) -> PropertyRead:
     return _get_or_404(property_id, search_service)
 
 
@@ -44,13 +44,15 @@ def get_property(property_id: int, search_service: SearchServiceDependency) -> P
     summary="Préparer un message de prise de contact (aucun envoi)",
 )
 def create_contact_draft(
-    property_id: int, search_service: SearchServiceDependency
+    property_id: str, search_service: SearchServiceDependency
 ) -> ContactDraftResponse:
     return build_contact_draft(_get_or_404(property_id, search_service))
 
 
-def _get_or_404(property_id: int, search_service: SearchServiceDependency) -> PropertyRead:
-    property_read = search_service.get_property(property_id)
+def _get_or_404(property_id: str, search_service: SearchServiceDependency) -> PropertyRead:
+    # Entier : annonce locale ; texte : annonce internationale (Untera).
+    identifier: int | str = int(property_id) if property_id.isdigit() else property_id
+    property_read = search_service.get_property(identifier)
     if property_read is None:
         raise HTTPException(status_code=404, detail="Logement introuvable.")
     return property_read

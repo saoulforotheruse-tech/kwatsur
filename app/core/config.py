@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     zetaris_listings_table: str = ""
     zetaris_timeout_seconds: float = 60.0
 
+    # Pays couverts par la source locale (Zetaris/PostgreSQL), codes ISO 3166-1 alpha-2.
+    # Une recherche dans un autre pays interroge Untera (annonces internationales).
+    local_listing_countries: str = "CM"
+    # Untera : https://untera.io/developers (clé gratuite : POST /api/v1/keys).
+    untera_base_url: str = "https://api.untera.io/api/v1"
+    untera_api_key: str = ""
+    untera_timeout_seconds: float = 20.0
+
     # Fournisseur du modèle : Nemotron via Meterless, Nemotron en direct (catalogue NVIDIA),
     # « rules » (mode démo sans IA ni clé) ou « none » (chat désactivé).
     llm_provider: Literal["nemotron", "meterless", "rules", "none"] = "rules"
@@ -85,7 +93,7 @@ class Settings(BaseSettings):
 
     @field_validator(
         "nemotron_base_url", "nemotron_model", "meterless_base_url", "meterless_model",
-        "meterless_app_id", "image_generation_provider", "cloudflare_image_model", "cloudflare_vision_model", mode="before",
+        "meterless_app_id", "untera_base_url", "image_generation_provider", "cloudflare_image_model", "cloudflare_vision_model", mode="before",
     )
     @classmethod
     def use_default_when_blank(cls, value: object, info: ValidationInfo) -> object:
@@ -106,6 +114,12 @@ class Settings(BaseSettings):
             self.llm_provider = "rules"
             self.image_generation_enabled = False
         return self
+
+    @property
+    def local_countries(self) -> frozenset[str]:
+        return frozenset(
+            code.strip().upper() for code in self.local_listing_countries.split(",") if code.strip()
+        )
 
     @property
     def allowed_origins(self) -> list[str]:

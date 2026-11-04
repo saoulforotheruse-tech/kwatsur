@@ -16,9 +16,14 @@
         "Je cherche un deux-chambres à Douala vers Bonamoussadi",
         "Un studio meublé à Yaoundé pour 80 000 FCFA maximum",
         "Finalement pas plus de 100 000",
-        "Plutôt à Bastos, avec de l'eau"
+        "Plutôt à Bastos, avec de l'eau",
+        "Je cherche une location aux États-Unis",
+        "Apartment for rent in Lisbon"
       ],
       "triggers": [
+        {"pattern": "\\b(house|home|apartment|flat|condo|rental|property)s?\\b", "weight": 3},
+        {"pattern": "\\b(rent|lease|buy)\\b", "weight": 2},
+        {"pattern": "\\b(acheter|achat|vendre|vente)\\b", "weight": 2},
         {"pattern": "\\bcherch\\w*", "weight": 2},
         {"pattern": "\\btrouv\\w*", "weight": 1},
         {"pattern": "\\blou(er|e|ons|ez)\\b", "weight": 2},

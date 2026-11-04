@@ -1,6 +1,6 @@
 # data — rôle du dossier
 
-Emplacement des adaptateurs de sources de données. Zetaris n’est pas connecté, car les instructions et accès de l’événement ne sont pas fournis.
+Emplacement des adaptateurs de sources de données : `postgres.py` (base locale), `zetaris.py` (API SQL de Zetaris) et `untera.py` (annonces internationales, utilisées hors des pays de `LOCAL_LISTING_COUNTRIES`).
 
 ## Règles de contribution
 

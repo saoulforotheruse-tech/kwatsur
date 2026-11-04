@@ -17,6 +17,7 @@ PROPERTY_TYPE_SYNONYMS = {
 }
 
 CriteriaField = Literal[
+    "country",
     "city",
     "neighborhood",
     "property_type",
@@ -27,7 +28,17 @@ CriteriaField = Literal[
     "electricity_available",
     "furnished",
     "preferences",
+    "currency",
+    "transaction",
 ]
+
+TransactionType = Literal["rent", "sale"]
+
+# Pays des annonces locales quand rien d'autre n'est indiqué, et monnaie de leurs loyers.
+LOCAL_DEFAULT_COUNTRY = "CM"
+LOCAL_CURRENCY = "XAF"
+CURRENCY_ALIASES = {"FCFA": "XAF", "CFA": "XAF", "F": "XAF", "€": "EUR", "EURO": "EUR",
+                    "EUROS": "EUR", "$": "USD", "DOLLAR": "USD", "DOLLARS": "USD", "£": "GBP"}
 
 
 def normalize_text(value: str) -> str:
@@ -87,16 +98,41 @@ class SearchCriteria(BaseModel):
     Un équipement à True est exigé ; None signifie « sans exigence ».
     """
 
+    # Code pays ISO 3166-1 alpha-2 déduit par le modèle (« Lisbonne » → PT). None : source locale.
+    country: str | None = Field(default=None, pattern=r"^[A-Z]{2}$")
     city: str | None = Field(default=None, min_length=1, max_length=80)
     neighborhood: str | None = Field(default=None, min_length=1, max_length=120)
     property_type: str | None = Field(default=None, min_length=1, max_length=40)
     min_rent: int | None = Field(default=None, ge=0)
     max_rent: int | None = Field(default=None, ge=0)
+    # Monnaie du budget (ISO 4217). None : FCFA, la monnaie des annonces locales.
+    currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
+    # Location ou achat ; None : sans préférence (seules les annonces locales sont des locations).
+    transaction: TransactionType | None = None
     bedrooms: int | None = Field(default=None, ge=0, le=20)
     water_available: bool | None = None
     electricity_available: bool | None = None
     furnished: bool | None = None
     preferences: list[str] = Field(default_factory=list, max_length=8)
+
+    @field_validator("country", mode="before")
+    @classmethod
+    def normalize_country(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip().upper() or None
+        return value
+
+    @field_validator("currency", mode="before")
+    @classmethod
+    def normalize_currency(cls, value: object) -> object:
+        if isinstance(value, str):
+            code = value.strip().upper()
+            return CURRENCY_ALIASES.get(code, code) or None
+        return value
+
+    @property
+    def budget_currency(self) -> str:
+        return self.currency or LOCAL_CURRENCY
 
     @field_validator("city", mode="before")
     @classmethod
@@ -149,11 +185,14 @@ class SearchCriteria(BaseModel):
 class CriteriaUpdates(BaseModel):
     """Valeurs nouvellement mentionnées par l'utilisateur, toutes facultatives."""
 
+    country: str | None = None
     city: str | None = None
     neighborhood: str | None = None
     property_type: str | None = None
     min_rent: int | None = None
     max_rent: int | None = None
+    currency: str | None = None
+    transaction: TransactionType | None = None
     bedrooms: int | None = None
     water_available: bool | None = None
     electricity_available: bool | None = None

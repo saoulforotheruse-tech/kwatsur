@@ -141,3 +141,59 @@ def test_demo_mode_answers_without_any_model_or_key(client: TestClient) -> None:
     assert body["scout"]["tool_plan"] == ["search_service.search", "template.explain"]
     assert any("Mode démo" in notice for notice in body["notices"])
     assert all(item["property"]["monthly_rent"] <= 150000 for item in body["results"])
+
+
+def test_chat_abroad_searches_by_country_and_says_untera_is_missing(
+    client: TestClient, mock_llm: MockLLMProvider
+) -> None:
+    # Pays hors Cameroun sans ville : pas de question sur la ville, recherche routée vers Untera
+    # (non configuré dans les tests : aucun appel réseau, la réponse le dit).
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"country": "US", "transaction": "rent"}}
+    )
+
+    chat = client.post("/api/chat", json={"message": "i want to book a house low rent in the USA"})
+
+    assert chat.status_code == 200
+    body = chat.json()
+    assert body["searched"] is True
+    assert body["data_source"] == "untera"
+    assert body["criteria"]["country"] == "US"
+    assert any("UNTERA_API_KEY" in notice for notice in body["notices"])
+    assert body["results"] == []
+
+
+def test_chat_shows_untera_photos_on_request(
+    client: TestClient, mock_llm: MockLLMProvider, session: Session
+) -> None:
+    from app.api.dependencies import get_search_service
+    from app.integrations.data.postgres import PostgresListingSource
+    from app.repositories.property_repository import PropertyRepository
+    from app.services.ranking_service import RankingService
+    from app.services.risk_service import RiskService
+    from app.services.search_service import SearchService
+    from tests.unit.test_untera import ORIGIN, REAL_RESPONSE, FakeUnteraSource
+    from app.integrations.data.untera import item_to_property
+
+    house = item_to_property(REAL_RESPONSE["results"][0], ORIGIN)
+    app.dependency_overrides[get_search_service] = lambda: SearchService(
+        PostgresListingSource(PropertyRepository(session)), RankingService(), RiskService(),
+        international_source=FakeUnteraSource([], [house]),
+    )
+    mock_llm.extraction_rule = scripted_extractions(
+        {"intent": "search", "updates": {"country": "PT", "property_type": "maison"}}
+    )
+
+    search = client.post("/api/chat", json={"message": "Je cherche une maison à Belmonte au Portugal"})
+    conversation_id = search.json()["conversation_id"]
+    photos = client.post(
+        "/api/chat", json={"message": "Montre-moi des photos du n°1", "conversation_id": conversation_id}
+    )
+
+    assert search.json()["data_source"] == "untera"
+    assert search.json()["results"][0]["images"][0]["kind"] == "source_photo"
+    body = photos.json()
+    assert body["scout"]["intent"] == "listing.visualize"
+    assert [image["url"] for image in body["images"]] == house.photo_urls[:4]
+    assert all(image["is_ai_generated"] is False for image in body["images"])
+    assert "annonce d'origine" in body["reply"]

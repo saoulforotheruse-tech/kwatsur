@@ -21,6 +21,7 @@
   --danger: #9b2c2c;
   --danger-soft: #fdecec;
   --unknown: #8a978f;
+  --source: #1d5fd1;
   --shadow: 0 3px 14px rgba(0, 0, 0, 0.07);
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.045);
   --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -53,6 +54,7 @@
     --danger: #ff9b9b;
     --danger-soft: rgba(255, 155, 155, 0.12);
     --unknown: #7d8f86;
+    --source: #7fb0ff;
     --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
     --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.25);
     --shadow-hover: 0 18px 40px rgba(0, 0, 0, 0.4);
@@ -689,8 +691,8 @@ button { cursor: pointer; }
 
 .toggle-button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.property-source { font-size: 0.76rem; color: var(--muted); }
-a.property-source { color: var(--accent); }
+.property-source { font-size: 0.78rem; font-weight: 600; color: var(--source); }
+a.property-source { color: var(--source); text-decoration: underline; text-underline-offset: 2px; }
 
 /* --- Comparaison ----------------------------------------------------------------------- */
 .comparison-section { padding: 1.25rem; animation: rise 0.4s ease both; }
@@ -815,6 +817,8 @@ a.property-source { color: var(--accent); }
 }
 
 .image-figure img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.image-unavailable { display: grid; place-content: center; gap: 0.3rem; aspect-ratio: 16 / 9; padding: 1rem; text-align: center; font-size: 0.82rem; color: var(--muted); background: var(--panel-tint); }
+.image-unavailable a { color: var(--source); font-weight: 600; }
 .image-figure.compact { border-radius: 14px; }
 .image-figure.compact img { aspect-ratio: 16 / 9; }
 .image-figure.ai { border-style: dashed; border-color: var(--warning); }
@@ -832,7 +836,7 @@ a.property-source { color: var(--accent); }
 }
 
 .image-badge.ai { background: rgba(138, 90, 0, 0.88); color: #fff; }
-.image-badge.photo { background: rgba(15, 107, 82, 0.88); color: #fff; }
+.image-badge.photo, .image-badge.source { background: rgba(15, 107, 82, 0.88); color: #fff; }
 
 .image-figure figcaption { display: grid; gap: 0.2rem; padding: 0.55rem 0.7rem; font-size: 0.8rem; font-weight: 600; color: var(--ink-soft); }
 .image-figure figcaption small { font-weight: 500; color: var(--warning); }
@@ -934,4 +938,6 @@ a.property-source { color: var(--accent); }
 /* Photo d'exemple sous licence libre : ni photo du logement, ni image IA. */
 .image-badge.sample { background: rgba(20, 61, 140, 0.88); color: #fff; }
 .image-figure.sample { border-style: dotted; }
+.badge.sale { background: var(--warning-soft); color: var(--warning); }
+.property-attribution { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
 .image-figure figcaption a { font-size: 0.75rem; color: var(--accent); }

@@ -7,7 +7,11 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.schemas.image import ImageRead
 
-DataSourceName = Literal["postgres", "zetaris"]
+DataSourceName = Literal["postgres", "zetaris", "untera"]
+# Type de logement que la source ne précise pas : ne fait jamais échouer le critère « type ».
+UNSPECIFIED_PROPERTY_TYPE = "type non précisé"
+# Identifiant : entier pour les annonces locales, texte pour une source externe (Untera).
+PropertyId = int | str
 
 
 class PropertySearch(BaseModel):
@@ -36,11 +40,15 @@ class PropertySearch(BaseModel):
 
 
 class PropertyRead(BaseModel):
-    """Annonce normalisée, quelle que soit la source (PostgreSQL ou Zetaris)."""
+    """Annonce normalisée, quelle que soit la source (PostgreSQL, Zetaris ou Untera).
+
+    `monthly_rent` porte le prix affiché : loyer mensuel si `transaction_type` vaut « rent »,
+    prix de vente s'il vaut « sale » (annonces internationales d'Untera).
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: PropertyId
     title: str
     description: str | None
     city: str
@@ -63,6 +71,13 @@ class PropertyRead(BaseModel):
     verification_status: str
     source_is_demo: bool
     last_seen_at: datetime | None
+    # None : la source ne précise pas s'il s'agit d'une location ou d'une vente.
+    transaction_type: Literal["rent", "sale"] | None = "rent"
+    country: str | None = None
+    # Prix converti en USD par la source, quand elle le fournit (comparaison de budgets en USD).
+    price_usd: int | None = None
+    # Photos publiées par l'annonce d'origine (URL absolues de la source), jamais générées.
+    photo_urls: list[str] = Field(default_factory=list)
 
 
 class PropertySearchResult(BaseModel):
@@ -92,7 +107,7 @@ class PropertySearchResponse(BaseModel):
 class ContactDraftResponse(BaseModel):
     """Brouillon de message : Kwatsur n'envoie rien lui-même."""
 
-    property_id: int
+    property_id: PropertyId
     message: str
     contact_information: str | None
     source_url: HttpUrl | None

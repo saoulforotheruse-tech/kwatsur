@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from statistics import median
 
-from app.schemas.property import PropertyRead
+from app.schemas.property import PropertyId, PropertyRead
 
 MIN_COMPARABLES = 4
 
@@ -40,7 +40,7 @@ class RiskService:
         self.low_rent_ratio = low_rent_ratio
         self.now = now
 
-    def assess(self, listings: list[PropertyRead]) -> dict[int, list[str]]:
+    def assess(self, listings: list[PropertyRead]) -> dict[PropertyId, list[str]]:
         """Signaux par identifiant d'annonce, comparés aux annonces du même lot."""
         return {listing.id: self._signals(listing, listings) for listing in listings}
 
@@ -72,12 +72,14 @@ class RiskService:
             and other.city == listing.city
             and other.property_type == listing.property_type
             and other.bedrooms == listing.bedrooms
+            and other.currency == listing.currency
+            and other.transaction_type == listing.transaction_type
         ]
         if len(comparables) >= MIN_COMPARABLES:
             reference = median(comparables)
             if listing.monthly_rent < reference * self.low_rent_ratio:
                 signals.append(
-                    "Loyer nettement inférieur aux annonces comparables : signal potentiel, "
+                    "Prix nettement inférieur aux annonces comparables : signal potentiel, "
                     "à vérifier avant tout paiement."
                 )
 

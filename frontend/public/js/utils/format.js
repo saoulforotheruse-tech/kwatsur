@@ -43,9 +43,21 @@ export function formatFcfa(amount) {
   return `${numberFormatter.format(amount)} FCFA`;
 }
 
-export function formatRent(property) {
+export function formatAmount(property) {
   const currency = property.currency === "XAF" ? "FCFA" : property.currency;
-  return `${numberFormatter.format(property.monthly_rent)} ${currency} / mois`;
+  return `${numberFormatter.format(property.monthly_rent)} ${currency}`;
+}
+
+// Suffixe du prix : loyer mensuel, prix de vente, ou nature non précisée par la source.
+export function priceSuffix(property) {
+  if (property.transaction_type === "sale") {
+    return t("card.priceSale");
+  }
+  return property.transaction_type === "rent" ? t("card.priceRent") : t("card.priceUnknown");
+}
+
+export function formatRent(property) {
+  return `${formatAmount(property)} ${priceSuffix(property)}`;
 }
 
 export function formatBoolean(value, trueLabel = "Oui", falseLabel = "Non") {

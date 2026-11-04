@@ -30,7 +30,7 @@ from app.services.contact_service import build_contact_draft
 from app.services.conversation_service import ConversationService
 from app.services.criteria_service import merge_criteria, relaxation_suggestions
 from app.services.image_service import ImageService
-from app.services.ranking_service import format_fcfa
+from app.services.money import format_price
 from app.services.search_service import SearchOutcome, SearchService
 from app.services.small_talk import small_talk_reply
 from app.services.submission_service import SubmissionService, fields_of
@@ -39,9 +39,11 @@ logger = logging.getLogger(__name__)
 
 RESULTS_RETURNED = 10
 RESULTS_EXPLAINED = 5
-DEFAULT_CITY_QUESTION = "Dans quelle ville cherchez-vous un logement (par exemple Douala ou Yaoundé) ?"
+DEFAULT_CITY_QUESTION = (
+    "Dans quelle ville cherchez-vous un logement (par exemple Douala, Yaoundé, ou une ville à l'étranger) ?"
+)
 OFF_TOPIC_REPLY = (
-    "Je suis spécialisé dans la recherche de logements à louer au Cameroun. "
+    "Je suis spécialisé dans la recherche de logements, au Cameroun et à l'international. "
     "Décrivez-moi ce que vous cherchez : ville, quartier, budget, nombre de chambres…"
 )
 PAYMENT_REFUSAL = (
@@ -90,7 +92,12 @@ def summarize_for_model(result: PropertySearchResult) -> dict:
         "city": listing.city,
         "neighborhood": listing.neighborhood,
         "property_type": listing.property_type,
-        "monthly_rent_fcfa": listing.monthly_rent,
+        # Prix tel que publié : loyer mensuel (« rent »), prix de vente (« sale ») ou non précisé (null).
+        "price": listing.monthly_rent,
+        "currency": listing.currency,
+        "transaction_type": listing.transaction_type,
+        "price_label": format_price(listing),
+        "country": listing.country,
         "bedrooms": listing.bedrooms,
         "source_name": listing.source_name,
         "source_is_demo": listing.source_is_demo,
@@ -155,10 +162,7 @@ def build_template_reply(context: ReplyContext) -> str:
         lines = [f"J'ai trouvé {context.total_results} logement(s) correspondant à vos critères."]
         for result in context.top_results[:3]:
             demo = " (annonce de démonstration)" if result["source_is_demo"] else ""
-            lines.append(
-                f"{result['rank']}. {result['title']}{demo} : "
-                f"{format_fcfa(result['monthly_rent_fcfa'])} par mois."
-            )
+            lines.append(f"{result['rank']}. {result['title']}{demo} : {result['price_label']}.")
             if result["to_verify"]:
                 lines.append(f"   À vérifier : {result['to_verify'][0]}")
     if context.follow_up_question:
@@ -190,6 +194,8 @@ class AgentService:
         conversation = self.conversations.get_or_create(conversation_id)
         current = self.conversations.current_criteria(conversation)
         session_id = conversation.session_id
+        # Recherche en cours : une ville, ou un pays hors source locale (le pays suffit à l'étranger).
+        active_search = current.city is not None or self.search_service.is_international(current)
 
         draft = self.submissions.open_draft(session_id) if self.submissions else None
         if not self.scout_routing:
@@ -203,11 +209,11 @@ class AgentService:
             intent = "listing.submit" if owner_flow else "housing.search"
             if not owner_flow and self.scout.requests_visualization(message):
                 intent = "listing.visualize"
-            decision = self.scout.authorize(message, intent, has_active_search=current.city is not None)
+            decision = self.scout.authorize(message, intent, has_active_search=active_search)
         else:
             decision = self.scout.decide(
                 message,
-                has_active_search=current.city is not None,
+                has_active_search=active_search,
                 active_workflow="submission" if draft else None,
                 search_in_progress=not current.is_empty(),
             )
@@ -215,11 +221,11 @@ class AgentService:
             visual_request = self.scout.requests_visualization(message)
             if visual_request and decision.intent_id != "listing.visualize":
                 decision = self.scout.authorize(
-                    message, "listing.visualize", has_active_search=current.city is not None
+                    message, "listing.visualize", has_active_search=active_search
                 )
             elif not visual_request and decision.intent_id == "listing.visualize":
                 decision = self.scout.authorize(
-                    message, "housing.search", has_active_search=current.city is not None
+                    message, "housing.search", has_active_search=active_search
                 )
         if not decision.proceeds:
             response = self._answer_without_contract(session_id, current, decision)
@@ -268,7 +274,8 @@ class AgentService:
 
         if extraction.intent == "other" and criteria.is_empty():
             return self._answer_without_search(session_id, criteria, OFF_TOPIC_REPLY, "template", notices)
-        if criteria.city is None:
+        # Hors des pays locaux, le pays suffit (« une location aux États-Unis »).
+        if criteria.city is None and not self.search_service.is_international(criteria):
             question = extraction.clarification_question
             author: ReplyAuthor = self.llm.name if question else "template"
             return self._answer_without_search(
@@ -347,6 +354,8 @@ class AgentService:
         listing = selected[0].property
         room_label = ROOM_LABELS[room]
         self.scout.verifier.require(decision.contract, "images.show")
+        if isinstance(listing.id, str):
+            return self._show_source_photos(session_id, criteria, selected, rank, room, data_source)
         photos = self.images.owner_photos(listing.id, room)
         if photos:
             reply = f"Voici la photo ({room_label}) fournie par le propriétaire du logement n°{rank}, « {listing.title} »."
@@ -406,6 +415,38 @@ class AgentService:
         )
         response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
         response.images = [illustration]
+        return response
+
+    def _show_source_photos(
+        self,
+        session_id: str,
+        criteria: SearchCriteria,
+        selected: list[PropertySearchResult],
+        rank: int,
+        room: str,
+        data_source: DataSourceName,
+    ) -> ChatResponse:
+        """Annonce internationale : ses vraies photos (liens de la source), jamais d'illustration IA."""
+        listing = selected[0].property
+        photos = [image for image in selected[0].images if image.kind == "source_photo"]
+        if not photos:
+            reply = f"L'annonce d'origine du logement n°{rank}, « {listing.title} », ne fournit aucune photo."
+        else:
+            total = len(listing.photo_urls)
+            shown = f"les {len(photos)} premières" if total > len(photos) else f"{'la' if total == 1 else 'les'} {total}"
+            reply = (
+                f"Voici {shown} photo(s) publiée(s) par l'annonce d'origine du logement n°{rank}, "
+                f"« {listing.title} » ({listing.source_name}). Kwatsur ne les a pas vérifiées."
+            )
+            if room != "facade":
+                # La source ne dit pas quelle pièce montre chaque photo : on ne le prétend pas.
+                reply += f" Elles ne sont pas classées par pièce : rien ne garantit qu'une d'elles montre la pièce « {ROOM_LABELS[room]} »."
+            if total > len(photos):
+                reply += f" {total} photos au total sur l'annonce."
+        if listing.source_url:
+            reply += f" Annonce complète : {listing.source_url}"
+        response = self._answer_with_results(session_id, criteria, reply, selected, data_source)
+        response.images = photos
         return response
 
     def _compare(

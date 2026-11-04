@@ -1,7 +1,7 @@
 """Préparation d'un message de prise de contact. Rien n'est envoyé par Kwatsur."""
 
 from app.schemas.property import ContactDraftResponse, PropertyRead
-from app.services.ranking_service import format_fcfa
+from app.services.money import format_price
 from app.services.risk_service import missing_information
 
 SAFETY_NOTICE = (
@@ -20,7 +20,7 @@ def build_contact_draft(listing: PropertyRead) -> ContactDraftResponse:
             "Bonjour,",
             "",
             f"Je suis intéressé(e) par votre annonce « {listing.title} » ({location}), "
-            f"proposée à {format_fcfa(listing.monthly_rent)} par mois.",
+            f"proposée à {format_price(listing)}.",
             *questions,
             "Serait-il possible d'organiser une visite ?",
             "",

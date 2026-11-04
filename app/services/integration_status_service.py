@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.core.config import Settings
 from app.core.exceptions import KwatsurError
+from app.integrations.data.untera import SEARCH_PATH, UnteraClient
 from app.integrations.data.zetaris import TABLE_NAME_PATTERN, ZetarisClient
 from app.integrations.llm.openai_compatible import ChatCompletionClient
 
@@ -24,13 +25,40 @@ class IntegrationStatusService:
         settings: Settings,
         zetaris_client: ZetarisClient,
         chat_client: ChatCompletionClient | None,
+        untera_client: UnteraClient | None = None,
     ) -> None:
         self.settings = settings
         self.zetaris_client = zetaris_client
         self.chat_client = chat_client
+        self.untera_client = untera_client
 
     def report(self, live: bool) -> list[IntegrationStatus]:
-        return [self._zetaris_status(live), self._llm_status(live)]
+        statuses = [self._zetaris_status(live), self._llm_status(live)]
+        if self.untera_client is not None:
+            statuses.append(self._untera_status(live))
+        return statuses
+
+    def _untera_status(self, live: bool) -> IntegrationStatus:
+        client = self.untera_client
+        local = ", ".join(sorted(self.settings.local_countries)) or "aucun"
+        if not client.is_configured:
+            return IntegrationStatus(
+                name="untera", status="not_configured",
+                detail=f"Renseigner UNTERA_API_KEY (recherches hors {local}).",
+            )
+        if not live:
+            return IntegrationStatus(
+                name="untera", status="configured", detail=f"Recherches hors {local}."
+            )
+        try:
+            payload = client.get(SEARCH_PATH, {"country": "PT", "pageSize": 1}) or {}
+        except KwatsurError as error:
+            return IntegrationStatus(name="untera", status="error", detail=error.public_message)
+        count = len(payload.get("results") or payload.get("listings") or [])
+        return IntegrationStatus(
+            name="untera", status="ok",
+            detail=f"Recherche réussie sur Untera ({count} annonce lue). Recherches hors {local}.",
+        )
 
     def _zetaris_status(self, live: bool) -> IntegrationStatus:
         table = self.settings.zetaris_listings_table

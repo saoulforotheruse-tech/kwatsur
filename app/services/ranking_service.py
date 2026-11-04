@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from app.schemas.criteria import SearchCriteria, normalize_text
-from app.schemas.property import PropertyRead
+from app.schemas.property import UNSPECIFIED_PROPERTY_TYPE, PropertyRead
+from app.services.money import format_money, format_price, price_in
 
 # Mots trop vagues pour prouver qu'une préférence est mentionnée dans une annonce.
 GENERIC_WORDS = {
@@ -46,7 +47,7 @@ class RankedProperty:
 
 
 def format_fcfa(amount: int) -> str:
-    return f"{amount:,}".replace(",", " ") + " FCFA"
+    return format_money(amount, "XAF")
 
 
 def _keywords(text: str) -> list[str]:
@@ -78,12 +79,13 @@ class RankingService:
     ) -> list[RankedProperty]:
         ranked = [self.evaluate(item, criteria) for item in properties]
         # Départage reproductible : points, puis loyer le plus bas, puis identifiant.
-        ranked.sort(key=lambda item: (-item.match_points, item.property.monthly_rent, item.property.id))
+        ranked.sort(key=lambda item: (-item.match_points, item.property.monthly_rent, str(item.property.id)))
         return ranked
 
     def evaluate(self, property_record: PropertyRead, criteria: SearchCriteria) -> RankedProperty:
         result = RankedProperty(property=property_record)
         self._explain_mandatory_criteria(result, criteria)
+        self._score_city_in_address(result, criteria)
         self._score_neighborhood(result, criteria)
         self._score_bedrooms(result, criteria)
         self._score_amenities(result, criteria)
@@ -94,15 +96,41 @@ class RankingService:
 
     def _explain_mandatory_criteria(self, result: RankedProperty, criteria: SearchCriteria) -> None:
         listing = result.property
-        if criteria.city:
+        if criteria.city and isinstance(listing.id, str):
+            # Annonce internationale : seule l'adresse est connue ; la ville est vérifiée dedans.
+            address = normalize_text(listing.location_description or "")
+            if address and normalize_text(criteria.city) not in address:
+                result.tradeoffs.append(
+                    f"Adresse indiquée : {listing.location_description}, qui ne mentionne pas {criteria.city}."
+                )
+            else:
+                result.reasons.append(f"Adresse : {listing.location_description or listing.city}.")
+        elif criteria.city:
             result.reasons.append(f"Situé à {listing.city}.")
         if criteria.property_type:
-            result.reasons.append(f"Type de logement : {listing.property_type}.")
+            if listing.property_type == UNSPECIFIED_PROPERTY_TYPE:
+                result.to_verify.append(
+                    f"Type de logement non précisé par l'annonce : vérifiez qu'il s'agit bien d'un(e) {criteria.property_type}."
+                )
+            else:
+                result.reasons.append(f"Type de logement : {listing.property_type}.")
         if criteria.max_rent is not None:
-            result.reasons.append(
-                f"Loyer de {format_fcfa(listing.monthly_rent)}, dans votre budget "
-                f"(maximum {format_fcfa(criteria.max_rent)})."
-            )
+            budget = format_money(criteria.max_rent, criteria.budget_currency)
+            if price_in(listing, criteria.budget_currency) is None:
+                result.to_verify.append(
+                    f"Prix de {format_price(listing)} : comparez-le vous-même à votre budget "
+                    f"({budget}), aucune conversion n'est faite."
+                )
+            else:
+                label = "Loyer" if listing.transaction_type == "rent" else "Prix"
+                result.reasons.append(f"{label} de {format_price(listing)}, dans votre budget (maximum {budget}).")
+
+    def _score_city_in_address(self, result: RankedProperty, criteria: SearchCriteria) -> None:
+        """Annonce internationale dont l'adresse cite la ville demandée : classée avant les autres."""
+        listing = result.property
+        if criteria.city and isinstance(listing.id, str):
+            if normalize_text(criteria.city) in normalize_text(listing.location_description or ""):
+                result.match_points += self.weights.neighborhood_match
 
     def _score_neighborhood(self, result: RankedProperty, criteria: SearchCriteria) -> None:
         if not criteria.neighborhood:
@@ -158,10 +186,13 @@ class RankingService:
     def _score_budget(self, result: RankedProperty, criteria: SearchCriteria) -> None:
         if not criteria.max_rent:
             return
-        headroom = (criteria.max_rent - result.property.monthly_rent) / criteria.max_rent
+        price = price_in(result.property, criteria.budget_currency)
+        if price is None:
+            return
+        headroom = (criteria.max_rent - price) / criteria.max_rent
         result.match_points += round(self.weights.budget_headroom_max * max(headroom, 0))
         if headroom >= 0.10:
-            result.reasons.append(f"Loyer {round(headroom * 100)} % sous votre budget maximum.")
+            result.reasons.append(f"Prix {round(headroom * 100)} % sous votre budget maximum.")
 
     def _score_preferences(self, result: RankedProperty, criteria: SearchCriteria) -> None:
         for preference in criteria.preferences:

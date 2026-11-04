@@ -157,6 +157,8 @@ Toutes les valeurs viennent de l'environnement (`.env`, jamais commité). Les se
 | `LISTING_SOURCE` | `postgres` (défaut) ou `zetaris` |
 | `ZETARIS_FALLBACK_TO_POSTGRES` | Bascule visible vers PostgreSQL si Zetaris échoue |
 | `ZETARIS_BASE_URL`, `ZETARIS_API_KEY`, `ZETARIS_ORG_ID`, `ZETARIS_LISTINGS_TABLE` | Accès Zetaris (API REST officielle) |
+| `LOCAL_LISTING_COUNTRIES` | Pays servis par la source locale (`CM` par défaut) ; les autres pays passent par Untera |
+| `UNTERA_API_KEY`, `UNTERA_BASE_URL` | Annonces internationales Untera (voir `docs/data-sources.md`) |
 | `LLM_PROVIDER` | `rules` (défaut : **mode démo sans IA ni clé**), `meterless` (Nemotron via Nightshift, utilisé pour le hackathon), `nemotron` (API NVIDIA directe) ou `none` (chat désactivé) |
 | `SCOUT_SIGNING_SECRET` | Secret HMAC des contrats Scout Intent (éphémère s'il est vide) |
 | `ADMIN_TOKEN` | Jeton de la page `/admin.html` qui valide les annonces proposées (vide = administration fermée) |

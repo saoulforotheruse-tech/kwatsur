@@ -18,7 +18,7 @@ from app.integrations.image_description.base import DisabledImageDescriber, Imag
 from app.integrations.image_generation.base import ImageGenerationProvider
 from app.models.image import PropertyImage
 from app.repositories.image_repository import ImageRepository
-from app.schemas.image import AI_DISCLAIMER, KIND_LABELS, ROOM_LABELS, ImageRead
+from app.schemas.image import AI_DISCLAIMER, KIND_LABELS, ROOM_LABELS, SOURCE_PHOTO_CAPTION, ImageRead
 from app.schemas.property import PropertyRead, PropertySearchResult
 from app.services.image_storage import LocalImageStore
 
@@ -152,6 +152,30 @@ def photo_credit(image: PropertyImage) -> str | None:
         return None
     parts = [part for part in (image.author, image.license) if part]
     return " · ".join([*parts, "Wikimedia Commons"]) if parts else "Wikimedia Commons"
+
+
+MAX_SOURCE_PHOTOS = 4
+
+
+def source_photo_reads(listing: PropertyRead, limit: int = MAX_SOURCE_PHOTOS) -> list[ImageRead]:
+    """Photos publiées par l'annonce d'origine (Untera), affichées par leur lien, jamais générées."""
+    seen_at = listing.last_seen_at or datetime.now(timezone.utc)
+    return [
+        ImageRead(
+            id=None,
+            url=url,
+            kind="source_photo",
+            room="autre",
+            label=KIND_LABELS["source_photo"],
+            is_ai_generated=False,
+            caption=SOURCE_PHOTO_CAPTION,
+            property_id=listing.id,
+            credit=listing.source_name,
+            source_url=str(listing.source_url) if listing.source_url else None,
+            created_at=seen_at,
+        )
+        for url in listing.photo_urls[:limit]
+    ]
 
 
 def to_image_read(image: PropertyImage) -> ImageRead:
@@ -340,13 +364,18 @@ class ImageService:
 
     def attach_photos(self, results: list[PropertySearchResult]) -> list[PropertySearchResult]:
         """Ajoute aux résultats leurs images : photos du propriétaire, d'exemple, puis illustrations IA."""
-        images = self.repository.for_properties([result.property.id for result in results])
+        # Seules les annonces locales (identifiant entier) ont des images en base.
+        local_ids = [result.property.id for result in results if isinstance(result.property.id, int)]
+        images = self.repository.for_properties(local_ids) if local_ids else []
         display_order = {"owner_photo": 0, "sample_photo": 1}
         by_property: dict[int, list[ImageRead]] = {}
         for image in sorted(images, key=lambda item: (display_order.get(item.kind, 2), item.id)):
             by_property.setdefault(image.property_id, []).append(to_image_read(image))
         for result in results:
-            result.images = by_property.get(result.property.id, [])
+            if isinstance(result.property.id, str):
+                result.images = source_photo_reads(result.property)
+            else:
+                result.images = by_property.get(result.property.id, [])
         return results
 
     def file_for(self, image_id: int) -> tuple[str, str] | None:

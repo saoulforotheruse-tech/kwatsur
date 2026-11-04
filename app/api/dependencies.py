@@ -12,6 +12,7 @@ from app.db.session import get_session
 from app.engines.scout import ModelProfile, ScoutEngine
 from app.integrations.data.postgres import PostgresListingSource
 from app.core.exceptions import KwatsurError
+from app.integrations.data.untera import UnteraClient, UnteraListingSource
 from app.integrations.data.zetaris import ZetarisClient, ZetarisListingSource
 from app.integrations.image_description.base import ImageDescriber
 from app.integrations.image_description.factory import build_image_describer
@@ -53,16 +54,29 @@ def build_zetaris_client(app_settings: Settings) -> ZetarisClient:
     )
 
 
+def build_untera_client(app_settings: Settings) -> UnteraClient:
+    return UnteraClient(
+        base_url=app_settings.untera_base_url,
+        api_key=app_settings.untera_api_key,
+        timeout_seconds=app_settings.untera_timeout_seconds,
+    )
+
+
 def get_search_service(session: DatabaseSession, app_settings: AppSettings) -> SearchService:
     postgres_source = PostgresListingSource(PropertyRepository(session))
     ranking, risk = RankingService(), RiskService()
+    # Annonces hors des pays locaux (LOCAL_LISTING_COUNTRIES) : Untera.
+    routing = {
+        "international_source": UnteraListingSource(build_untera_client(app_settings)),
+        "local_countries": app_settings.local_countries,
+    }
     if app_settings.listing_source == "zetaris":
         zetaris_source = ZetarisListingSource(
             build_zetaris_client(app_settings), app_settings.zetaris_listings_table
         )
         fallback = postgres_source if app_settings.zetaris_fallback_to_postgres else None
-        return SearchService(zetaris_source, ranking, risk, fallback_source=fallback)
-    return SearchService(postgres_source, ranking, risk)
+        return SearchService(zetaris_source, ranking, risk, fallback_source=fallback, **routing)
+    return SearchService(postgres_source, ranking, risk, **routing)
 
 
 SearchServiceDependency = Annotated[SearchService, Depends(get_search_service)]
@@ -157,7 +171,9 @@ AgentServiceDependency = Annotated[AgentService, Depends(get_agent_service)]
 def get_integration_status_service(app_settings: AppSettings) -> IntegrationStatusService:
     provider = build_llm_provider(app_settings)
     chat_client = provider.chat_client if isinstance(provider, NemotronProvider) else None
-    return IntegrationStatusService(app_settings, build_zetaris_client(app_settings), chat_client)
+    return IntegrationStatusService(
+        app_settings, build_zetaris_client(app_settings), chat_client, build_untera_client(app_settings)
+    )
 
 
 IntegrationStatusDependency = Annotated[

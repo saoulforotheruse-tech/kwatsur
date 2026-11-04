@@ -64,10 +64,11 @@ def is_visualization_request(prompt: str) -> bool:
     if re.search(r"\ba quoi (ressemble|ressemblent)\b|\bde quoi a l.air\b", text):
         return True
     action = re.search(
-        r"\b(montre\w*|voir|visualis\w*|gener\w*|cree\w*|dessin\w*|imagin\w*|donne\w*|affich\w*)\b",
+        r"\b(montre\w*|voir|visualis\w*|gener\w*|cree\w*|dessin\w*|imagin\w*|donne\w*|affich\w*"
+        r"|show\w*|see|send)\b",
         text,
     )
-    target = re.search(r"\b(images?|photos?|illustrations?|representations?)\b", text)
+    target = re.search(r"\b(images?|photos?|illustrations?|representations?|pictures?|pics?)\b", text)
     return bool(action and (target or any(pattern.search(text) for _, pattern in ROOM_PATTERNS)))
 
 

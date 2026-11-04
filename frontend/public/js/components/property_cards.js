@@ -5,8 +5,10 @@ import {
   formatBedrooms,
   formatBoolean,
   formatDate,
+  formatAmount,
   formatListingStatus,
   formatRent,
+  priceSuffix,
 } from "../utils/format.js";
 import { createImageFigure } from "./images.js";
 
@@ -89,6 +91,15 @@ function createSourceLabel(property) {
   return label;
 }
 
+// Mention exigée par l'offre gratuite d'Untera, là où ses annonces sont affichées.
+function createUnteraAttribution() {
+  const link = createElement("a", "Powered by Untera", "property-attribution");
+  link.href = "https://untera.io";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  return link;
+}
+
 function createPropertyCard(result, handlers, bestPoints, index) {
   const { property } = result;
   const selected = handlers.isSelected(property.id);
@@ -100,6 +111,9 @@ function createPropertyCard(result, handlers, bestPoints, index) {
   const badges = createElement("div", null, "badges");
   if (property.source_is_demo) {
     badges.append(createElement("span", t("card.demo"), "badge demo"));
+  }
+  if (property.transaction_type === "sale") {
+    badges.append(createElement("span", t("card.saleBadge"), "badge sale"));
   }
   badges.append(createElement("span", formatListingStatus(property.listing_status), "badge status"));
   top.append(badges);
@@ -116,7 +130,7 @@ function createPropertyCard(result, handlers, bestPoints, index) {
   card.append(location);
 
   const rent = createElement("p", null, "property-rent");
-  rent.append(document.createTextNode(formatRent(property).replace(" / mois", " ")), createElement("small", "/ mois"));
+  rent.append(document.createTextNode(`${formatAmount(property)} `), createElement("small", priceSuffix(property)));
   card.append(rent);
 
   card.append(createFacts(property), createMatchBar(result, bestPoints));
@@ -145,6 +159,9 @@ function createPropertyCard(result, handlers, bestPoints, index) {
 
   actions.append(compareButton, contactButton);
   footer.append(actions, createSourceLabel(property));
+  if (property.source_name?.endsWith("Untera")) {
+    footer.append(createUnteraAttribution());
+  }
   card.append(footer);
   return card;
 }
@@ -163,7 +180,7 @@ export function renderComparison(container, properties) {
   }
   const rows = [
     ["Lieu", (p) => [p.neighborhood, p.city].filter(Boolean).join(", ")],
-    ["Loyer mensuel", formatRent],
+    ["Prix", formatRent],
     ["Type", (p) => p.property_type],
     ["Chambres", (p) => (p.bedrooms == null ? null : formatBedrooms(p.bedrooms))],
     ["Salles de bain", (p) => p.bathrooms],

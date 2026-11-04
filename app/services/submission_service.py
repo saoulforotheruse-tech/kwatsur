@@ -27,7 +27,7 @@ from app.schemas.submission import (
     SubmissionRead,
 )
 from app.services.image_service import ImageService
-from app.services.ranking_service import format_fcfa
+from app.services.money import format_money
 
 EDITABLE_FIELDS = tuple(ListingFields.model_fields)
 
@@ -54,7 +54,7 @@ def _display(name: str, value: object) -> str:
     if isinstance(value, bool):
         return "oui" if value else "non"
     if name == "monthly_rent":
-        return f"{format_fcfa(value)} / mois"
+        return f"{format_money(value)} / mois"
     return str(value)
 
 
